@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alter AI</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <header class="panel-header">
+    <span class="panel-logo">🧩</span>
+    <span class="panel-title">Alter AI</span>
+    <span class="panel-subtitle">认知副驾</span>
+  </header>
+
+  <div id="chat-container" role="log" aria-live="polite" aria-label="对话记录"></div>
+
+  <div id="typing-indicator" class="typing-indicator" hidden>
+    <span></span><span></span><span></span>
+  </div>
+
+  <form id="chat-form" class="chat-form" autocomplete="off">
+    <textarea
+      id="chat-input"
+      class="chat-input"
+      placeholder="告诉 Alter AI 你在做什么…"
+      rows="2"
+      aria-label="输入消息"
+    ></textarea>
+    <button type="submit" class="send-btn" aria-label="发送">
+      ➤
+    </button>
+  </form>
+
+  <script src="sidepanel.js" type="module"></script>
+</body>
+</html>

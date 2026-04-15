@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Alter AI — 认知副驾",
+  "version": "0.1.0",
+  "description": "主动感知任务瘫痪，提供微步拆解干预 — Cognitive co-pilot for ADHD / task paralysis",
+  "permissions": [
+    "tabs",
+    "storage",
+    "alarms",
+    "sidePanel",
+    "idle"
+  ],
+  "host_permissions": [
+    "wss://*/*",
+    "ws://*/*"
+  ],
+  "background": {
+    "service_worker": "background/service_worker.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "action": {
+    "default_title": "打开 Alter AI",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content_script.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
