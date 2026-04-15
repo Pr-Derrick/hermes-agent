@@ -37,7 +37,7 @@ from gateway.platforms.base import (
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_HOST = "0.0.0.0"
+DEFAULT_HOST = "127.0.0.1"  # Bind to loopback by default; Chrome Extension is local-only
 DEFAULT_PORT = 8765
 AGENT_TIMEOUT_SECS = 15  # After this, degrade gracefully to Listener Mode
 FREEZE_PROMPT_TEMPLATE = (

@@ -50,7 +50,7 @@ function appendBubble(role, text) {
   scrollToBottom();
 }
 
-// ── Socratic Draft Card ───────────────────────────────────
+// Socratic Draft Card ───────────────────────────────────
 // Renders a structured micro-step breakdown card with optional
 // RAG citations from the user's past success history.
 
@@ -61,36 +61,69 @@ function appendSocraticCard(card) {
   const steps = Array.isArray(card.steps) ? card.steps : [];
   const citations = Array.isArray(card.citations) ? card.citations : [];
 
-  const citationsHtml = citations.length
-    ? `<div class="citations">
-        <span class="citation-label">📚 来自你的成功经验：</span>
-        ${citations.map((c) => `
-          <div class="citation-item">
-            <span class="citation-source">${escapeHtml(c.source || '')}</span>
-            <span class="citation-snippet">"${escapeHtml(c.snippet || '')}"</span>
-          </div>`).join('')}
-      </div>`
-    : '';
+  // Header
+  const header = document.createElement('div');
+  header.className = 'card-header';
+  const icon = document.createElement('span');
+  icon.className = 'card-icon';
+  icon.textContent = '🧩';
+  const title = document.createElement('span');
+  title.className = 'card-title';
+  title.textContent = card.title || '微步拆解';
+  header.appendChild(icon);
+  header.appendChild(title);
+  el.appendChild(header);
 
-  el.innerHTML = `
-    <div class="card-header">
-      <span class="card-icon">🧩</span>
-      <span class="card-title">${escapeHtml(card.title || '微步拆解')}</span>
-    </div>
-    <ol class="micro-steps">
-      ${steps.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}
-    </ol>
-    ${citationsHtml}
-    <div class="card-actions">
-      <button id="btn-accept-card">✅ 开始第一步</button>
-      <button id="btn-reject-card">🔄 换个方向</button>
-    </div>`;
+  // Micro-steps
+  const ol = document.createElement('ol');
+  ol.className = 'micro-steps';
+  steps.forEach((s) => {
+    const li = document.createElement('li');
+    li.textContent = s;
+    ol.appendChild(li);
+  });
+  el.appendChild(ol);
+
+  // Citations
+  if (citations.length > 0) {
+    const citDiv = document.createElement('div');
+    citDiv.className = 'citations';
+    const label = document.createElement('span');
+    label.className = 'citation-label';
+    label.textContent = '📚 来自你的成功经验：';
+    citDiv.appendChild(label);
+    citations.forEach((c) => {
+      const item = document.createElement('div');
+      item.className = 'citation-item';
+      const src = document.createElement('span');
+      src.className = 'citation-source';
+      src.textContent = c.source || '';
+      const snip = document.createElement('span');
+      snip.className = 'citation-snippet';
+      snip.textContent = `"${c.snippet || ''}"`;
+      item.appendChild(src);
+      item.appendChild(snip);
+      citDiv.appendChild(item);
+    });
+    el.appendChild(citDiv);
+  }
+
+  // Action buttons
+  const actions = document.createElement('div');
+  actions.className = 'card-actions';
+  const acceptBtn = document.createElement('button');
+  acceptBtn.textContent = '✅ 开始第一步';
+  const rejectBtn = document.createElement('button');
+  rejectBtn.textContent = '🔄 换个方向';
+  actions.appendChild(acceptBtn);
+  actions.appendChild(rejectBtn);
+  el.appendChild(actions);
 
   chatContainer.appendChild(el);
   scrollToBottom();
 
-  el.querySelector('#btn-accept-card').addEventListener('click', () => acceptCard(card, el));
-  el.querySelector('#btn-reject-card').addEventListener('click', () => rejectCard(el));
+  acceptBtn.addEventListener('click', () => acceptCard(card, el));
+  rejectBtn.addEventListener('click', () => rejectCard(el));
 }
 
 function acceptCard(card, cardEl) {
@@ -139,15 +172,6 @@ function hideTypingIndicator() {
 
 function scrollToBottom() {
   chatContainer.scrollTop = chatContainer.scrollHeight;
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 // ── Form Submission ───────────────────────────────────────
