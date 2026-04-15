@@ -2250,6 +2250,13 @@ class GatewayRunner:
                 return None
             return BlueBubblesAdapter(config)
 
+        elif platform == Platform.ALTER_CHROME:
+            from gateway.platforms.alter_chrome import AlterChromeAdapter, check_alter_chrome_requirements
+            if not check_alter_chrome_requirements():
+                logger.warning("AlterChrome: aiohttp not installed")
+                return None
+            return AlterChromeAdapter(config)
+
         return None
     
     def _is_user_authorized(self, source: SessionSource) -> bool:
@@ -2268,7 +2275,9 @@ class GatewayRunner:
         # connection, so HA events are always authorized.
         # Webhook events are authenticated via HMAC signature validation in
         # the adapter itself — no user allowlist applies.
-        if source.platform in (Platform.HOMEASSISTANT, Platform.WEBHOOK):
+        # Alter AI Chrome Extension sessions are authenticated via api_token
+        # validated at the adapter level — no per-user allowlist needed.
+        if source.platform in (Platform.HOMEASSISTANT, Platform.WEBHOOK, Platform.ALTER_CHROME):
             return True
 
         user_id = source.user_id

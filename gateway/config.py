@@ -66,6 +66,7 @@ class Platform(Enum):
     WECOM_CALLBACK = "wecom_callback"
     WEIXIN = "weixin"
     BLUEBUBBLES = "bluebubbles"
+    ALTER_CHROME = "alter_chrome"
 
 
 @dataclass
@@ -302,6 +303,9 @@ class GatewayConfig:
                 connected.append(platform)
             # BlueBubbles uses extra dict for local server config
             elif platform == Platform.BLUEBUBBLES and config.extra.get("server_url") and config.extra.get("password"):
+                connected.append(platform)
+            # Alter AI Chrome Extension uses enabled flag only (no token needed)
+            elif platform == Platform.ALTER_CHROME:
                 connected.append(platform)
         return connected
     
@@ -1088,3 +1092,22 @@ def _apply_env_overrides(config: GatewayConfig) -> None:
             config.default_reset_policy.at_hour = int(reset_hour)
         except ValueError:
             pass
+
+    # Alter AI Chrome Extension WebSocket adapter
+    alter_chrome_enabled = os.getenv("ALTER_CHROME_ENABLED", "").lower() in ("true", "1", "yes")
+    alter_chrome_token = os.getenv("ALTER_CHROME_API_TOKEN", "")
+    if alter_chrome_enabled or alter_chrome_token:
+        if Platform.ALTER_CHROME not in config.platforms:
+            config.platforms[Platform.ALTER_CHROME] = PlatformConfig()
+        config.platforms[Platform.ALTER_CHROME].enabled = True
+        if alter_chrome_token:
+            config.platforms[Platform.ALTER_CHROME].extra["api_token"] = alter_chrome_token
+        alter_chrome_port = os.getenv("ALTER_CHROME_PORT")
+        if alter_chrome_port:
+            try:
+                config.platforms[Platform.ALTER_CHROME].extra["port"] = int(alter_chrome_port)
+            except ValueError:
+                pass
+        alter_chrome_host = os.getenv("ALTER_CHROME_HOST", "")
+        if alter_chrome_host:
+            config.platforms[Platform.ALTER_CHROME].extra["host"] = alter_chrome_host
