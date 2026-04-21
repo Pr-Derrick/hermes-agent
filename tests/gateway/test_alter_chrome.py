@@ -33,6 +33,13 @@ class TestAlterChromePlatformEnum:
         assert "alter_chrome" in values
 
 
+class TestAlterChromePlatformRegistry:
+    def test_platform_registry_includes_alter_chrome(self):
+        from hermes_cli.platforms import PLATFORMS
+        assert "alter_chrome" in PLATFORMS
+        assert PLATFORMS["alter_chrome"].default_toolset == "hermes-cli"
+
+
 # ── Config Loading ────────────────────────────────────────────────────────────
 
 class TestAlterChromeConfigLoading:
@@ -198,6 +205,37 @@ class TestSessionIdExtraction:
         chat_id = "plain_session_id"
         extracted = chat_id.split(":", 1)[-1] if ":" in chat_id else chat_id
         assert extracted == "plain_session_id"
+
+
+class TestSend:
+    def test_send_accepts_base_contract_content_kwarg(self):
+        class _FakeWS:
+            def __init__(self):
+                self.sent = []
+
+            async def send_json(self, payload):
+                self.sent.append(payload)
+
+        adapter = _make_adapter()
+        session_id = "abc123"
+        ws = _FakeWS()
+        adapter._active_sessions[session_id] = {
+            "ws": ws,
+            "chat_id": f"alter_chrome:{session_id}",
+            "connected_at": 0.0,
+        }
+
+        result = asyncio.get_event_loop().run_until_complete(
+            adapter.send(
+                chat_id=f"alter_chrome:{session_id}",
+                content="Hello world",
+                reply_to="ignored",
+                metadata={"x": "y"},
+            )
+        )
+
+        assert result.success is True
+        assert ws.sent == [{"type": "text", "text": "Hello world"}]
 
 
 # ── get_chat_info ─────────────────────────────────────────────────────────────

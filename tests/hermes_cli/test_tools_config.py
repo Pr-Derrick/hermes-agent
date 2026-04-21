@@ -405,7 +405,7 @@ class TestPlatformToolsetConsistency:
 
         gateway_includes = set(TOOLSETS["hermes-gateway"]["includes"])
         # Exclude non-messaging platforms from the check
-        non_messaging = {"cli", "api_server"}
+        non_messaging = {"cli", "api_server", "alter_chrome"}
         for platform, meta in PLATFORMS.items():
             if platform in non_messaging:
                 continue
