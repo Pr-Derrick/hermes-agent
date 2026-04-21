@@ -213,6 +213,64 @@ class TestGetChatInfo:
         assert info["chat_id"] == "alter_chrome:test-session-id"
 
 
+# ── build_source call compatibility ───────────────────────────────────────────
+
+class TestAlterChromeBuildSourceCallCompatibility:
+    def test_handle_chat_build_source_called_without_platform_kwarg(self, monkeypatch):
+        adapter = _make_adapter()
+        captured = {}
+
+        def fake_build_source(*, chat_id, **kwargs):
+            captured["chat_id"] = chat_id
+            captured["kwargs"] = kwargs
+            return "source"
+
+        async def fake_handle_message(event):
+            captured["event_source"] = event.source
+
+        monkeypatch.setattr(adapter, "build_source", fake_build_source)
+        monkeypatch.setattr(adapter, "handle_message", fake_handle_message)
+
+        asyncio.get_event_loop().run_until_complete(
+            adapter._handle_chat(
+                ws=None,
+                chat_id="alter_chrome:test-session-id",
+                data={"text": "hello"},
+            )
+        )
+
+        assert captured["chat_id"] == "alter_chrome:test-session-id"
+        assert "platform" not in captured["kwargs"]
+        assert captured["event_source"] == "source"
+
+    def test_run_agent_build_source_called_without_platform_kwarg(self, monkeypatch):
+        adapter = _make_adapter()
+        captured = {}
+
+        def fake_build_source(*, chat_id, **kwargs):
+            captured["chat_id"] = chat_id
+            captured["kwargs"] = kwargs
+            return "source"
+
+        async def fake_handle_message(event):
+            captured["event_source"] = event.source
+
+        monkeypatch.setattr(adapter, "build_source", fake_build_source)
+        monkeypatch.setattr(adapter, "handle_message", fake_handle_message)
+
+        asyncio.get_event_loop().run_until_complete(
+            adapter._run_agent_with_timeout(
+                ws=None,
+                chat_id="alter_chrome:test-session-id",
+                user_text="hello",
+            )
+        )
+
+        assert captured["chat_id"] == "alter_chrome:test-session-id"
+        assert "platform" not in captured["kwargs"]
+        assert captured["event_source"] == "source"
+
+
 # ── Authorization ─────────────────────────────────────────────────────────────
 
 class TestAlterChromeAuthorization:
