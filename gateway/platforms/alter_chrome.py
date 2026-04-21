@@ -195,11 +195,10 @@ class AlterChromeAdapter(BasePlatformAdapter):
         if not text:
             return
         event = MessageEvent(
-            chat_id=chat_id,
-            user_id=chat_id,
             text=text,
             message_type=MessageType.TEXT,
-            source=self.build_source(chat_id=chat_id, platform=Platform.ALTER_CHROME),
+            source=self.build_source(chat_id=chat_id, user_id=chat_id),
+            raw_message=data,
         )
         await self.handle_message(event)
 
@@ -229,12 +228,10 @@ class AlterChromeAdapter(BasePlatformAdapter):
            Socratic Card JSON and sends a structured or plain-text payload.
         """
         event = MessageEvent(
-            chat_id=chat_id,
-            user_id=chat_id,
             text=user_text,
             message_type=MessageType.TEXT,
-            source=self.build_source(chat_id=chat_id, platform=Platform.ALTER_CHROME),
-            extra={"is_implicit": is_implicit, "behavior_context": context or {}},
+            source=self.build_source(chat_id=chat_id, user_id=chat_id),
+            raw_message={"is_implicit": is_implicit, "behavior_context": context or {}},
         )
         try:
             await asyncio.wait_for(
