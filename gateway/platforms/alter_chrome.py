@@ -269,7 +269,13 @@ class AlterChromeAdapter(BasePlatformAdapter):
 
     # ── Send Interface (called by GatewayRunner to deliver agent replies) ────
 
-    async def send(self, chat_id: str, text: str, **kwargs) -> SendResult:
+    async def send(
+        self,
+        chat_id: str,
+        content: str,
+        reply_to=None,
+        metadata=None,
+    ) -> SendResult:
         """Deliver agent response back to the Chrome Extension client."""
         session_id = chat_id.split(":", 1)[-1] if ":" in chat_id else chat_id
         session = self._active_sessions.get(session_id)
@@ -277,7 +283,7 @@ class AlterChromeAdapter(BasePlatformAdapter):
             return SendResult(success=False, error="session not found")
 
         ws: "web.WebSocketResponse" = session["ws"]
-        payload = self._parse_agent_response(text)
+        payload = self._parse_agent_response(content)
         try:
             await ws.send_json(payload)
             return SendResult(success=True)
