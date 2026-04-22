@@ -18,7 +18,6 @@ function sendChat(text) {
   if (!trimmed) return;
   chrome.runtime.sendMessage({ type: 'chat_message', text: trimmed }).catch(() => {});
   appendBubble('user', trimmed);
-  showTypingIndicator();
 }
 
 function handleHermesMessage(payload) {
@@ -58,18 +57,31 @@ function appendSocraticCard(card) {
 
   const steps = Array.isArray(card.steps) ? card.steps : [];
   const citations = Array.isArray(card.citations) ? card.citations : [];
-  const timeLimit = card.time_limit || 10;
+  const parsedTimeLimit = Number(card.time_limit);
+  const timeLimit = Number.isFinite(parsedTimeLimit) && parsedTimeLimit > 0 ? parsedTimeLimit : 10;
 
   // Header
   const header = document.createElement('div');
   header.className = 'card-header';
-  header.innerHTML = `<span class="card-icon">🧩</span> <span class="card-title">${card.title || '微拆解行动'}</span><span class="card-timer">⏱ ${timeLimit}min</span>`;
+  const icon = document.createElement('span');
+  icon.className = 'card-icon';
+  icon.textContent = '🧩';
+  const title = document.createElement('span');
+  title.className = 'card-title';
+  title.textContent = card.title || '微拆解行动';
+  const timer = document.createElement('span');
+  timer.className = 'card-timer';
+  timer.textContent = `⏱ ${timeLimit}min`;
+  header.append(icon, title, timer);
   el.appendChild(header);
 
   // Progress bar
   const progress = document.createElement('div');
   progress.className = 'card-progress';
-  progress.innerHTML = '<div class="progress-fill" style="width:0%"></div>';
+  const progressFill = document.createElement('div');
+  progressFill.className = 'progress-fill';
+  progressFill.style.width = '0%';
+  progress.appendChild(progressFill);
   el.appendChild(progress);
 
   // Steps
@@ -77,7 +89,10 @@ function appendSocraticCard(card) {
   ol.className = 'micro-steps';
   steps.forEach((s, i) => {
     const li = document.createElement('li');
-    li.innerHTML = `<span class="step-num">${i + 1}</span>${s}`;
+    const stepNum = document.createElement('span');
+    stepNum.className = 'step-num';
+    stepNum.textContent = String(i + 1);
+    li.append(stepNum, document.createTextNode(String(s)));
     ol.appendChild(li);
   });
   el.appendChild(ol);
@@ -86,7 +101,9 @@ function appendSocraticCard(card) {
   if (citations.length > 0) {
     const citDiv = document.createElement('div');
     citDiv.className = 'citations';
-    citDiv.innerHTML = '📚 来自你的成功经验：';
+    const citationsTitle = document.createElement('div');
+    citationsTitle.textContent = '📚 来自你的成功经验：';
+    citDiv.appendChild(citationsTitle);
     citations.forEach(c => {
       const span = document.createElement('span');
       span.className = 'citation-item';
@@ -99,36 +116,44 @@ function appendSocraticCard(card) {
   // Action buttons
   const actions = document.createElement('div');
   actions.className = 'card-actions';
-  actions.innerHTML = `
-    <button class="btn-accept">✅ 开始第一步</button>
-    <button class="btn-downgrade">⬇️ 太难了，降级</button>
-    <button class="btn-reject">🔄 换个方向</button>
-  `;
+  const acceptBtn = document.createElement('button');
+  acceptBtn.className = 'btn-accept';
+  acceptBtn.textContent = '✅ 开始第一步';
+  const downgradeBtn = document.createElement('button');
+  downgradeBtn.className = 'btn-downgrade';
+  downgradeBtn.textContent = '⬇️ 太难了，降级';
+  const rejectBtn = document.createElement('button');
+  rejectBtn.className = 'btn-reject';
+  rejectBtn.textContent = '🔄 换个方向';
+  actions.append(acceptBtn, downgradeBtn, rejectBtn);
   el.appendChild(actions);
 
   // Commit section
   const commit = document.createElement('div');
   commit.className = 'commit-section';
   commit.hidden = true;
-  commit.innerHTML = `
-    <div class="timer-display"><span class="timer-count">${timeLimit}:00</span></div>
-    <div class="commit-buttons">
-      <button class="btn-done">✅ 完成了！</button>
-      <button class="btn-fail">❌ 没做到</button>
-    </div>
-  `;
+  const timerDisplay = document.createElement('div');
+  timerDisplay.className = 'timer-display';
+  const timerCount = document.createElement('span');
+  timerCount.className = 'timer-count';
+  timerCount.textContent = `${timeLimit}:00`;
+  timerDisplay.appendChild(timerCount);
+  const commitButtons = document.createElement('div');
+  commitButtons.className = 'commit-buttons';
+  const doneBtn = document.createElement('button');
+  doneBtn.className = 'btn-done';
+  doneBtn.textContent = '✅ 完成了！';
+  const failBtn = document.createElement('button');
+  failBtn.className = 'btn-fail';
+  failBtn.textContent = '❌ 没做到';
+  commitButtons.append(doneBtn, failBtn);
+  commit.append(timerDisplay, commitButtons);
   el.appendChild(commit);
 
   chatContainer.appendChild(el);
   scrollToBottom();
 
   // Event bindings
-  const acceptBtn = actions.querySelector('.btn-accept');
-  const rejectBtn = actions.querySelector('.btn-reject');
-  const downgradeBtn = actions.querySelector('.btn-downgrade');
-  const doneBtn = commit.querySelector('.btn-done');
-  const failBtn = commit.querySelector('.btn-fail');
-
   acceptBtn.addEventListener('click', () => startActionTimer(card, el, commit, timeLimit));
   rejectBtn.addEventListener('click', () => rejectCard(el));
   downgradeBtn.addEventListener('click', () => requestDowngrade(card, el));
@@ -146,13 +171,17 @@ function startActionTimer(card, cardEl, commitEl, minutes) {
   const timerSpan = commitEl.querySelector('.timer-count');
   activeTimer = setInterval(() => {
     seconds--;
+    if (seconds <= 0) {
+      clearInterval(activeTimer);
+      timerSpan.textContent = '时间到';
+      return;
+    }
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     timerSpan.textContent = `${m}:${s.toString().padStart(2, '0')}`;
     const fill = cardEl.querySelector('.progress-fill');
     const pct = ((minutes * 60 - seconds) / (minutes * 60)) * 100;
     fill.style.width = `${pct}%`;
-    if (seconds <= 0) { clearInterval(activeTimer); timerSpan.textContent = '时间到'; }
   }, 1000);
   commitEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -167,7 +196,15 @@ function commitAction(card, stepIndex, cardEl) {
   chrome.runtime.sendMessage({ type: 'action_completed', action }, (res) => {
     if (res?.success) {
       const commitEl = cardEl.querySelector('.commit-section');
-      commitEl.innerHTML = `<div class="commit-success">🏆 已记录！黄金动作 #${res.goldenCount}<div class="commit-note">知行合一 · 王阳明</div></div>`;
+      commitEl.replaceChildren();
+      const success = document.createElement('div');
+      success.className = 'commit-success';
+      success.textContent = `🏆 已记录！黄金动作 #${res.goldenCount}`;
+      const note = document.createElement('div');
+      note.className = 'commit-note';
+      note.textContent = '知行合一 · 王阳明';
+      success.appendChild(note);
+      commitEl.appendChild(success);
     }
   });
 }
@@ -201,13 +238,23 @@ function appendCrisisBanner(payload) {
   const el = document.createElement('div');
   el.className = 'crisis-banner';
   const resources = Array.isArray(payload.resources) ? payload.resources : [];
-  el.innerHTML = `
-    <div class="crisis-title">🚨 紧急支持资源</div>
-    <div class="crisis-message">你现在不安全吗？以下是可以立即联系的专业援助：</div>
-    <div class="crisis-resources">
-      ${resources.map(r => `<div class="crisis-resource"><strong>${r.name}</strong><br>${r.tel}</div>`).join('')}
-    </div>
-  `;
+  const title = document.createElement('div');
+  title.className = 'crisis-title';
+  title.textContent = '🚨 紧急支持资源';
+  const message = document.createElement('div');
+  message.className = 'crisis-message';
+  message.textContent = '你现在不安全吗？以下是可以立即联系的专业援助：';
+  const resourcesEl = document.createElement('div');
+  resourcesEl.className = 'crisis-resources';
+  resources.forEach((r) => {
+    const item = document.createElement('div');
+    item.className = 'crisis-resource';
+    const name = document.createElement('strong');
+    name.textContent = String(r?.name || '');
+    item.append(name, document.createElement('br'), document.createTextNode(String(r?.tel || '')));
+    resourcesEl.appendChild(item);
+  });
+  el.append(title, message, resourcesEl);
   chatContainer.appendChild(el);
   scrollToBottom();
 }

@@ -5,6 +5,7 @@ import {
   HERMES_WS_URL, FREEZE_THRESHOLD_MS, INACTIVITY_THRESHOLD_MS,
   DISTORTION_PATTERNS, CRISIS_KEYWORDS, MEMORY_LIMITS
 } from '../config.js';
+const NORMALIZED_CRISIS_KEYWORDS = CRISIS_KEYWORDS.map((k) => String(k).toLowerCase());
 
 // ── 状态机 ──────────────────────────────────────────────────
 const state = {
@@ -120,7 +121,7 @@ function enrichHermesMessage(msg) {
 // ── Crisis Detection (Tier 3 Emergency) ──────────────────────
 function detectCrisis(text) {
   const lower = text.toLowerCase();
-  return CRISIS_KEYWORDS.some(k => lower.includes(k));
+  return NORMALIZED_CRISIS_KEYWORDS.some((k) => lower.includes(k));
 }
 
 function triggerCrisisProtocol() {
@@ -234,11 +235,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === 'chat_message') {
-    if (detectCrisis(msg.text)) { triggerCrisisProtocol(); return true; }
     const distortions = detectDistortion(msg.text);
     if (distortions.length > 0) logDistortion(distortions, { text: msg.text.substring(0, 100) });
+    if (detectCrisis(msg.text)) {
+      sendToHermes({ type: 'chat', text: msg.text, distortions, crisis_detected: true });
+      triggerCrisisProtocol();
+      return;
+    }
     sendToHermes({ type: 'chat', text: msg.text, distortions });
-    return true;
+    return;
   }
 
   if (msg.type === 'action_completed') {
