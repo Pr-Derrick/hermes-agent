@@ -1,39 +1,36 @@
 {
   "manifest_version": 3,
-  "name": "Alter AI — 认知副驾",
-  "version": "0.1.0",
-  "description": "主动感知任务瘫痪，提供微步拆解干预 — Cognitive co-pilot for ADHD / task paralysis",
+  "name": "Alter AI V4.2 — 认知重构引擎",
+  "version": "0.2.0",
+  "description": "本地认知路由 + ADHD微拆解 + 物理行动计时器 | 由 Hermes Agent 驱动",
   "permissions": [
-    "tabs",
-    "storage",
-    "alarms",
-    "sidePanel",
-    "idle"
+    "storage", "alarms", "tabs", "activeTab",
+    "scripting", "sidePanel", "notifications"
   ],
-  "host_permissions": [
-    "wss://*/*",
-    "ws://*/*"
-  ],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background/service_worker.js",
     "type": "module"
   },
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "js": ["content/content.js"],
+    "run_at": "document_idle"
+  }],
   "side_panel": {
     "default_path": "sidepanel/sidepanel.html"
   },
   "action": {
-    "default_title": "打开 Alter AI",
+    "default_title": "Alter AI",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
   },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content/content_script.js"],
-      "run_at": "document_idle"
-    }
-  ]
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
 }

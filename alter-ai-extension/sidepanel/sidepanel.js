@@ -1,7 +1,5 @@
 // ============================================================
-//  Alter AI — Side Panel Script
-//  职责：与 Background Service Worker 通信，渲染 AI 响应和
-//  Socratic Draft Card（结构化微步拆解卡片）
+// Alter AI V4.2 — Sidepanel Script
 // ============================================================
 
 const chatContainer = document.getElementById('chat-container');
@@ -9,8 +7,7 @@ const typingIndicator = document.getElementById('typing-indicator');
 const chatForm = document.getElementById('chat-form');
 const chatInput = document.getElementById('chat-input');
 
-// ── Communication with Background Service Worker ──────────
-
+// ── Message Handling ──────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.target !== 'sidepanel') return;
   handleHermesMessage(msg.payload);
@@ -23,25 +20,19 @@ function sendChat(text) {
   appendBubble('user', trimmed);
 }
 
-// ── Message Rendering ─────────────────────────────────────
-
 function handleHermesMessage(payload) {
   hideTypingIndicator();
-  if (!payload || !payload.type) return;
-
-  if (payload.type === 'text') {
-    appendBubble('ai', payload.text);
-  } else if (payload.type === 'socratic_card') {
-    appendSocraticCard(payload);
-  } else if (payload.type === 'typing') {
-    showTypingIndicator();
-  } else if (payload.type === 'listener_mode') {
-    appendListenerBanner(payload.fallback_text);
+  if (!payload?.type) return;
+  switch (payload.type) {
+    case 'text':          appendBubble('ai', payload.text); break;
+    case 'socratic_card': appendSocraticCard(payload); break;
+    case 'typing':        showTypingIndicator(); break;
+    case 'listener_mode': appendListenerBanner(payload); break;
+    case 'crisis_intervention': appendCrisisBanner(payload); break;
   }
 }
 
 // ── Plain-text Bubble ─────────────────────────────────────
-
 function appendBubble(role, text) {
   const el = document.createElement('div');
   el.className = `bubble bubble-${role}`;
@@ -50,16 +41,24 @@ function appendBubble(role, text) {
   scrollToBottom();
 }
 
-// Socratic Draft Card ───────────────────────────────────
-// Renders a structured micro-step breakdown card with optional
-// RAG citations from the user's past success history.
+// ── Cognitive Distortion Tag (inline) ─────────────────────
+function appendDistortionTag(types) {
+  const el = document.createElement('div');
+  el.className = 'distortion-tag';
+  el.textContent = `⚠️ 检测到认知扭曲：${types.join('、')}`;
+  chatContainer.appendChild(el);
+  scrollToBottom();
+}
 
+// ── Socratic Draft Card V4.2 ──────────────────────────────
 function appendSocraticCard(card) {
   const el = document.createElement('div');
   el.className = 'socratic-card';
 
   const steps = Array.isArray(card.steps) ? card.steps : [];
   const citations = Array.isArray(card.citations) ? card.citations : [];
+  const parsedTimeLimit = Number(card.time_limit);
+  const timeLimit = Number.isFinite(parsedTimeLimit) && parsedTimeLimit > 0 ? parsedTimeLimit : 10;
 
   // Header
   const header = document.createElement('div');
@@ -69,41 +68,47 @@ function appendSocraticCard(card) {
   icon.textContent = '🧩';
   const title = document.createElement('span');
   title.className = 'card-title';
-  title.textContent = card.title || '微步拆解';
-  header.appendChild(icon);
-  header.appendChild(title);
+  title.textContent = card.title || '微拆解行动';
+  const timer = document.createElement('span');
+  timer.className = 'card-timer';
+  timer.textContent = `⏱ ${timeLimit}min`;
+  header.append(icon, title, timer);
   el.appendChild(header);
 
-  // Micro-steps
+  // Progress bar
+  const progress = document.createElement('div');
+  progress.className = 'card-progress';
+  const progressFill = document.createElement('div');
+  progressFill.className = 'progress-fill';
+  progressFill.style.width = '0%';
+  progress.appendChild(progressFill);
+  el.appendChild(progress);
+
+  // Steps
   const ol = document.createElement('ol');
   ol.className = 'micro-steps';
-  steps.forEach((s) => {
+  steps.forEach((s, i) => {
     const li = document.createElement('li');
-    li.textContent = s;
+    const stepNum = document.createElement('span');
+    stepNum.className = 'step-num';
+    stepNum.textContent = String(i + 1);
+    li.append(stepNum, document.createTextNode(String(s)));
     ol.appendChild(li);
   });
   el.appendChild(ol);
 
-  // Citations
+  // Citations from local RAG
   if (citations.length > 0) {
     const citDiv = document.createElement('div');
     citDiv.className = 'citations';
-    const label = document.createElement('span');
-    label.className = 'citation-label';
-    label.textContent = '📚 来自你的成功经验：';
-    citDiv.appendChild(label);
-    citations.forEach((c) => {
-      const item = document.createElement('div');
-      item.className = 'citation-item';
-      const src = document.createElement('span');
-      src.className = 'citation-source';
-      src.textContent = c.source || '';
-      const snip = document.createElement('span');
-      snip.className = 'citation-snippet';
-      snip.textContent = `"${c.snippet || ''}"`;
-      item.appendChild(src);
-      item.appendChild(snip);
-      citDiv.appendChild(item);
+    const citationsTitle = document.createElement('div');
+    citationsTitle.textContent = '📚 来自你的成功经验：';
+    citDiv.appendChild(citationsTitle);
+    citations.forEach(c => {
+      const span = document.createElement('span');
+      span.className = 'citation-item';
+      span.textContent = c;
+      citDiv.appendChild(span);
     });
     el.appendChild(citDiv);
   }
@@ -112,26 +117,107 @@ function appendSocraticCard(card) {
   const actions = document.createElement('div');
   actions.className = 'card-actions';
   const acceptBtn = document.createElement('button');
+  acceptBtn.className = 'btn-accept';
   acceptBtn.textContent = '✅ 开始第一步';
+  const downgradeBtn = document.createElement('button');
+  downgradeBtn.className = 'btn-downgrade';
+  downgradeBtn.textContent = '⬇️ 太难了，降级';
   const rejectBtn = document.createElement('button');
+  rejectBtn.className = 'btn-reject';
   rejectBtn.textContent = '🔄 换个方向';
-  actions.appendChild(acceptBtn);
-  actions.appendChild(rejectBtn);
+  actions.append(acceptBtn, downgradeBtn, rejectBtn);
   el.appendChild(actions);
+
+  // Commit section
+  const commit = document.createElement('div');
+  commit.className = 'commit-section';
+  commit.hidden = true;
+  const timerDisplay = document.createElement('div');
+  timerDisplay.className = 'timer-display';
+  const timerCount = document.createElement('span');
+  timerCount.className = 'timer-count';
+  timerCount.textContent = `${timeLimit}:00`;
+  timerDisplay.appendChild(timerCount);
+  const commitButtons = document.createElement('div');
+  commitButtons.className = 'commit-buttons';
+  const doneBtn = document.createElement('button');
+  doneBtn.className = 'btn-done';
+  doneBtn.textContent = '✅ 完成了！';
+  const failBtn = document.createElement('button');
+  failBtn.className = 'btn-fail';
+  failBtn.textContent = '❌ 没做到';
+  commitButtons.append(doneBtn, failBtn);
+  commit.append(timerDisplay, commitButtons);
+  el.appendChild(commit);
 
   chatContainer.appendChild(el);
   scrollToBottom();
 
-  acceptBtn.addEventListener('click', () => acceptCard(card, el));
+  // Event bindings
+  acceptBtn.addEventListener('click', () => startActionTimer(card, el, commit, timeLimit));
   rejectBtn.addEventListener('click', () => rejectCard(el));
+  downgradeBtn.addEventListener('click', () => requestDowngrade(card, el));
+  doneBtn.addEventListener('click', () => commitAction(card, 0, el));
+  failBtn.addEventListener('click', () => { if (activeTimer) clearInterval(activeTimer); rejectCard(el); });
 }
 
-function acceptCard(card, cardEl) {
-  const firstStep = Array.isArray(card.steps) && card.steps[0];
-  if (firstStep) {
-    sendChat(`好的，我现在开始：${firstStep}`);
-  }
+// ── Action Timer ──────────────────────────────────────────
+let activeTimer = null;
+
+function startActionTimer(card, cardEl, commitEl, minutes) {
   disableCardActions(cardEl);
+  commitEl.hidden = false;
+  let seconds = minutes * 60;
+  const timerSpan = commitEl.querySelector('.timer-count');
+  activeTimer = setInterval(() => {
+    seconds--;
+    if (seconds <= 0) {
+      clearInterval(activeTimer);
+      timerSpan.textContent = '时间到';
+      return;
+    }
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    timerSpan.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    const fill = cardEl.querySelector('.progress-fill');
+    const pct = ((minutes * 60 - seconds) / (minutes * 60)) * 100;
+    fill.style.width = `${pct}%`;
+  }, 1000);
+  commitEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function commitAction(card, stepIndex, cardEl) {
+  if (activeTimer) clearInterval(activeTimer);
+  const action = {
+    title: card.title,
+    step: card.steps?.[stepIndex] || '未命名动作',
+    completed_at: Date.now(),
+  };
+  chrome.runtime.sendMessage({ type: 'action_completed', action }, (res) => {
+    if (res?.success) {
+      const commitEl = cardEl.querySelector('.commit-section');
+      commitEl.replaceChildren();
+      const success = document.createElement('div');
+      success.className = 'commit-success';
+      success.textContent = `🏆 已记录！黄金动作 #${res.goldenCount}`;
+      const note = document.createElement('div');
+      note.className = 'commit-note';
+      note.textContent = '知行合一 · 王阳明';
+      success.appendChild(note);
+      commitEl.appendChild(success);
+    }
+  });
+}
+
+function requestDowngrade(card, cardEl) {
+  if (activeTimer) clearInterval(activeTimer);
+  sendChat('这个动作还是太大了，请帮我降级到更小的粒度。');
+  disableCardActions(cardEl);
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function disableCardActions(cardEl) {
+  cardEl.querySelectorAll('.card-actions button').forEach(b => b.disabled = true);
 }
 
 function rejectCard(cardEl) {
@@ -139,61 +225,58 @@ function rejectCard(cardEl) {
   disableCardActions(cardEl);
 }
 
-function disableCardActions(cardEl) {
-  cardEl.querySelectorAll('.card-actions button').forEach((btn) => {
-    btn.disabled = true;
-    btn.style.opacity = '0.4';
-    btn.style.cursor = 'default';
-  });
-}
-
-// ── Listener Mode Banner ──────────────────────────────────
-
-function appendListenerBanner(text) {
+// ── Banners ───────────────────────────────────────────────
+function appendListenerBanner(payload) {
   const el = document.createElement('div');
   el.className = 'listener-banner';
-  el.textContent = text || '正在恢复连接，请稍候…';
+  el.textContent = payload.fallback_text || '🔌 已切换至本地模式';
   chatContainer.appendChild(el);
   scrollToBottom();
 }
 
-// ── Typing Indicator ──────────────────────────────────────
-
-function showTypingIndicator() {
-  typingIndicator.hidden = false;
+function appendCrisisBanner(payload) {
+  const el = document.createElement('div');
+  el.className = 'crisis-banner';
+  const resources = Array.isArray(payload.resources) ? payload.resources : [];
+  const title = document.createElement('div');
+  title.className = 'crisis-title';
+  title.textContent = '🚨 紧急支持资源';
+  const message = document.createElement('div');
+  message.className = 'crisis-message';
+  message.textContent = '你现在不安全吗？以下是可以立即联系的专业援助：';
+  const resourcesEl = document.createElement('div');
+  resourcesEl.className = 'crisis-resources';
+  resources.forEach((r) => {
+    const item = document.createElement('div');
+    item.className = 'crisis-resource';
+    const name = document.createElement('strong');
+    name.textContent = String(r?.name || '');
+    item.append(name, document.createElement('br'), document.createTextNode(String(r?.tel || '')));
+    resourcesEl.appendChild(item);
+  });
+  el.append(title, message, resourcesEl);
+  chatContainer.appendChild(el);
   scrollToBottom();
 }
 
-function hideTypingIndicator() {
-  typingIndicator.hidden = true;
-}
+// ── Typing & Scroll ───────────────────────────────────────
+function showTypingIndicator() { typingIndicator.hidden = false; scrollToBottom(); }
+function hideTypingIndicator() { typingIndicator.hidden = true; }
+function scrollToBottom() { chatContainer.scrollTop = chatContainer.scrollHeight; }
 
-// ── Helpers ───────────────────────────────────────────────
-
-function scrollToBottom() {
-  chatContainer.scrollTop = chatContainer.scrollHeight;
-}
-
-// ── Form Submission ───────────────────────────────────────
-
+// ── Form ──────────────────────────────────────────────────
 chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const text = chatInput.value;
-  if (!text.trim()) return;
-  sendChat(text);
   chatInput.value = '';
   chatInput.style.height = 'auto';
+  sendChat(text);
 });
 
-// Allow Shift+Enter for newlines, Enter to send
 chatInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    chatForm.dispatchEvent(new Event('submit'));
-  }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatForm.dispatchEvent(new Event('submit')); }
 });
 
-// Auto-resize textarea
 chatInput.addEventListener('input', () => {
   chatInput.style.height = 'auto';
   chatInput.style.height = `${Math.min(chatInput.scrollHeight, 120)}px`;

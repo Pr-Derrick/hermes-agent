@@ -1,152 +1,181 @@
 // ============================================================
-//  Alter AI — Background Service Worker
-//  职责：检测"任务瘫痪"信号，向 Hermes 发送隐式 payload
+// Alter AI V4.2 — Background Service Worker
 // ============================================================
+import {
+  HERMES_WS_URL, FREEZE_THRESHOLD_MS, INACTIVITY_THRESHOLD_MS,
+  DISTORTION_PATTERNS, CRISIS_KEYWORDS, MEMORY_LIMITS
+} from '../config.js';
+const NORMALIZED_CRISIS_KEYWORDS = CRISIS_KEYWORDS.map((k) => String(k).toLowerCase());
 
-import { HERMES_WS_URL, FREEZE_THRESHOLD_MS, INACTIVITY_THRESHOLD_MS } from '../config.js';
-
-// ── 状态机 ────────────────────────────────────────────────────
+// ── 状态机 ──────────────────────────────────────────────────
 const state = {
-  currentTabId: null,
-  currentUrl: null,
-  tabFocusSince: null,   // Timestamp when current tab gained focus
-  lastInputAt: null,     // Timestamp of last keyboard/mouse input
-  ws: null,              // WebSocket connection to Hermes
+  ws: null,
   wsReady: false,
-  sessionId: null,       // Session ID assigned by Hermes on handshake
+  sessionId: null,
+  listenerModeActive: false,
+  crisisModeActive: false,
+  currentTabId: null,
+  currentUrl: '',
+  tabFocusSince: null,
+  lastInputAt: null,
+  offlineQueue: [],
+  memory: {
+    goldenActions: [],
+    distortionHistory: [],
+    freezeHistory: [],
+  },
 };
 
-// ── WebSocket Management ──────────────────────────────────────
-
+// ── WebSocket Management ────────────────────────────────────
 function connectToHermes() {
-  if (state.ws && state.ws.readyState === WebSocket.OPEN) return;
-
+  if (state.ws?.readyState === WebSocket.CONNECTING) return;
   state.ws = new WebSocket(HERMES_WS_URL);
 
   state.ws.onopen = () => {
-    console.log('[AlterAI] WebSocket connected to Hermes');
     state.wsReady = true;
-    // Register as a Chrome Extension client
-    sendToHermes({ type: 'handshake', client: 'chrome_extension' });
+    sendToHermes({ type: 'handshake', client: 'chrome_extension', version: '0.2.0' });
     flushOfflineQueue();
-    // Resume active monitoring if we had previously degraded
-    if (listenerModeActive) {
-      exitListenerMode();
-    }
+    if (state.listenerModeActive) exitListenerMode();
   };
 
   state.ws.onmessage = (event) => {
     let msg;
-    try {
-      msg = JSON.parse(event.data);
-    } catch (_) {
-      return;
-    }
-    if (msg.type === 'session_ack') {
-      state.sessionId = msg.session_id;
-    }
-    // Forward all Hermes messages to the Side Panel
-    chrome.runtime.sendMessage({ target: 'sidepanel', payload: msg }).catch(() => {});
+    try { msg = JSON.parse(event.data); } catch (_) { return; }
+    if (msg.type === 'session_ack') state.sessionId = msg.session_id;
+    chrome.runtime.sendMessage({
+      target: 'sidepanel',
+      payload: enrichHermesMessage(msg)
+    }).catch(() => {});
   };
 
   state.ws.onclose = () => {
     state.wsReady = false;
-    console.warn('[AlterAI] WS closed, retry in 5 s');
     setTimeout(connectToHermes, 5000);
   };
 
   state.ws.onerror = () => {
-    // Graceful degradation: switch to Listener Mode (observe only, no interruptions)
     state.wsReady = false;
     enterListenerMode('ws_error');
   };
 }
 
 function sendToHermes(payload) {
-  if (!state.wsReady || !state.ws) {
-    // Graceful degradation: queue locally, flush on reconnect
-    queueOfflineEvent(payload);
-    return;
-  }
-  state.ws.send(JSON.stringify({
-    session_id: state.sessionId,
-    ...payload,
-  }));
+  if (!state.wsReady) { queueOfflineEvent(payload); return; }
+  state.ws.send(JSON.stringify({ session_id: state.sessionId, ...payload }));
 }
 
-// ── Offline Event Queue (fallback when WebSocket is unavailable) ──
-
-const offlineQueue = [];
-
+// ── Offline Queue ─────────────────────────────────────────
 function queueOfflineEvent(payload) {
-  offlineQueue.push({ ts: Date.now(), payload });
-  // Cap at 20 entries to avoid unbounded growth
-  if (offlineQueue.length > 20) offlineQueue.shift();
+  state.offlineQueue.push({ payload, ts: Date.now() });
+  if (state.offlineQueue.length > 50) state.offlineQueue.shift();
 }
 
 function flushOfflineQueue() {
-  while (offlineQueue.length > 0 && state.wsReady) {
-    const { payload } = offlineQueue.shift();
+  while (state.offlineQueue.length > 0 && state.wsReady) {
+    const { payload } = state.offlineQueue.shift();
     sendToHermes(payload);
   }
 }
 
-// ── Listener Mode (graceful degradation) ─────────────────────
-//
-// Entered when the WebSocket is unavailable (error, timeout, server down).
-// In Listener Mode:
-//   - All proactive alarms are suspended (no interruptions to the user)
-//   - Behavioral data is still recorded to chrome.storage.local
-//   - Reconnection is retried every 30 s
-//   - On successful reconnect, Listener Mode exits automatically
-
-let listenerModeActive = false;
+// ── Listener Mode (Graceful Degradation) ────────────────────
 let listenerRetryInterval = null;
 
 function enterListenerMode(reason) {
-  if (listenerModeActive) return;
-  listenerModeActive = true;
-  console.warn(`[AlterAI] Entering Listener Mode (reason: ${reason})`);
-
+  if (state.listenerModeActive) return;
+  state.listenerModeActive = true;
   chrome.alarms.clear('taskFreezeCheck');
   chrome.storage.local.set({ listenerMode: true, listenerReason: reason });
-
-  // Retry reconnect every 30 s
-  listenerRetryInterval = setInterval(() => {
-    if (!state.wsReady) {
-      connectToHermes();
-    } else {
-      exitListenerMode();
+  chrome.runtime.sendMessage({
+    target: 'sidepanel',
+    payload: {
+      type: 'listener_mode',
+      fallback_text: `🔌 已降级为本地模式 (${reason})。基础功能仍可用，连接恢复后将自动同步。`
     }
+  }).catch(() => {});
+  listenerRetryInterval = setInterval(() => {
+    if (!state.wsReady) connectToHermes();
+    else exitListenerMode();
   }, 30000);
 }
 
 function exitListenerMode() {
-  listenerModeActive = false;
-  if (listenerRetryInterval) {
-    clearInterval(listenerRetryInterval);
-    listenerRetryInterval = null;
-  }
+  state.listenerModeActive = false;
+  if (listenerRetryInterval) { clearInterval(listenerRetryInterval); listenerRetryInterval = null; }
   chrome.storage.local.set({ listenerMode: false });
   scheduleFreezeScan();
-  console.log('[AlterAI] Exited Listener Mode, resuming active monitoring');
 }
 
-// ── Task-Freeze Detection (core logic) ───────────────────────
+// ── Local Cognitive Routing (plugin-side) ──────────────────
+function enrichHermesMessage(msg) {
+  return {
+    ...msg,
+    _local: {
+      goldenActionsCount: state.memory.goldenActions.length,
+      distortionsToday: state.memory.distortionHistory.filter(
+        d => d.timestamp > Date.now() - 86400000
+      ).length,
+    }
+  };
+}
 
+// ── Crisis Detection (Tier 3 Emergency) ──────────────────────
+function detectCrisis(text) {
+  const lower = text.toLowerCase();
+  return NORMALIZED_CRISIS_KEYWORDS.some((k) => lower.includes(k));
+}
+
+function triggerCrisisProtocol() {
+  if (state.crisisModeActive) return;
+  state.crisisModeActive = true;
+  chrome.alarms.clear('taskFreezeCheck');
+  chrome.runtime.sendMessage({
+    target: 'sidepanel',
+    payload: {
+      type: 'crisis_intervention',
+      resources: [
+        { name: '北京心理危机研究与干预中心', tel: '010-82951332', url: 'https://www.crisis.org.cn' },
+        { name: '全国心理援助热线', tel: '400-161-9995', url: null },
+        { name: 'Crisis Text Line (EN)', tel: 'Text HOME to 741741', url: 'https://www.crisistextline.org' },
+      ]
+    }
+  }).catch(() => {});
+  chrome.notifications.create('crisis-alert', {
+    type: 'basic',
+    iconUrl: 'icons/icon128.png',
+    title: 'Alter AI — 紧急支持',
+    message: '请立即联系专业援助机构。你不是一个人。',
+  });
+}
+
+// ── Cognitive Distortion Detection (local) ─────────────────
+function detectDistortion(text) {
+  const found = [];
+  for (const [type, patterns] of Object.entries(DISTORTION_PATTERNS)) {
+    if (patterns.some(p => text.includes(p))) found.push(type);
+  }
+  return found;
+}
+
+function logDistortion(types, context) {
+  const entry = { types, context, timestamp: Date.now() };
+  state.memory.distortionHistory.unshift(entry);
+  if (state.memory.distortionHistory.length > MEMORY_LIMITS.distortion_log) {
+    state.memory.distortionHistory.pop();
+  }
+  chrome.storage.local.set({ distortionHistory: state.memory.distortionHistory });
+}
+
+// ── Task-Freeze Detection ──────────────────────────────────
 function scheduleFreezeScan() {
-  if (listenerModeActive) return;
+  if (state.listenerModeActive) return;
   chrome.alarms.create('taskFreezeCheck', { periodInMinutes: 1 });
 }
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name !== 'taskFreezeCheck') return;
-
   const now = Date.now();
   const timeOnTab = state.tabFocusSince ? now - state.tabFocusSince : 0;
   const timeSinceInput = state.lastInputAt ? now - state.lastInputAt : timeOnTab;
-
-  // Core detection: on same tab longer than threshold AND no input for threshold
   if (timeOnTab >= FREEZE_THRESHOLD_MS && timeSinceInput >= INACTIVITY_THRESHOLD_MS) {
     triggerFreezeIntervention({
       url: state.currentUrl,
@@ -157,58 +186,95 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 function triggerFreezeIntervention(context) {
-  // 1. Open the Side Panel so the user sees the intervention
+  if (state.crisisModeActive) return;
   if (state.currentTabId !== null) {
     chrome.sidePanel.open({ tabId: state.currentTabId }).catch(() => {});
   }
-
-  // 2. Send implicit behavior signal to Hermes
+  const freezeEntry = { url: context.url, duration: context.timeOnTabMs, timestamp: Date.now() };
+  state.memory.freezeHistory.unshift(freezeEntry);
+  if (state.memory.freezeHistory.length > MEMORY_LIMITS.freeze_events) state.memory.freezeHistory.pop();
+  chrome.storage.local.set({ freezeHistory: state.memory.freezeHistory });
   sendToHermes({
     type: 'behavior_signal',
     signal: 'task_freeze',
     context: {
       url: context.url,
-      page_title: context.pageTitle || '',
       time_on_tab_seconds: Math.round(context.timeOnTabMs / 1000),
       inactivity_seconds: Math.round(context.inactivityMs / 1000),
-      timestamp: new Date().toISOString(),
-    },
+    }
   });
-
-  console.log('[AlterAI] Task Freeze detected, intervention triggered');
+  // Reset timer
+  state.tabFocusSince = Date.now();
+  state.lastInputAt = Date.now();
 }
 
-// ── Tab Focus Monitoring ──────────────────────────────────────
-
+// ── Tab & Input Monitoring ─────────────────────────────────
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   state.currentTabId = tabId;
   state.tabFocusSince = Date.now();
   state.lastInputAt = Date.now();
   try {
     const tab = await chrome.tabs.get(tabId);
-    state.currentUrl = tab.url || null;
-  } catch (_) {
-    state.currentUrl = null;
-  }
+    state.currentUrl = tab.url || '';
+  } catch (_) {}
 });
 
-// ── Runtime Message Listener ──────────────────────────────────
-
-chrome.runtime.onMessage.addListener((msg) => {
-  // Input activity signal from Content Script — resets the inactivity timer
-  if (msg.type === 'user_input_detected') {
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (tabId === state.currentTabId && changeInfo.url) {
+    state.currentUrl = changeInfo.url;
+    state.tabFocusSince = Date.now();
     state.lastInputAt = Date.now();
   }
-  // Chat message from Side Panel — forward to Hermes
+});
+
+// ── Message Router ─────────────────────────────────────────
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === 'user_input_detected') {
+    state.lastInputAt = Date.now();
+    return;
+  }
+
   if (msg.type === 'chat_message') {
-    sendToHermes({
-      type: 'chat',
-      text: msg.text,
-    });
+    const distortions = detectDistortion(msg.text);
+    if (distortions.length > 0) logDistortion(distortions, { text: msg.text.substring(0, 100) });
+    if (detectCrisis(msg.text)) {
+      sendToHermes({ type: 'chat', text: msg.text, distortions, crisis_detected: true });
+      triggerCrisisProtocol();
+      return;
+    }
+    sendToHermes({ type: 'chat', text: msg.text, distortions });
+    return;
+  }
+
+  if (msg.type === 'action_completed') {
+    const action = { ...msg.action, timestamp: Date.now() };
+    state.memory.goldenActions.unshift(action);
+    if (state.memory.goldenActions.length > MEMORY_LIMITS.golden_actions) state.memory.goldenActions.pop();
+    chrome.storage.local.set({ goldenActions: state.memory.goldenActions });
+    sendResponse({ success: true, goldenCount: state.memory.goldenActions.length });
+    return true;
+  }
+
+  if (msg.type === 'get_distortion_history') {
+    sendResponse({ history: state.memory.distortionHistory });
+    return true;
+  }
+
+  if (msg.type === 'get_golden_actions') {
+    sendResponse({ actions: state.memory.goldenActions.slice(0, 5) });
+    return true;
   }
 });
 
-// ── Initialise ────────────────────────────────────────────────
+// ── Memory Bootstrap ──────────────────────────────────────
+async function bootstrapMemory() {
+  const data = await chrome.storage.local.get(['goldenActions', 'distortionHistory', 'freezeHistory']);
+  state.memory.goldenActions = data.goldenActions || [];
+  state.memory.distortionHistory = data.distortionHistory || [];
+  state.memory.freezeHistory = data.freezeHistory || [];
+}
 
+// ── Initialise ────────────────────────────────────────────
+bootstrapMemory();
 connectToHermes();
 scheduleFreezeScan();
