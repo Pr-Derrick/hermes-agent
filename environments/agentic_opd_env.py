@@ -458,9 +458,7 @@ class AgenticOPDEnv(HermesAgentBaseEnv):
             try:
                 from datasets import load_dataset
 
-                logger.info(
-                    "Loading dataset '%s'...", self.config.dataset_name
-                )
+                logger.info("Loading dataset '%s'...", self.config.dataset_name)
                 ds = load_dataset(
                     self.config.dataset_name, split=self.config.dataset_split
                 )
@@ -526,10 +524,7 @@ class AgenticOPDEnv(HermesAgentBaseEnv):
 
     def format_prompt(self, item: dict) -> str:
         """Format the coding task as a user prompt."""
-        prompt = (
-            f"Solve the following coding task.\n\n"
-            f"## Task\n{item['task']}\n\n"
-        )
+        prompt = f"Solve the following coding task.\n\n## Task\n{item['task']}\n\n"
         if item.get("test_code"):
             prompt += (
                 f"## Tests\nThe following test code will be used to verify your solution:\n"
@@ -604,7 +599,9 @@ class AgenticOPDEnv(HermesAgentBaseEnv):
                         tools_used.add(name)
 
         # Good: used both terminal and file tools
-        if "terminal" in tools_used and ("write_file" in tools_used or "patch" in tools_used):
+        if "terminal" in tools_used and (
+            "write_file" in tools_used or "patch" in tools_used
+        ):
             tool_usage = 1.0
         elif "terminal" in tools_used:
             tool_usage = 0.6
@@ -699,9 +696,7 @@ class AgenticOPDEnv(HermesAgentBaseEnv):
                 all_distill_token_ids.append(distill_ids)
                 all_distill_logprobs.append(distill_lps)
             except Exception as e:
-                logger.warning(
-                    "OPD failed for sequence %d: %s", seq_idx, e
-                )
+                logger.warning("OPD failed for sequence %d: %s", seq_idx, e)
                 all_distill_token_ids.append(None)
                 all_distill_logprobs.append(None)
 
@@ -788,9 +783,9 @@ class AgenticOPDEnv(HermesAgentBaseEnv):
                     enhanced_full_text, add_special_tokens=False
                 )["input_ids"]
 
-                response_ids = self.tokenizer(
-                    response_text, add_special_tokens=False
-                )["input_ids"]
+                response_ids = self.tokenizer(response_text, add_special_tokens=False)[
+                    "input_ids"
+                ]
                 response_len = len(response_ids)
 
                 if response_len == 0:
@@ -826,9 +821,7 @@ class AgenticOPDEnv(HermesAgentBaseEnv):
 
                 # Map these back to the student's full sequence positions
                 # Find where this assistant turn's tokens appear in the full sequence
-                turn_start = self._find_token_span(
-                    student_tokens, response_ids
-                )
+                turn_start = self._find_token_span(student_tokens, response_ids)
                 if turn_start is not None:
                     for j in range(min(response_len, seq_len - turn_start)):
                         pos = turn_start + j
@@ -859,9 +852,7 @@ class AgenticOPDEnv(HermesAgentBaseEnv):
         )
         return distill_token_ids, distill_logprobs
 
-    def _extract_turn_pairs(
-        self, messages: List[Dict]
-    ) -> List[Dict[str, Any]]:
+    def _extract_turn_pairs(self, messages: List[Dict]) -> List[Dict[str, Any]]:
         """
         Walk conversation messages to find (assistant, next_state) pairs.
 
@@ -1035,9 +1026,7 @@ class AgenticOPDEnv(HermesAgentBaseEnv):
                     messages.append(
                         {"role": "system", "content": self.config.system_prompt}
                     )
-                messages.append(
-                    {"role": "user", "content": self.format_prompt(item)}
-                )
+                messages.append({"role": "user", "content": self.format_prompt(item)})
 
                 agent = HermesAgentLoop(
                     server=self.server,
@@ -1164,15 +1153,9 @@ class AgenticOPDEnv(HermesAgentBaseEnv):
         if self._reward_buffer:
             n = len(self._reward_buffer)
             wandb_metrics["train/mean_reward"] = sum(self._reward_buffer) / n
-            wandb_metrics["train/mean_correctness"] = (
-                sum(self._correctness_buffer) / n
-            )
-            wandb_metrics["train/mean_efficiency"] = (
-                sum(self._efficiency_buffer) / n
-            )
-            wandb_metrics["train/mean_tool_usage"] = (
-                sum(self._tool_usage_buffer) / n
-            )
+            wandb_metrics["train/mean_correctness"] = sum(self._correctness_buffer) / n
+            wandb_metrics["train/mean_efficiency"] = sum(self._efficiency_buffer) / n
+            wandb_metrics["train/mean_tool_usage"] = sum(self._tool_usage_buffer) / n
             wandb_metrics["train/pass_rate"] = (
                 sum(1 for c in self._correctness_buffer if c >= 0.8) / n
             )
@@ -1196,9 +1179,7 @@ class AgenticOPDEnv(HermesAgentBaseEnv):
                 sum(1 for h in self._hints_extracted_buffer if h > 0) / n
             )
             wandb_metrics["opd/total_hints"] = sum(self._hints_extracted_buffer)
-            wandb_metrics["opd/total_scored_turns"] = sum(
-                self._opd_turns_scored_buffer
-            )
+            wandb_metrics["opd/total_scored_turns"] = sum(self._opd_turns_scored_buffer)
 
             self._hints_extracted_buffer.clear()
             self._opd_turns_scored_buffer.clear()

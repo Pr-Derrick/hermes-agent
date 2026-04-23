@@ -13,11 +13,13 @@ import pytest
 # Fix 1: MCP event loop exception handler
 # ---------------------------------------------------------------------------
 
+
 class TestMCPLoopExceptionHandler:
     """_mcp_loop_exception_handler suppresses benign 'Event loop is closed'."""
 
     def test_suppresses_event_loop_closed(self):
         from tools.mcp_tool import _mcp_loop_exception_handler
+
         loop = MagicMock()
         context = {"exception": RuntimeError("Event loop is closed")}
         # Should NOT call default handler
@@ -26,6 +28,7 @@ class TestMCPLoopExceptionHandler:
 
     def test_forwards_other_runtime_errors(self):
         from tools.mcp_tool import _mcp_loop_exception_handler
+
         loop = MagicMock()
         context = {"exception": RuntimeError("some other error")}
         _mcp_loop_exception_handler(loop, context)
@@ -33,6 +36,7 @@ class TestMCPLoopExceptionHandler:
 
     def test_forwards_non_runtime_errors(self):
         from tools.mcp_tool import _mcp_loop_exception_handler
+
         loop = MagicMock()
         context = {"exception": ValueError("bad value")}
         _mcp_loop_exception_handler(loop, context)
@@ -40,6 +44,7 @@ class TestMCPLoopExceptionHandler:
 
     def test_forwards_contexts_without_exception(self):
         from tools.mcp_tool import _mcp_loop_exception_handler
+
         loop = MagicMock()
         context = {"message": "just a message"}
         _mcp_loop_exception_handler(loop, context)
@@ -48,6 +53,7 @@ class TestMCPLoopExceptionHandler:
     def test_handler_installed_on_mcp_loop(self):
         """_ensure_mcp_loop installs the exception handler on the new loop."""
         import tools.mcp_tool as mcp_mod
+
         try:
             mcp_mod._ensure_mcp_loop()
             with mcp_mod._lock:
@@ -62,11 +68,13 @@ class TestMCPLoopExceptionHandler:
 # Fix 2: stdio PID tracking
 # ---------------------------------------------------------------------------
 
+
 class TestStdioPidTracking:
     """_snapshot_child_pids and _stdio_pids track subprocess PIDs."""
 
     def test_snapshot_returns_set(self):
         from tools.mcp_tool import _snapshot_child_pids
+
         result = _snapshot_child_pids()
         assert isinstance(result, set)
         # All elements should be ints
@@ -75,6 +83,7 @@ class TestStdioPidTracking:
 
     def test_stdio_pids_starts_empty(self):
         from tools.mcp_tool import _stdio_pids, _lock
+
         with _lock:
             # Might have residual state from other tests, just check type
             assert isinstance(_stdio_pids, set)
@@ -148,6 +157,7 @@ class TestStdioPidTracking:
 # Fix 3: MCP reload timeout (cli.py)
 # ---------------------------------------------------------------------------
 
+
 class TestMCPReloadTimeout:
     """_check_config_mcp_changes uses a timeout on _reload_mcp."""
 
@@ -176,7 +186,9 @@ class TestMCPReloadTimeout:
         # _reload_mcp directly (it uses a thread now)
         import inspect
         from cli import HermesCLI
+
         source = inspect.getsource(HermesCLI._check_config_mcp_changes)
         # The fix adds threading.Thread for _reload_mcp
-        assert "Thread" in source or "thread" in source.lower(), \
+        assert "Thread" in source or "thread" in source.lower(), (
             "_check_config_mcp_changes should use a thread for _reload_mcp"
+        )

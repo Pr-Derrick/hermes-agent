@@ -45,8 +45,10 @@ def _patch_mcp_server():
     """Patch _servers and the MCP event loop so _make_tool_handler can run."""
     fake_session = MagicMock()
     fake_server = SimpleNamespace(session=fake_session)
-    with patch.dict(mcp_tool._servers, {"test-server": fake_server}), \
-         patch("tools.mcp_tool._run_on_mcp_loop", side_effect=_fake_run_on_mcp_loop):
+    with (
+        patch.dict(mcp_tool._servers, {"test-server": fake_server}),
+        patch("tools.mcp_tool._run_on_mcp_loop", side_effect=_fake_run_on_mcp_loop),
+    ):
         yield fake_session
 
 
@@ -88,7 +90,11 @@ class TestStructuredContentPreservation:
         metadata in structuredContent.  Agent must see file contents."""
         session = _patch_mcp_server
         file_text = "import os\nprint('hello')\n"
-        metadata = {"fileName": "main.py", "filePath": "/tmp/main.py", "fileType": "python"}
+        metadata = {
+            "fileName": "main.py",
+            "filePath": "/tmp/main.py",
+            "fileType": "python",
+        }
         session.call_tool = AsyncMock(
             return_value=_FakeCallToolResult(
                 content=[_FakeContentBlock(file_text)],

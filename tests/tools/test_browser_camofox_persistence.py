@@ -40,6 +40,7 @@ def _enable_persistence():
 @pytest.fixture(autouse=True)
 def _clear_session_state():
     import tools.browser_camofox as mod
+
     yield
     with mod._sessions_lock:
         mod._sessions.clear()
@@ -157,9 +158,13 @@ class TestManagedPersistenceMode:
                 json_data={"tabId": "tab-1", "url": "https://example.com"}
             )
 
-        with _enable_persistence(), \
-             patch("tools.browser_camofox.requests.post", side_effect=_capture_post):
-            result = json.loads(camofox_navigate("https://example.com", task_id="task-1"))
+        with (
+            _enable_persistence(),
+            patch("tools.browser_camofox.requests.post", side_effect=_capture_post),
+        ):
+            result = json.loads(
+                camofox_navigate("https://example.com", task_id="task-1")
+            )
 
         assert result["success"] is True
         expected = get_camofox_identity("task-1")
@@ -174,17 +179,26 @@ class TestManagedPersistenceMode:
         def _capture_post(url, json=None, timeout=None):
             requests_seen.append(json)
             return _mock_response(
-                json_data={"tabId": f"tab-{len(requests_seen)}", "url": "https://example.com"}
+                json_data={
+                    "tabId": f"tab-{len(requests_seen)}",
+                    "url": "https://example.com",
+                }
             )
 
         with (
             _enable_persistence(),
             patch("tools.browser_camofox.requests.post", side_effect=_capture_post),
-            patch("tools.browser_camofox.requests.delete", return_value=_mock_response()),
+            patch(
+                "tools.browser_camofox.requests.delete", return_value=_mock_response()
+            ),
         ):
-            first = json.loads(camofox_navigate("https://example.com", task_id="task-1"))
+            first = json.loads(
+                camofox_navigate("https://example.com", task_id="task-1")
+            )
             camofox_close("task-1")
-            second = json.loads(camofox_navigate("https://example.com", task_id="task-1"))
+            second = json.loads(
+                camofox_navigate("https://example.com", task_id="task-1")
+            )
 
         assert first["success"] is True
         assert second["success"] is True
@@ -220,7 +234,9 @@ class TestVncUrlDiscovery:
     def test_vnc_url_only_probed_once(self, monkeypatch):
         monkeypatch.setenv("CAMOFOX_URL", "http://localhost:9377")
         health_resp = _mock_response(json_data={"ok": True, "vncPort": 6080})
-        with patch("tools.browser_camofox.requests.get", return_value=health_resp) as mock_get:
+        with patch(
+            "tools.browser_camofox.requests.get", return_value=health_resp
+        ) as mock_get:
             check_camofox_available()
             check_camofox_available()
         # Second call still hits /health for availability but doesn't re-parse vncPort
@@ -230,13 +246,19 @@ class TestVncUrlDiscovery:
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         monkeypatch.setenv("CAMOFOX_URL", "http://localhost:9377")
         import tools.browser_camofox as mod
+
         mod._vnc_url = "http://localhost:6080"
         mod._vnc_url_checked = True
 
-        with patch("tools.browser_camofox.requests.post", return_value=_mock_response(
-            json_data={"tabId": "t1", "url": "https://example.com"}
-        )):
-            result = json.loads(camofox_navigate("https://example.com", task_id="vnc-test"))
+        with patch(
+            "tools.browser_camofox.requests.post",
+            return_value=_mock_response(
+                json_data={"tabId": "t1", "url": "https://example.com"}
+            ),
+        ):
+            result = json.loads(
+                camofox_navigate("https://example.com", task_id="vnc-test")
+            )
 
         assert result["vnc_url"] == "http://localhost:6080"
         assert "vnc_hint" in result
@@ -256,6 +278,7 @@ class TestCamofoxSoftCleanup:
         assert result is True
         # Session should have been dropped from in-memory store
         import tools.browser_camofox as mod
+
         with mod._sessions_lock:
             assert "task-1" not in mod._sessions
 
@@ -271,6 +294,7 @@ class TestCamofoxSoftCleanup:
         assert result is False
         # Session should still be present — not dropped
         import tools.browser_camofox as mod
+
         with mod._sessions_lock:
             assert "task-1" in mod._sessions
 

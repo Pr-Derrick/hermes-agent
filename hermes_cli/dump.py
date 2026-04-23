@@ -13,7 +13,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-from hermes_cli.config import get_hermes_home, get_env_path, get_project_root, load_config
+from hermes_cli.config import (
+    get_hermes_home,
+    get_env_path,
+    get_project_root,
+    load_config,
+)
 from hermes_constants import display_hermes_home
 
 
@@ -22,7 +27,9 @@ def _get_git_commit(project_root: Path) -> str:
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--short=8", "HEAD"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
             cwd=str(project_root),
         )
         if result.returncode == 0:
@@ -46,13 +53,16 @@ def _gateway_status() -> str:
     if sys.platform.startswith("linux"):
         try:
             from hermes_cli.gateway import get_service_name
+
             svc = get_service_name()
         except Exception:
             svc = "hermes-gateway"
         try:
             r = subprocess.run(
                 ["systemctl", "--user", "is-active", svc],
-                capture_output=True, text=True, timeout=5,
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             return "running (systemd)" if r.stdout.strip() == "active" else "stopped"
         except Exception:
@@ -60,9 +70,12 @@ def _gateway_status() -> str:
     elif sys.platform == "darwin":
         try:
             from hermes_cli.gateway import get_launchd_label
+
             r = subprocess.run(
                 ["launchctl", "list", get_launchd_label()],
-                capture_output=True, text=True, timeout=5,
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             return "loaded (launchd)" if r.returncode == 0 else "not loaded"
         except Exception:
@@ -136,7 +149,12 @@ def _get_model_and_provider(config: dict) -> tuple[str, str]:
     """Extract model and provider from config."""
     model_cfg = config.get("model", "")
     if isinstance(model_cfg, dict):
-        model = model_cfg.get("default") or model_cfg.get("model") or model_cfg.get("name") or "(not set)"
+        model = (
+            model_cfg.get("default")
+            or model_cfg.get("model")
+            or model_cfg.get("name")
+            or "(not set)"
+        )
         provider = model_cfg.get("provider") or "(auto)"
     elif isinstance(model_cfg, str):
         model = model_cfg or "(not set)"
@@ -149,7 +167,7 @@ def _get_model_and_provider(config: dict) -> tuple[str, str]:
 
 def _config_overrides(config: dict) -> dict[str, str]:
     """Find non-default config values worth reporting.
-    
+
     Returns a flat dict of dotpath -> value for interesting overrides.
     """
     from hermes_cli.config import DEFAULT_CONFIG
@@ -205,6 +223,7 @@ def run_dump(args):
 
     # Load env from .env file so key checks work
     from dotenv import load_dotenv
+
     env_path = get_env_path()
     if env_path.exists():
         try:
@@ -235,6 +254,7 @@ def run_dump(args):
     # Profile
     try:
         from hermes_cli.profiles import get_active_profile_name
+
         profile = get_active_profile_name() or "(default)"
     except Exception:
         profile = "(default)"
@@ -246,6 +266,7 @@ def run_dump(args):
     # OpenAI SDK version
     try:
         import openai
+
         openai_ver = openai.__version__
     except ImportError:
         openai_ver = "not installed"
@@ -310,13 +331,17 @@ def run_dump(args):
     lines.append("features:")
 
     toolsets = config.get("toolsets", ["hermes-cli"])
-    lines.append(f"  toolsets:           {', '.join(toolsets) if toolsets else '(default)'}")
+    lines.append(
+        f"  toolsets:           {', '.join(toolsets) if toolsets else '(default)'}"
+    )
     lines.append(f"  mcp_servers:        {_count_mcp_servers(config)}")
     lines.append(f"  memory_provider:    {_memory_provider(config)}")
     lines.append(f"  gateway:            {_gateway_status()}")
 
     platforms = _configured_platforms()
-    lines.append(f"  platforms:          {', '.join(platforms) if platforms else 'none'}")
+    lines.append(
+        f"  platforms:          {', '.join(platforms) if platforms else 'none'}"
+    )
     lines.append(f"  cron_jobs:          {_cron_summary(hermes_home)}")
     lines.append(f"  skills:             {_count_skills(hermes_home)}")
 

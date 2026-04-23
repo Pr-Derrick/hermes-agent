@@ -95,9 +95,7 @@ class BrowserUseProvider(CloudBrowserProvider):
     def _get_config(self) -> Dict[str, Any]:
         config = self._get_config_or_none()
         if config is None:
-            message = (
-                "Browser Use requires a direct BROWSER_USE_API_KEY credential."
-            )
+            message = "Browser Use requires a direct BROWSER_USE_API_KEY credential."
             if managed_nous_tools_enabled():
                 message = (
                     "Browser Use requires either a direct BROWSER_USE_API_KEY "
@@ -156,7 +154,9 @@ class BrowserUseProvider(CloudBrowserProvider):
         if managed_mode:
             _clear_pending_create_key(task_id)
         session_name = f"hermes_{task_id}_{uuid.uuid4().hex[:8]}"
-        external_call_id = response.headers.get("x-external-call-id") if managed_mode else None
+        external_call_id = (
+            response.headers.get("x-external-call-id") if managed_mode else None
+        )
 
         logger.info("Created Browser Use session %s", session_name)
 
@@ -174,7 +174,9 @@ class BrowserUseProvider(CloudBrowserProvider):
         try:
             config = self._get_config()
         except ValueError:
-            logger.warning("Cannot close Browser Use session %s — missing credentials", session_id)
+            logger.warning(
+                "Cannot close Browser Use session %s — missing credentials", session_id
+            )
             return False
 
         try:
@@ -202,7 +204,10 @@ class BrowserUseProvider(CloudBrowserProvider):
     def emergency_cleanup(self, session_id: str) -> None:
         config = self._get_config_or_none()
         if config is None:
-            logger.warning("Cannot emergency-cleanup Browser Use session %s — missing credentials", session_id)
+            logger.warning(
+                "Cannot emergency-cleanup Browser Use session %s — missing credentials",
+                session_id,
+            )
             return
         try:
             requests.patch(
@@ -212,4 +217,6 @@ class BrowserUseProvider(CloudBrowserProvider):
                 timeout=5,
             )
         except Exception as e:
-            logger.debug("Emergency cleanup failed for Browser Use session %s: %s", session_id, e)
+            logger.debug(
+                "Emergency cleanup failed for Browser Use session %s: %s", session_id, e
+            )

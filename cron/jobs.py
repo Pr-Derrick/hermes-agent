@@ -23,6 +23,7 @@ from hermes_time import now as _hermes_now
 
 try:
     from croniter import croniter
+
     HAS_CRONITER = True
 except ImportError:
     HAS_CRONITER = False
@@ -38,7 +39,9 @@ OUTPUT_DIR = CRON_DIR / "output"
 ONESHOT_GRACE_SECONDS = 120
 
 
-def _normalize_skill_list(skill: Optional[str] = None, skills: Optional[Any] = None) -> List[str]:
+def _normalize_skill_list(
+    skill: Optional[str] = None, skills: Optional[Any] = None
+) -> List[str]:
     """Normalize legacy/single-skill and multi-skill inputs into a unique ordered list."""
     if skills is None:
         raw_items = [skill] if skill else []
@@ -93,37 +96,42 @@ def ensure_dirs():
 # Schedule Parsing
 # =============================================================================
 
+
 def parse_duration(s: str) -> int:
     """
     Parse duration string into minutes.
-    
+
     Examples:
         "30m" → 30
         "2h" → 120
         "1d" → 1440
     """
     s = s.strip().lower()
-    match = re.match(r'^(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)$', s)
+    match = re.match(
+        r"^(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)$", s
+    )
     if not match:
-        raise ValueError(f"Invalid duration: '{s}'. Use format like '30m', '2h', or '1d'")
-    
+        raise ValueError(
+            f"Invalid duration: '{s}'. Use format like '30m', '2h', or '1d'"
+        )
+
     value = int(match.group(1))
     unit = match.group(2)[0]  # First char: m, h, or d
-    
-    multipliers = {'m': 1, 'h': 60, 'd': 1440}
+
+    multipliers = {"m": 1, "h": 60, "d": 1440}
     return value * multipliers[unit]
 
 
 def parse_schedule(schedule: str) -> Dict[str, Any]:
     """
     Parse schedule string into structured format.
-    
+
     Returns dict with:
         - kind: "once" | "interval" | "cron"
         - For "once": "run_at" (ISO timestamp)
         - For "interval": "minutes" (int)
         - For "cron": "expr" (cron expression)
-    
+
     Examples:
         "30m"              → once in 30 minutes
         "2h"               → once in 2 hours
@@ -135,41 +143,33 @@ def parse_schedule(schedule: str) -> Dict[str, Any]:
     schedule = schedule.strip()
     original = schedule
     schedule_lower = schedule.lower()
-    
+
     # "every X" pattern → recurring interval
     if schedule_lower.startswith("every "):
         duration_str = schedule[6:].strip()
         minutes = parse_duration(duration_str)
-        return {
-            "kind": "interval",
-            "minutes": minutes,
-            "display": f"every {minutes}m"
-        }
-    
+        return {"kind": "interval", "minutes": minutes, "display": f"every {minutes}m"}
+
     # Check for cron expression (5 or 6 space-separated fields)
     # Cron fields: minute hour day month weekday [year]
     parts = schedule.split()
-    if len(parts) >= 5 and all(
-        re.match(r'^[\d\*\-,/]+$', p) for p in parts[:5]
-    ):
+    if len(parts) >= 5 and all(re.match(r"^[\d\*\-,/]+$", p) for p in parts[:5]):
         if not HAS_CRONITER:
-            raise ValueError("Cron expressions require 'croniter' package. Install with: pip install croniter")
+            raise ValueError(
+                "Cron expressions require 'croniter' package. Install with: pip install croniter"
+            )
         # Validate cron expression
         try:
             croniter(schedule)
         except Exception as e:
             raise ValueError(f"Invalid cron expression '{schedule}': {e}")
-        return {
-            "kind": "cron",
-            "expr": schedule,
-            "display": schedule
-        }
-    
+        return {"kind": "cron", "expr": schedule, "display": schedule}
+
     # ISO timestamp (contains T or looks like date)
-    if 'T' in schedule or re.match(r'^\d{4}-\d{2}-\d{2}', schedule):
+    if "T" in schedule or re.match(r"^\d{4}-\d{2}-\d{2}", schedule):
         try:
             # Parse and validate
-            dt = datetime.fromisoformat(schedule.replace('Z', '+00:00'))
+            dt = datetime.fromisoformat(schedule.replace("Z", "+00:00"))
             # Make naive timestamps timezone-aware at parse time so the stored
             # value doesn't depend on the system timezone matching at check time.
             if dt.tzinfo is None:
@@ -177,11 +177,11 @@ def parse_schedule(schedule: str) -> Dict[str, Any]:
             return {
                 "kind": "once",
                 "run_at": dt.isoformat(),
-                "display": f"once at {dt.strftime('%Y-%m-%d %H:%M')}"
+                "display": f"once at {dt.strftime('%Y-%m-%d %H:%M')}",
             }
         except ValueError as e:
             raise ValueError(f"Invalid timestamp '{schedule}': {e}")
-    
+
     # Duration like "30m", "2h", "1d" → one-shot from now
     try:
         minutes = parse_duration(schedule)
@@ -189,11 +189,11 @@ def parse_schedule(schedule: str) -> Dict[str, Any]:
         return {
             "kind": "once",
             "run_at": run_at.isoformat(),
-            "display": f"once in {original}"
+            "display": f"once in {original}",
         }
     except ValueError:
         pass
-    
+
     raise ValueError(
         f"Invalid schedule '{original}'. Use:\n"
         f"  - Duration: '30m', '2h', '1d' (one-shot)\n"
@@ -281,7 +281,9 @@ def _compute_grace_seconds(schedule: dict) -> int:
     return MIN_GRACE
 
 
-def compute_next_run(schedule: Dict[str, Any], last_run_at: Optional[str] = None) -> Optional[str]:
+def compute_next_run(
+    schedule: Dict[str, Any], last_run_at: Optional[str] = None
+) -> Optional[str]:
     """
     Compute the next run time for a schedule.
 
@@ -317,26 +319,29 @@ def compute_next_run(schedule: Dict[str, Any], last_run_at: Optional[str] = None
 # Job CRUD Operations
 # =============================================================================
 
+
 def load_jobs() -> List[Dict[str, Any]]:
     """Load all jobs from storage."""
     ensure_dirs()
     if not JOBS_FILE.exists():
         return []
-    
+
     try:
-        with open(JOBS_FILE, 'r', encoding='utf-8') as f:
+        with open(JOBS_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
             return data.get("jobs", [])
     except json.JSONDecodeError:
         # Retry with strict=False to handle bare control chars in string values
         try:
-            with open(JOBS_FILE, 'r', encoding='utf-8') as f:
+            with open(JOBS_FILE, "r", encoding="utf-8") as f:
                 data = json.loads(f.read(), strict=False)
                 jobs = data.get("jobs", [])
                 if jobs:
                     # Auto-repair: rewrite with proper escaping
                     save_jobs(jobs)
-                    logger.warning("Auto-repaired jobs.json (had invalid control characters)")
+                    logger.warning(
+                        "Auto-repaired jobs.json (had invalid control characters)"
+                    )
                 return jobs
         except Exception as e:
             logger.error("Failed to auto-repair jobs.json: %s", e)
@@ -349,10 +354,14 @@ def load_jobs() -> List[Dict[str, Any]]:
 def save_jobs(jobs: List[Dict[str, Any]]):
     """Save all jobs to storage."""
     ensure_dirs()
-    fd, tmp_path = tempfile.mkstemp(dir=str(JOBS_FILE.parent), suffix='.tmp', prefix='.jobs_')
+    fd, tmp_path = tempfile.mkstemp(
+        dir=str(JOBS_FILE.parent), suffix=".tmp", prefix=".jobs_"
+    )
     try:
-        with os.fdopen(fd, 'w', encoding='utf-8') as f:
-            json.dump({"jobs": jobs, "updated_at": _hermes_now().isoformat()}, f, indent=2)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(
+                {"jobs": jobs, "updated_at": _hermes_now().isoformat()}, f, indent=2
+            )
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp_path, JOBS_FILE)
@@ -421,14 +430,18 @@ def create_job(
     normalized_skills = _normalize_skill_list(skill, skills)
     normalized_model = str(model).strip() if isinstance(model, str) else None
     normalized_provider = str(provider).strip() if isinstance(provider, str) else None
-    normalized_base_url = str(base_url).strip().rstrip("/") if isinstance(base_url, str) else None
+    normalized_base_url = (
+        str(base_url).strip().rstrip("/") if isinstance(base_url, str) else None
+    )
     normalized_model = normalized_model or None
     normalized_provider = normalized_provider or None
     normalized_base_url = normalized_base_url or None
     normalized_script = str(script).strip() if isinstance(script, str) else None
     normalized_script = normalized_script or None
 
-    label_source = (prompt or (normalized_skills[0] if normalized_skills else None)) or "cron job"
+    label_source = (
+        prompt or (normalized_skills[0] if normalized_skills else None)
+    ) or "cron job"
     job = {
         "id": job_id,
         "name": name or label_source[:50].strip(),
@@ -443,7 +456,7 @@ def create_job(
         "schedule_display": parsed_schedule.get("display", schedule),
         "repeat": {
             "times": repeat,  # None = forever
-            "completed": 0
+            "completed": 0,
         },
         "enabled": True,
         "state": "scheduled",
@@ -495,7 +508,9 @@ def update_job(job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]
         schedule_changed = "schedule" in updates
 
         if "skills" in updates or "skill" in updates:
-            normalized_skills = _normalize_skill_list(updated.get("skill"), updated.get("skills"))
+            normalized_skills = _normalize_skill_list(
+                updated.get("skill"), updated.get("skills")
+            )
             updated["skills"] = normalized_skills
             updated["skill"] = normalized_skills[0] if normalized_skills else None
 
@@ -508,7 +523,11 @@ def update_job(job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]
             if updated.get("state") != "paused":
                 updated["next_run_at"] = compute_next_run(updated_schedule)
 
-        if updated.get("enabled", True) and updated.get("state") != "paused" and not updated.get("next_run_at"):
+        if (
+            updated.get("enabled", True)
+            and updated.get("state") != "paused"
+            and not updated.get("next_run_at")
+        ):
             updated["next_run_at"] = compute_next_run(updated["schedule"])
 
         jobs[i] = updated
@@ -577,11 +596,15 @@ def remove_job(job_id: str) -> bool:
     return False
 
 
-def mark_job_run(job_id: str, success: bool, error: Optional[str] = None,
-                 delivery_error: Optional[str] = None):
+def mark_job_run(
+    job_id: str,
+    success: bool,
+    error: Optional[str] = None,
+    delivery_error: Optional[str] = None,
+):
     """
     Mark a job as having been run.
-    
+
     Updates last_run_at, last_status, increments completed count,
     computes next_run_at, and auto-deletes if repeat limit reached.
 
@@ -597,11 +620,11 @@ def mark_job_run(job_id: str, success: bool, error: Optional[str] = None,
             job["last_error"] = error if not success else None
             # Track delivery failures separately — cleared on successful delivery
             job["last_delivery_error"] = delivery_error
-            
+
             # Increment completed count
             if job.get("repeat"):
                 job["repeat"]["completed"] = job["repeat"].get("completed", 0) + 1
-                
+
                 # Check if we've hit the repeat limit
                 times = job["repeat"].get("times")
                 completed = job["repeat"]["completed"]
@@ -610,7 +633,7 @@ def mark_job_run(job_id: str, success: bool, error: Optional[str] = None,
                     jobs.pop(i)
                     save_jobs(jobs)
                     return
-            
+
             # Compute next run
             job["next_run_at"] = compute_next_run(job["schedule"], now)
 
@@ -705,7 +728,10 @@ def get_due_jobs() -> List[Dict[str, Any]]:
             # (gateway was down and missed the window). Fast-forward to
             # the next future occurrence instead of firing a stale run.
             grace = _compute_grace_seconds(schedule)
-            if kind in ("cron", "interval") and (now - next_run_dt).total_seconds() > grace:
+            if (
+                kind in ("cron", "interval")
+                and (now - next_run_dt).total_seconds() > grace
+            ):
                 # Job is past its catch-up grace window — this is a stale missed run.
                 # Grace scales with schedule period: daily=2h, hourly=30m, 10min=5m.
                 new_next = compute_next_run(schedule, now.isoformat())
@@ -740,13 +766,15 @@ def save_job_output(job_id: str, output: str):
     job_output_dir = OUTPUT_DIR / job_id
     job_output_dir.mkdir(parents=True, exist_ok=True)
     _secure_dir(job_output_dir)
-    
+
     timestamp = _hermes_now().strftime("%Y-%m-%d_%H-%M-%S")
     output_file = job_output_dir / f"{timestamp}.md"
-    
-    fd, tmp_path = tempfile.mkstemp(dir=str(job_output_dir), suffix='.tmp', prefix='.output_')
+
+    fd, tmp_path = tempfile.mkstemp(
+        dir=str(job_output_dir), suffix=".tmp", prefix=".output_"
+    )
     try:
-        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(output)
             f.flush()
             os.fsync(f.fileno())
@@ -758,5 +786,5 @@ def save_job_output(job_id: str, output: str):
         except OSError:
             pass
         raise
-    
+
     return output_file

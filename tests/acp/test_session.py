@@ -37,7 +37,10 @@ class TestCreateSession:
 
     def test_create_session_registers_task_cwd(self, manager, monkeypatch):
         calls = []
-        monkeypatch.setattr("acp_adapter.session._register_task_cwd", lambda task_id, cwd: calls.append((task_id, cwd)))
+        monkeypatch.setattr(
+            "acp_adapter.session._register_task_cwd",
+            lambda task_id, cwd: calls.append((task_id, cwd)),
+        )
         state = manager.create_session(cwd="/tmp/work")
         assert calls == [(state.session_id, "/tmp/work")]
 
@@ -249,7 +252,9 @@ class TestPersistence:
         """ACP sessions stored in SessionDB are searchable via FTS5."""
         state = manager.create_session()
         state.history.append({"role": "user", "content": "how do I configure nginx"})
-        state.history.append({"role": "assistant", "content": "Here is the nginx config..."})
+        state.history.append(
+            {"role": "assistant", "content": "Here is the nginx config..."}
+        )
         manager.save_session(state.session_id)
 
         db = manager._get_db()
@@ -261,18 +266,27 @@ class TestPersistence:
     def test_tool_calls_persisted(self, manager):
         """Messages with tool_calls should round-trip through the DB."""
         state = manager.create_session()
-        state.history.append({
-            "role": "assistant",
-            "content": None,
-            "tool_calls": [{"id": "tc_1", "type": "function",
-                            "function": {"name": "terminal", "arguments": "{}"}}],
-        })
-        state.history.append({
-            "role": "tool",
-            "content": "output here",
-            "tool_call_id": "tc_1",
-            "name": "terminal",
-        })
+        state.history.append(
+            {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": "tc_1",
+                        "type": "function",
+                        "function": {"name": "terminal", "arguments": "{}"},
+                    }
+                ],
+            }
+        )
+        state.history.append(
+            {
+                "role": "tool",
+                "content": "output here",
+                "tool_call_id": "tc_1",
+                "name": "terminal",
+            }
+        )
         manager.save_session(state.session_id)
 
         # Drop from memory, restore from DB.
@@ -293,7 +307,9 @@ class TestPersistence:
             provider = requested or runtime_choice["provider"]
             return {
                 "provider": provider,
-                "api_mode": "anthropic_messages" if provider == "anthropic" else "chat_completions",
+                "api_mode": "anthropic_messages"
+                if provider == "anthropic"
+                else "chat_completions",
                 "base_url": f"https://{provider}.example/v1",
                 "api_key": f"{provider}-key",
                 "command": None,
@@ -308,9 +324,15 @@ class TestPersistence:
                 api_mode=kwargs.get("api_mode"),
             )
 
-        monkeypatch.setattr("hermes_cli.config.load_config", lambda: {
-            "model": {"provider": runtime_choice["provider"], "default": "test-model"}
-        })
+        monkeypatch.setattr(
+            "hermes_cli.config.load_config",
+            lambda: {
+                "model": {
+                    "provider": runtime_choice["provider"],
+                    "default": "test-model",
+                }
+            },
+        )
         monkeypatch.setattr(
             "hermes_cli.runtime_provider.resolve_runtime_provider",
             fake_resolve_runtime_provider,
@@ -348,9 +370,10 @@ class TestPersistence:
         def fake_agent(**kwargs):
             return SimpleNamespace(model=kwargs.get("model"), _print_fn=None)
 
-        monkeypatch.setattr("hermes_cli.config.load_config", lambda: {
-            "model": {"provider": "openrouter", "default": "test-model"}
-        })
+        monkeypatch.setattr(
+            "hermes_cli.config.load_config",
+            lambda: {"model": {"provider": "openrouter", "default": "test-model"}},
+        )
         monkeypatch.setattr(
             "hermes_cli.runtime_provider.resolve_runtime_provider",
             fake_resolve_runtime_provider,
@@ -363,7 +386,10 @@ class TestPersistence:
 
         stdout_buf = io.StringIO()
         stderr_buf = io.StringIO()
-        with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
+        with (
+            contextlib.redirect_stdout(stdout_buf),
+            contextlib.redirect_stderr(stderr_buf),
+        ):
             state.agent._print_fn("ACP noise")
 
         assert stdout_buf.getvalue() == ""

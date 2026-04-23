@@ -147,6 +147,7 @@ class TestInitSessionFailure:
         env._snapshot_ready = False
 
         calls = []
+
         def mock_run_bash(cmd, *, login=False, timeout=120, stdin_data=None):
             calls.append({"login": login})
             # Return a mock process handle

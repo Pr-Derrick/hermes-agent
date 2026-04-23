@@ -7,8 +7,7 @@ Verifies that:
 """
 
 import pytest
-#pytestmark = pytest.mark.skip(reason="Hangs in non-interactive environments")
-
+# pytestmark = pytest.mark.skip(reason="Hangs in non-interactive environments")
 
 
 import uuid
@@ -24,6 +23,7 @@ from run_agent import AIAgent
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_tool_defs(*names: str) -> list:
     return [
@@ -63,7 +63,9 @@ def _make_413_error(*, use_status_code=True, message="Request entity too large")
 @pytest.fixture()
 def agent():
     with (
-        patch("run_agent.get_tool_definitions", return_value=_make_tool_defs("web_search")),
+        patch(
+            "run_agent.get_tool_definitions", return_value=_make_tool_defs("web_search")
+        ),
         patch("run_agent.check_toolset_requirements", return_value={}),
         patch("run_agent.OpenAI"),
     ):
@@ -86,6 +88,7 @@ def agent():
 # Tests
 # ---------------------------------------------------------------------------
 
+
 class TestHTTP413Compression:
     """413 errors should trigger compression, not abort as generic 4xx."""
 
@@ -93,7 +96,9 @@ class TestHTTP413Compression:
         """A 413 error should call _compress_context and retry, not abort."""
         # First call raises 413; second call succeeds after compression.
         err_413 = _make_413_error()
-        ok_resp = _mock_response(content="Success after compression", finish_reason="stop")
+        ok_resp = _mock_response(
+            content="Success after compression", finish_reason="stop"
+        )
         agent.client.chat.completions.create.side_effect = [err_413, ok_resp]
 
         # Prefill so there are multiple messages for compression to reduce
@@ -195,7 +200,8 @@ class TestHTTP413Compression:
         with (
             patch.object(agent, "_compress_context") as mock_compress,
             patch.object(
-                agent, "_persist_session",
+                agent,
+                "_persist_session",
                 side_effect=lambda msgs, hist: persist_calls.append(hist),
             ),
             patch.object(agent, "_save_trajectory"),
@@ -234,7 +240,8 @@ class TestHTTP413Compression:
         with (
             patch.object(agent, "_compress_context") as mock_compress,
             patch.object(
-                agent, "_persist_session",
+                agent,
+                "_persist_session",
                 side_effect=lambda msgs, hist: persist_calls.append(hist),
             ),
             patch.object(agent, "_save_trajectory"),
@@ -266,7 +273,9 @@ class TestHTTP413Compression:
             "However, you requested about 270460 tokens.\", 'code': 400}}"
         )
         err_400.status_code = 400
-        ok_resp = _mock_response(content="Recovered after compression", finish_reason="stop")
+        ok_resp = _mock_response(
+            content="Recovered after compression", finish_reason="stop"
+        )
         agent.client.chat.completions.create.side_effect = [err_400, ok_resp]
 
         prefill = [
@@ -326,10 +335,12 @@ class TestHTTP413Compression:
         err_400 = Exception(
             "Error code: 400 - {'error': {'message': "
             "\"This endpoint's maximum context length is 128000 tokens. "
-            "Please reduce the length of the messages.\"}}"
+            'Please reduce the length of the messages."}}'
         )
         err_400.status_code = 400
-        ok_resp = _mock_response(content="Recovered after real compression", finish_reason="stop")
+        ok_resp = _mock_response(
+            content="Recovered after real compression", finish_reason="stop"
+        )
 
         request_payloads = []
 
@@ -360,7 +371,9 @@ class TestHTTP413Compression:
 
         assert result["completed"] is True
         assert len(request_payloads) == 2
-        assert len(request_payloads[1]["messages"]) < len(request_payloads[0]["messages"])
+        assert len(request_payloads[1]["messages"]) < len(
+            request_payloads[0]["messages"]
+        )
         assert request_payloads[1]["messages"][0] == {
             "role": "system",
             "content": "compressed prompt",
@@ -408,8 +421,18 @@ class TestPreflightCompression:
         # (each message ~50 chars ≈ 13 tokens, 40 messages ≈ 520 tokens > 200 threshold)
         big_history = []
         for i in range(20):
-            big_history.append({"role": "user", "content": f"Message number {i} with some extra text padding"})
-            big_history.append({"role": "assistant", "content": f"Response number {i} with extra padding here"})
+            big_history.append(
+                {
+                    "role": "user",
+                    "content": f"Message number {i} with some extra text padding",
+                }
+            )
+            big_history.append(
+                {
+                    "role": "assistant",
+                    "content": f"Response number {i} with extra padding here",
+                }
+            )
 
         ok_resp = _mock_response(content="After preflight", finish_reason="stop")
         agent.client.chat.completions.create.side_effect = [ok_resp]
@@ -423,7 +446,10 @@ class TestPreflightCompression:
             # Simulate compression reducing messages to a small set that fits
             mock_compress.return_value = (
                 [
-                    {"role": "user", "content": f"{SUMMARY_PREFIX}\nPrevious conversation"},
+                    {
+                        "role": "user",
+                        "content": f"{SUMMARY_PREFIX}\nPrevious conversation",
+                    },
                     {"role": "user", "content": "hello"},
                 ],
                 "new system prompt",
@@ -493,21 +519,35 @@ class TestToolResultPreflightCompression:
         """When tool results push estimated tokens past threshold, compress before next call."""
         agent.compression_enabled = True
         agent.context_compressor.context_length = 200_000
-        agent.context_compressor.threshold_tokens = 130_000  # below the 135k reported usage
+        agent.context_compressor.threshold_tokens = (
+            130_000  # below the 135k reported usage
+        )
         agent.context_compressor.last_prompt_tokens = 130_000
         agent.context_compressor.last_completion_tokens = 5_000
 
         tc = SimpleNamespace(
-            id="tc1", type="function",
+            id="tc1",
+            type="function",
             function=SimpleNamespace(name="web_search", arguments='{"query":"test"}'),
         )
         tool_resp = _mock_response(
-            content=None, finish_reason="stop", tool_calls=[tc],
-            usage={"prompt_tokens": 130_000, "completion_tokens": 5_000, "total_tokens": 135_000},
+            content=None,
+            finish_reason="stop",
+            tool_calls=[tc],
+            usage={
+                "prompt_tokens": 130_000,
+                "completion_tokens": 5_000,
+                "total_tokens": 135_000,
+            },
         )
         ok_resp = _mock_response(
-            content="Done after compression", finish_reason="stop",
-            usage={"prompt_tokens": 50_000, "completion_tokens": 100, "total_tokens": 50_100},
+            content="Done after compression",
+            finish_reason="stop",
+            usage={
+                "prompt_tokens": 50_000,
+                "completion_tokens": 100,
+                "total_tokens": 50_100,
+            },
         )
         agent.client.chat.completions.create.side_effect = [tool_resp, ok_resp]
         large_result = "x" * 100_000
@@ -520,7 +560,8 @@ class TestToolResultPreflightCompression:
             patch.object(agent, "_cleanup_task_resources"),
         ):
             mock_compress.return_value = (
-                [{"role": "user", "content": "hello"}], "compressed prompt",
+                [{"role": "user", "content": "hello"}],
+                "compressed prompt",
             )
             result = agent.run_conversation("hello")
 
@@ -548,7 +589,8 @@ class TestToolResultPreflightCompression:
             patch.object(agent, "_cleanup_task_resources"),
         ):
             mock_compress.return_value = (
-                [{"role": "user", "content": "hello"}], "compressed",
+                [{"role": "user", "content": "hello"}],
+                "compressed",
             )
             result = agent.run_conversation("hello", conversation_history=prefill)
 

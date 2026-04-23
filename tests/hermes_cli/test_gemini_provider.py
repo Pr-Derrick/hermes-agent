@@ -4,14 +4,28 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 
-from hermes_cli.auth import PROVIDER_REGISTRY, resolve_provider, resolve_api_key_provider_credentials
-from hermes_cli.models import _PROVIDER_MODELS, _PROVIDER_LABELS, _PROVIDER_ALIASES, normalize_provider
+from hermes_cli.auth import (
+    PROVIDER_REGISTRY,
+    resolve_provider,
+    resolve_api_key_provider_credentials,
+)
+from hermes_cli.models import (
+    _PROVIDER_MODELS,
+    _PROVIDER_LABELS,
+    _PROVIDER_ALIASES,
+    normalize_provider,
+)
 from hermes_cli.model_normalize import normalize_model_for_provider, detect_vendor
 from agent.model_metadata import get_model_context_length
-from agent.models_dev import PROVIDER_TO_MODELS_DEV, list_agentic_models, _NOISE_PATTERNS
+from agent.models_dev import (
+    PROVIDER_TO_MODELS_DEV,
+    list_agentic_models,
+    _NOISE_PATTERNS,
+)
 
 
 # ── Provider Registry ──
+
 
 class TestGeminiProviderRegistry:
     def test_gemini_in_registry(self):
@@ -22,7 +36,10 @@ class TestGeminiProviderRegistry:
         assert pconfig.id == "gemini"
         assert pconfig.name == "Google AI Studio"
         assert pconfig.auth_type == "api_key"
-        assert pconfig.inference_base_url == "https://generativelanguage.googleapis.com/v1beta/openai"
+        assert (
+            pconfig.inference_base_url
+            == "https://generativelanguage.googleapis.com/v1beta/openai"
+        )
 
     def test_gemini_env_vars(self):
         pconfig = PROVIDER_REGISTRY["gemini"]
@@ -30,17 +47,28 @@ class TestGeminiProviderRegistry:
         assert pconfig.base_url_env_var == "GEMINI_BASE_URL"
 
     def test_gemini_base_url(self):
-        assert "generativelanguage.googleapis.com" in PROVIDER_REGISTRY["gemini"].inference_base_url
+        assert (
+            "generativelanguage.googleapis.com"
+            in PROVIDER_REGISTRY["gemini"].inference_base_url
+        )
 
 
 # ── Provider Aliases ──
 
 PROVIDER_ENV_VARS = (
-    "OPENROUTER_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-    "GOOGLE_API_KEY", "GEMINI_API_KEY", "GEMINI_BASE_URL",
-    "GLM_API_KEY", "ZAI_API_KEY", "KIMI_API_KEY",
-    "MINIMAX_API_KEY", "DEEPSEEK_API_KEY",
+    "OPENROUTER_API_KEY",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "GOOGLE_API_KEY",
+    "GEMINI_API_KEY",
+    "GEMINI_BASE_URL",
+    "GLM_API_KEY",
+    "ZAI_API_KEY",
+    "KIMI_API_KEY",
+    "MINIMAX_API_KEY",
+    "DEEPSEEK_API_KEY",
 )
+
 
 @pytest.fixture(autouse=True)
 def _clean_provider_env(monkeypatch):
@@ -74,6 +102,7 @@ class TestGeminiAliases:
 
 # ── Auto-detection ──
 
+
 class TestGeminiAutoDetection:
     def test_auto_detects_google_api_key(self, monkeypatch):
         monkeypatch.setenv("GOOGLE_API_KEY", "test-google-key")
@@ -93,13 +122,17 @@ class TestGeminiAutoDetection:
 
 # ── Credential Resolution ──
 
+
 class TestGeminiCredentials:
     def test_resolve_with_google_api_key(self, monkeypatch):
         monkeypatch.setenv("GOOGLE_API_KEY", "google-secret")
         creds = resolve_api_key_provider_credentials("gemini")
         assert creds["provider"] == "gemini"
         assert creds["api_key"] == "google-secret"
-        assert creds["base_url"] == "https://generativelanguage.googleapis.com/v1beta/openai"
+        assert (
+            creds["base_url"]
+            == "https://generativelanguage.googleapis.com/v1beta/openai"
+        )
 
     def test_resolve_with_gemini_api_key(self, monkeypatch):
         monkeypatch.setenv("GEMINI_API_KEY", "gemini-secret")
@@ -115,14 +148,19 @@ class TestGeminiCredentials:
     def test_runtime_gemini(self, monkeypatch):
         monkeypatch.setenv("GOOGLE_API_KEY", "google-key")
         from hermes_cli.runtime_provider import resolve_runtime_provider
+
         result = resolve_runtime_provider(requested="gemini")
         assert result["provider"] == "gemini"
         assert result["api_mode"] == "chat_completions"
         assert result["api_key"] == "google-key"
-        assert result["base_url"] == "https://generativelanguage.googleapis.com/v1beta/openai"
+        assert (
+            result["base_url"]
+            == "https://generativelanguage.googleapis.com/v1beta/openai"
+        )
 
 
 # ── Model Catalog ──
+
 
 class TestGeminiModelCatalog:
     def test_provider_models_exist(self):
@@ -145,12 +183,19 @@ class TestGeminiModelCatalog:
 
 # ── Model Normalization ──
 
+
 class TestGeminiModelNormalization:
     def test_passthrough_bare_name(self):
-        assert normalize_model_for_provider("gemini-2.5-flash", "gemini") == "gemini-2.5-flash"
+        assert (
+            normalize_model_for_provider("gemini-2.5-flash", "gemini")
+            == "gemini-2.5-flash"
+        )
 
     def test_strip_vendor_prefix(self):
-        assert normalize_model_for_provider("google/gemini-2.5-flash", "gemini") == "google/gemini-2.5-flash"
+        assert (
+            normalize_model_for_provider("google/gemini-2.5-flash", "gemini")
+            == "google/gemini-2.5-flash"
+        )
 
     def test_gemma_vendor_detection(self):
         assert detect_vendor("gemma-4-31b-it") == "google"
@@ -169,12 +214,15 @@ class TestGeminiModelNormalization:
 
 # ── Context Length ──
 
+
 class TestGeminiContextLength:
     def test_gemma_4_31b_context(self):
         # Mock external API lookups to test against hardcoded defaults
         # (models.dev and OpenRouter may return different values like 262144).
-        with patch("agent.models_dev.lookup_models_dev_context", return_value=None), \
-             patch("agent.model_metadata.fetch_model_metadata", return_value={}):
+        with (
+            patch("agent.models_dev.lookup_models_dev_context", return_value=None),
+            patch("agent.model_metadata.fetch_model_metadata", return_value={}),
+        ):
             ctx = get_model_context_length("gemma-4-31b-it", provider="gemini")
         assert ctx == 256000
 
@@ -189,11 +237,13 @@ class TestGeminiContextLength:
 
 # ── Agent Init (no SyntaxError) ──
 
+
 class TestGeminiAgentInit:
     def test_agent_imports_without_error(self):
         """Verify run_agent.py has no SyntaxError (the critical bug)."""
         import importlib
         import run_agent
+
         importlib.reload(run_agent)
 
     def test_gemini_agent_uses_chat_completions(self, monkeypatch):
@@ -202,6 +252,7 @@ class TestGeminiAgentInit:
         with patch("run_agent.OpenAI") as mock_openai:
             mock_openai.return_value = MagicMock()
             from run_agent import AIAgent
+
             agent = AIAgent(
                 model="gemini-2.5-flash",
                 provider="gemini",
@@ -213,6 +264,7 @@ class TestGeminiAgentInit:
 
 
 # ── models.dev Integration ──
+
 
 class TestGeminiModelsDev:
     def test_gemini_mapped_to_google(self):
@@ -267,7 +319,7 @@ class TestGeminiModelsDev:
         assert "gemini-2.5-pro" in result
         assert "gemma-4-31b-it" in result
         # Filtered out:
-        assert "gemini-embedding-001" not in result      # no tool_call
+        assert "gemini-embedding-001" not in result  # no tool_call
         assert "gemini-2.5-flash-preview-tts" not in result  # no tool_call
-        assert "gemini-live-2.5-flash" not in result     # noise: live-
+        assert "gemini-live-2.5-flash" not in result  # noise: live-
         assert "gemini-2.5-flash-preview-04-17" not in result  # noise: dated preview

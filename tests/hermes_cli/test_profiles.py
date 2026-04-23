@@ -39,6 +39,7 @@ from hermes_cli.profiles import (
 # Shared fixture: redirect Path.home() and HERMES_HOME for profile tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture()
 def profile_env(tmp_path, monkeypatch):
     """Set up an isolated environment for profile tests.
@@ -57,6 +58,7 @@ def profile_env(tmp_path, monkeypatch):
 # ===================================================================
 # TestValidateProfileName
 # ===================================================================
+
 
 class TestValidateProfileName:
     """Tests for validate_profile_name()."""
@@ -94,6 +96,7 @@ class TestValidateProfileName:
 # TestGetProfileDir
 # ===================================================================
 
+
 class TestGetProfileDir:
     """Tests for get_profile_dir()."""
 
@@ -112,14 +115,23 @@ class TestGetProfileDir:
 # TestCreateProfile
 # ===================================================================
 
+
 class TestCreateProfile:
     """Tests for create_profile()."""
 
     def test_creates_directory_with_subdirs(self, profile_env):
         profile_dir = create_profile("coder", no_alias=True)
         assert profile_dir.is_dir()
-        for subdir in ["memories", "sessions", "skills", "skins", "logs",
-                        "plans", "workspace", "cron"]:
+        for subdir in [
+            "memories",
+            "sessions",
+            "skills",
+            "skins",
+            "logs",
+            "plans",
+            "workspace",
+            "cron",
+        ]:
             assert (profile_dir / subdir).is_dir(), f"Missing subdir: {subdir}"
 
     def test_duplicate_raises_file_exists(self, profile_env):
@@ -184,6 +196,7 @@ class TestCreateProfile:
 # TestDeleteProfile
 # ===================================================================
 
+
 class TestDeleteProfile:
     """Tests for delete_profile()."""
 
@@ -207,6 +220,7 @@ class TestDeleteProfile:
 # ===================================================================
 # TestListProfiles
 # ===================================================================
+
 
 class TestListProfiles:
     """Tests for list_profiles()."""
@@ -242,6 +256,7 @@ class TestListProfiles:
 # ===================================================================
 # TestActiveProfile
 # ===================================================================
+
 
 class TestActiveProfile:
     """Tests for set_active_profile() / get_active_profile()."""
@@ -279,6 +294,7 @@ class TestActiveProfile:
 # TestGetActiveProfileName
 # ===================================================================
 
+
 class TestGetActiveProfileName:
     """Tests for get_active_profile_name()."""
 
@@ -309,6 +325,7 @@ class TestGetActiveProfileName:
 # TestResolveProfileEnv
 # ===================================================================
 
+
 class TestResolveProfileEnv:
     """Tests for resolve_profile_env()."""
 
@@ -335,6 +352,7 @@ class TestResolveProfileEnv:
 # ===================================================================
 # TestAliasCollision
 # ===================================================================
+
 
 class TestAliasCollision:
     """Tests for check_alias_collision()."""
@@ -365,6 +383,7 @@ class TestAliasCollision:
 # ===================================================================
 # TestRenameProfile
 # ===================================================================
+
 
 class TestRenameProfile:
     """Tests for rename_profile()."""
@@ -407,6 +426,7 @@ class TestRenameProfile:
 # TestExportImport
 # ===================================================================
 
+
 class TestExportImport:
     """Tests for export_profile() / import_profile()."""
 
@@ -435,6 +455,7 @@ class TestExportImport:
 
         # Delete the profile, then import it back under a new name
         import shutil
+
         shutil.rmtree(profile_dir)
         assert not profile_dir.is_dir()
 
@@ -536,15 +557,31 @@ class TestExportImport:
         (default_dir / "config.yaml").write_text("ok")
 
         # Create dirs/files that should be excluded
-        for d in ("hermes-agent", ".worktrees", "profiles", "bin",
-                  "image_cache", "logs", "sandboxes", "checkpoints"):
+        for d in (
+            "hermes-agent",
+            ".worktrees",
+            "profiles",
+            "bin",
+            "image_cache",
+            "logs",
+            "sandboxes",
+            "checkpoints",
+        ):
             sub = default_dir / d
             sub.mkdir(exist_ok=True)
             (sub / "marker.txt").write_text("excluded")
 
-        for f in ("state.db", "gateway.pid", "gateway_state.json",
-                  "processes.json", "errors.log", ".hermes_history",
-                  "active_profile", ".update_check", "auth.lock"):
+        for f in (
+            "state.db",
+            "gateway.pid",
+            "gateway_state.json",
+            "processes.json",
+            "errors.log",
+            ".hermes_history",
+            "active_profile",
+            ".update_check",
+            "auth.lock",
+        ):
             (default_dir / f).write_text("excluded")
 
         output = tmp_path / "export" / "default.tar.gz"
@@ -559,19 +596,29 @@ class TestExportImport:
 
         # Infrastructure excluded
         excluded_prefixes = [
-            "default/hermes-agent", "default/.worktrees", "default/profiles",
-            "default/bin", "default/image_cache", "default/logs",
-            "default/sandboxes", "default/checkpoints",
+            "default/hermes-agent",
+            "default/.worktrees",
+            "default/profiles",
+            "default/bin",
+            "default/image_cache",
+            "default/logs",
+            "default/sandboxes",
+            "default/checkpoints",
         ]
         for prefix in excluded_prefixes:
-            assert not any(n.startswith(prefix) for n in names), \
+            assert not any(n.startswith(prefix) for n in names), (
                 f"Expected {prefix} to be excluded but found it in archive"
+            )
 
         excluded_files = [
-            "default/state.db", "default/gateway.pid",
-            "default/gateway_state.json", "default/processes.json",
-            "default/errors.log", "default/.hermes_history",
-            "default/active_profile", "default/.update_check",
+            "default/state.db",
+            "default/gateway.pid",
+            "default/gateway_state.json",
+            "default/processes.json",
+            "default/errors.log",
+            "default/.hermes_history",
+            "default/active_profile",
+            "default/.update_check",
             "default/auth.lock",
         ]
         for f in excluded_files:
@@ -606,7 +653,9 @@ class TestExportImport:
         with pytest.raises(ValueError, match="Cannot import as 'default'"):
             import_profile(str(archive))
 
-    def test_import_default_with_explicit_default_name_raises(self, profile_env, tmp_path):
+    def test_import_default_with_explicit_default_name_raises(
+        self, profile_env, tmp_path
+    ):
         """Explicitly importing as 'default' is also rejected."""
         default_dir = get_profile_dir("default")
         (default_dir / "config.yaml").write_text("ok")
@@ -640,6 +689,7 @@ class TestExportImport:
 # TestProfileIsolation
 # ===================================================================
 
+
 class TestProfileIsolation:
     """Verify that two profiles have completely separate paths."""
 
@@ -671,6 +721,7 @@ class TestProfileIsolation:
 # TestCompletion
 # ===================================================================
 
+
 class TestCompletion:
     """Tests for bash/zsh completion generators."""
 
@@ -696,6 +747,7 @@ class TestCompletion:
 # ===================================================================
 # TestGetProfilesRoot / TestGetDefaultHermesHome (internal helpers)
 # ===================================================================
+
 
 class TestInternalHelpers:
     """Tests for _get_profiles_root() and _get_default_hermes_home()."""
@@ -741,6 +793,7 @@ class TestInternalHelpers:
     def test_active_profile_path_docker(self, tmp_path, monkeypatch):
         """In Docker, active_profile file lives under HERMES_HOME."""
         from hermes_cli.profiles import _get_active_profile_path
+
         docker_home = tmp_path / "opt" / "data"
         docker_home.mkdir(parents=True)
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
@@ -781,6 +834,7 @@ class TestInternalHelpers:
 # Edge cases and additional coverage
 # ===================================================================
 
+
 class TestEdgeCases:
     """Additional edge-case tests."""
 
@@ -800,6 +854,7 @@ class TestEdgeCases:
     def test_gateway_running_check_with_pid_file(self, profile_env):
         """Verify _check_gateway_running reads pid file and probes os.kill."""
         from hermes_cli.profiles import _check_gateway_running
+
         tmp_path = profile_env
         default_home = tmp_path / ".hermes"
 
@@ -820,6 +875,7 @@ class TestEdgeCases:
     def test_gateway_running_check_plain_pid(self, profile_env):
         """Pid file containing just a number (legacy format)."""
         from hermes_cli.profiles import _check_gateway_running
+
         tmp_path = profile_env
         default_home = tmp_path / ".hermes"
         pid_file = default_home / "gateway.pid"
@@ -852,7 +908,10 @@ class TestEdgeCases:
         (source_dir / ".env").write_text("SECRET=yes")
 
         target_dir = create_profile(
-            "target", clone_from="source", clone_config=True, no_alias=True,
+            "target",
+            clone_from="source",
+            clone_config=True,
+            no_alias=True,
         )
         assert (target_dir / "config.yaml").read_text() == "model: cloned"
         assert (target_dir / ".env").read_text() == "SECRET=yes"

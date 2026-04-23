@@ -86,9 +86,10 @@ def test_cancel_secret_capture_marks_setup_skipped():
 def test_secret_capture_uses_getpass_without_tui():
     cli = _make_cli_stub()
 
-    with patch("hermes_cli.callbacks.getpass.getpass", return_value="secret-value"), patch(
-        "hermes_cli.callbacks.save_env_value_secure"
-    ) as save_secret:
+    with (
+        patch("hermes_cli.callbacks.getpass.getpass", return_value="secret-value"),
+        patch("hermes_cli.callbacks.save_env_value_secure") as save_secret,
+    ):
         save_secret.return_value = {
             "success": True,
             "stored_as": "TENOR_API_KEY",
@@ -110,9 +111,12 @@ def test_secret_capture_timeout_clears_hidden_input_buffer():
 
     cli._clear_secret_input_buffer = clear_buffer
 
-    with patch("hermes_cli.callbacks.queue.Queue.get", side_effect=queue.Empty), patch(
-        "hermes_cli.callbacks._time.monotonic",
-        side_effect=[0, 121],
+    with (
+        patch("hermes_cli.callbacks.queue.Queue.get", side_effect=queue.Empty),
+        patch(
+            "hermes_cli.callbacks._time.monotonic",
+            side_effect=[0, 121],
+        ),
     ):
         result = prompt_for_secret(cli, "TENOR_API_KEY", "Tenor API key")
 
@@ -134,14 +138,21 @@ def test_cli_chat_registers_secret_capture_callback():
         "terminal": {"env_type": "local"},
     }
 
-    with patch("cli.get_tool_definitions", return_value=[]), patch.dict(
-        "os.environ", {"LLM_MODEL": "", "HERMES_MAX_ITERATIONS": ""}, clear=False
-    ), patch.dict(cli_module.__dict__, {"CLI_CONFIG": clean_config}):
+    with (
+        patch("cli.get_tool_definitions", return_value=[]),
+        patch.dict(
+            "os.environ", {"LLM_MODEL": "", "HERMES_MAX_ITERATIONS": ""}, clear=False
+        ),
+        patch.dict(cli_module.__dict__, {"CLI_CONFIG": clean_config}),
+    ):
         cli_obj = HermesCLI()
         with patch.object(cli_obj, "_ensure_runtime_credentials", return_value=False):
             cli_obj.chat("hello")
 
     try:
-        assert skills_tool_module._secret_capture_callback == cli_obj._secret_capture_callback
+        assert (
+            skills_tool_module._secret_capture_callback
+            == cli_obj._secret_capture_callback
+        )
     finally:
         set_secret_capture_callback(None)

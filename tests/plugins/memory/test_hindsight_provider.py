@@ -30,8 +30,12 @@ from plugins.memory.hindsight import (
 def _clean_env(monkeypatch):
     """Ensure no stale env vars leak between tests."""
     for key in (
-        "HINDSIGHT_API_KEY", "HINDSIGHT_API_URL", "HINDSIGHT_BANK_ID",
-        "HINDSIGHT_BUDGET", "HINDSIGHT_MODE", "HINDSIGHT_LLM_API_KEY",
+        "HINDSIGHT_API_KEY",
+        "HINDSIGHT_API_URL",
+        "HINDSIGHT_BANK_ID",
+        "HINDSIGHT_BUDGET",
+        "HINDSIGHT_MODE",
+        "HINDSIGHT_LLM_API_KEY",
     ):
         monkeypatch.delenv(key, raising=False)
 
@@ -48,9 +52,7 @@ def _make_mock_client():
             ]
         )
     )
-    client.areflect = AsyncMock(
-        return_value=SimpleNamespace(text="Synthesized answer")
-    )
+    client.areflect = AsyncMock(return_value=SimpleNamespace(text="Synthesized answer"))
     client.aretain_batch = AsyncMock()
     client.aclose = AsyncMock()
     return client
@@ -71,9 +73,7 @@ def provider(tmp_path, monkeypatch):
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config_path.write_text(json.dumps(config))
 
-    monkeypatch.setattr(
-        "plugins.memory.hindsight.get_hermes_home", lambda: tmp_path
-    )
+    monkeypatch.setattr("plugins.memory.hindsight.get_hermes_home", lambda: tmp_path)
 
     p = HindsightMemoryProvider()
     p.initialize(session_id="test-session", hermes_home=str(tmp_path), platform="cli")
@@ -84,6 +84,7 @@ def provider(tmp_path, monkeypatch):
 @pytest.fixture()
 def provider_with_config(tmp_path, monkeypatch):
     """Create a provider factory that accepts custom config overrides."""
+
     def _make(**overrides):
         config = {
             "mode": "cloud",
@@ -103,9 +104,12 @@ def provider_with_config(tmp_path, monkeypatch):
         )
 
         p = HindsightMemoryProvider()
-        p.initialize(session_id="test-session", hermes_home=str(tmp_path), platform="cli")
+        p.initialize(
+            session_id="test-session", hermes_home=str(tmp_path), platform="cli"
+        )
         p._client = _make_mock_client()
         return p
+
     return _make
 
 
@@ -156,7 +160,9 @@ class TestConfig:
         assert provider._recall_tags is None
         assert provider._bank_mission == ""
         assert provider._bank_retain_mission is None
-        assert provider._retain_context == "conversation between Hermes Agent and the User"
+        assert (
+            provider._retain_context == "conversation between Hermes Agent and the User"
+        )
 
     def test_custom_config_values(self, provider_with_config):
         p = provider_with_config(
@@ -212,9 +218,11 @@ class TestConfig:
 
 class TestToolHandlers:
     def test_retain_success(self, provider):
-        result = json.loads(provider.handle_tool_call(
-            "hindsight_retain", {"content": "user likes dark mode"}
-        ))
+        result = json.loads(
+            provider.handle_tool_call(
+                "hindsight_retain", {"content": "user likes dark mode"}
+            )
+        )
         assert result["result"] == "Memory stored successfully."
         provider._client.aretain.assert_called_once()
         call_kwargs = provider._client.aretain.call_args.kwargs
@@ -233,15 +241,13 @@ class TestToolHandlers:
         assert "tags" not in call_kwargs
 
     def test_retain_missing_content(self, provider):
-        result = json.loads(provider.handle_tool_call(
-            "hindsight_retain", {}
-        ))
+        result = json.loads(provider.handle_tool_call("hindsight_retain", {}))
         assert "error" in result
 
     def test_recall_success(self, provider):
-        result = json.loads(provider.handle_tool_call(
-            "hindsight_recall", {"query": "dark mode"}
-        ))
+        result = json.loads(
+            provider.handle_tool_call("hindsight_recall", {"query": "dark mode"})
+        )
         assert "Memory 1" in result["result"]
         assert "Memory 2" in result["result"]
 
@@ -266,48 +272,42 @@ class TestToolHandlers:
 
     def test_recall_no_results(self, provider):
         provider._client.arecall.return_value = SimpleNamespace(results=[])
-        result = json.loads(provider.handle_tool_call(
-            "hindsight_recall", {"query": "test"}
-        ))
+        result = json.loads(
+            provider.handle_tool_call("hindsight_recall", {"query": "test"})
+        )
         assert result["result"] == "No relevant memories found."
 
     def test_recall_missing_query(self, provider):
-        result = json.loads(provider.handle_tool_call(
-            "hindsight_recall", {}
-        ))
+        result = json.loads(provider.handle_tool_call("hindsight_recall", {}))
         assert "error" in result
 
     def test_reflect_success(self, provider):
-        result = json.loads(provider.handle_tool_call(
-            "hindsight_reflect", {"query": "summarize"}
-        ))
+        result = json.loads(
+            provider.handle_tool_call("hindsight_reflect", {"query": "summarize"})
+        )
         assert result["result"] == "Synthesized answer"
 
     def test_reflect_missing_query(self, provider):
-        result = json.loads(provider.handle_tool_call(
-            "hindsight_reflect", {}
-        ))
+        result = json.loads(provider.handle_tool_call("hindsight_reflect", {}))
         assert "error" in result
 
     def test_unknown_tool(self, provider):
-        result = json.loads(provider.handle_tool_call(
-            "hindsight_unknown", {}
-        ))
+        result = json.loads(provider.handle_tool_call("hindsight_unknown", {}))
         assert "error" in result
 
     def test_retain_error_handling(self, provider):
         provider._client.aretain.side_effect = RuntimeError("connection failed")
-        result = json.loads(provider.handle_tool_call(
-            "hindsight_retain", {"content": "test"}
-        ))
+        result = json.loads(
+            provider.handle_tool_call("hindsight_retain", {"content": "test"})
+        )
         assert "error" in result
         assert "connection failed" in result["error"]
 
     def test_recall_error_handling(self, provider):
         provider._client.arecall.side_effect = RuntimeError("timeout")
-        result = json.loads(provider.handle_tool_call(
-            "hindsight_recall", {"query": "test"}
-        ))
+        result = json.loads(
+            provider.handle_tool_call("hindsight_recall", {"query": "test"})
+        )
         assert "error" in result
 
 
@@ -446,7 +446,10 @@ class TestSyncTurn:
         assert call_kwargs["document_id"] == "test-session"
         assert call_kwargs["retain_async"] is True
         assert len(call_kwargs["items"]) == 1
-        assert call_kwargs["items"][0]["context"] == "conversation between Hermes Agent and the User"
+        assert (
+            call_kwargs["items"][0]["context"]
+            == "conversation between Hermes Agent and the User"
+        )
 
     def test_sync_turn_custom_context(self, provider_with_config):
         p = provider_with_config(retain_context="my-agent")
@@ -552,14 +555,28 @@ class TestConfigSchema:
         schema = provider.get_config_schema()
         keys = {f["key"] for f in schema}
         expected_keys = {
-            "mode", "api_url", "api_key", "llm_provider", "llm_api_key",
-            "llm_model", "bank_id", "bank_mission", "bank_retain_mission",
-            "recall_budget", "memory_mode", "recall_prefetch_method",
-            "tags", "recall_tags", "recall_tags_match",
-            "auto_recall", "auto_retain",
-            "retain_every_n_turns", "retain_async",
+            "mode",
+            "api_url",
+            "api_key",
+            "llm_provider",
+            "llm_api_key",
+            "llm_model",
+            "bank_id",
+            "bank_mission",
+            "bank_retain_mission",
+            "recall_budget",
+            "memory_mode",
+            "recall_prefetch_method",
+            "tags",
+            "recall_tags",
+            "recall_tags_match",
+            "auto_recall",
+            "auto_retain",
+            "retain_every_n_turns",
+            "retain_async",
             "retain_context",
-            "recall_max_tokens", "recall_max_input_chars",
+            "recall_max_tokens",
+            "recall_max_input_chars",
             "recall_prompt_preamble",
         }
         assert expected_keys.issubset(keys), f"Missing: {expected_keys - keys}"

@@ -45,6 +45,7 @@ _models_dev_cache_time: float = 0
 # Dataclasses — rich metadata for providers and models
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ModelInfo:
     """Full metadata for a single model from models.dev."""
@@ -52,18 +53,18 @@ class ModelInfo:
     id: str
     name: str
     family: str
-    provider_id: str        # models.dev provider ID (e.g. "anthropic")
+    provider_id: str  # models.dev provider ID (e.g. "anthropic")
 
     # Capabilities
     reasoning: bool = False
     tool_call: bool = False
-    attachment: bool = False       # supports image/file attachments (vision)
+    attachment: bool = False  # supports image/file attachments (vision)
     temperature: bool = False
     structured_output: bool = False
     open_weights: bool = False
 
     # Modalities
-    input_modalities: Tuple[str, ...] = ()    # ("text", "image", "pdf", ...)
+    input_modalities: Tuple[str, ...] = ()  # ("text", "image", "pdf", ...)
     output_modalities: Tuple[str, ...] = ()
 
     # Limits
@@ -80,7 +81,7 @@ class ModelInfo:
     # Metadata
     knowledge_cutoff: str = ""
     release_date: str = ""
-    status: str = ""          # "alpha", "beta", "deprecated", or ""
+    status: str = ""  # "alpha", "beta", "deprecated", or ""
     interleaved: Any = False  # True or {"field": "reasoning_content"}
 
     def has_cost_data(self) -> bool:
@@ -128,11 +129,11 @@ class ModelInfo:
 class ProviderInfo:
     """Full metadata for a provider from models.dev."""
 
-    id: str                         # models.dev provider ID
-    name: str                       # display name
-    env: Tuple[str, ...]            # env var names for API key
-    api: str                        # base URL
-    doc: str = ""                   # documentation URL
+    id: str  # models.dev provider ID
+    name: str  # display name
+    env: Tuple[str, ...]  # env var names for API key
+    api: str  # base URL
+    doc: str = ""  # documentation URL
     model_count: int = 0
 
 
@@ -187,6 +188,7 @@ def _get_reverse_mapping() -> Dict[str, str]:
 def _get_cache_path() -> Path:
     """Return path to disk cache file."""
     from hermes_constants import get_hermes_home
+
     return get_hermes_home() / "models_dev_cache.json"
 
 
@@ -238,7 +240,11 @@ def fetch_models_dev(force_refresh: bool = False) -> Dict[str, Any]:
             logger.debug(
                 "Fetched models.dev registry: %d providers, %d total models",
                 len(data),
-                sum(len(p.get("models", {})) for p in data.values() if isinstance(p, dict)),
+                sum(
+                    len(p.get("models", {}))
+                    for p in data.values()
+                    if isinstance(p, dict)
+                ),
             )
             return data
     except Exception as e:
@@ -250,7 +256,10 @@ def fetch_models_dev(force_refresh: bool = False) -> Dict[str, Any]:
         _models_dev_cache = _load_disk_cache()
         if _models_dev_cache:
             _models_dev_cache_time = time.time() - _MODELS_DEV_CACHE_TTL + 300
-            logger.debug("Loaded models.dev from disk cache (%d providers)", len(_models_dev_cache))
+            logger.debug(
+                "Loaded models.dev from disk cache (%d providers)",
+                len(_models_dev_cache),
+            )
 
     return _models_dev_cache
 
@@ -433,6 +442,7 @@ def list_provider_models(provider: str) -> List[str]:
 # Patterns that indicate non-agentic or noise models (TTS, embedding,
 # dated preview snapshots, live/streaming-only, image-only).
 import re
+
 _NOISE_PATTERNS: re.Pattern = re.compile(
     r"-tts\b|embedding|live-|-(preview|exp)-\d{2,4}[-_]|"
     r"-image\b|-image-preview\b|-customtools\b",
@@ -517,7 +527,9 @@ def search_models_dev(
     substring_matches = []
     for prov, mid, mdata in candidates:
         if query_lower in mid.lower():
-            substring_matches.append({"provider": prov, "model_id": mid, "entry": mdata})
+            substring_matches.append(
+                {"provider": prov, "model_id": mid, "entry": mdata}
+            )
 
     # Then add difflib fuzzy matches for any remaining slots
     fuzzy_ids = difflib.get_close_matches(
@@ -555,7 +567,10 @@ def search_models_dev(
 # Rich dataclass constructors — parse raw models.dev JSON into dataclasses
 # ---------------------------------------------------------------------------
 
-def _parse_model_info(model_id: str, raw: Dict[str, Any], provider_id: str) -> ModelInfo:
+
+def _parse_model_info(
+    model_id: str, raw: Dict[str, Any], provider_id: str
+) -> ModelInfo:
     """Convert a raw models.dev model entry dict into a ModelInfo dataclass."""
     limit = raw.get("limit") or {}
     if not isinstance(limit, dict):
@@ -597,8 +612,12 @@ def _parse_model_info(model_id: str, raw: Dict[str, Any], provider_id: str) -> M
         max_input=inp_int,
         cost_input=float(cost.get("input", 0) or 0),
         cost_output=float(cost.get("output", 0) or 0),
-        cost_cache_read=float(cost["cache_read"]) if "cache_read" in cost and cost["cache_read"] is not None else None,
-        cost_cache_write=float(cost["cache_write"]) if "cache_write" in cost and cost["cache_write"] is not None else None,
+        cost_cache_read=float(cost["cache_read"])
+        if "cache_read" in cost and cost["cache_read"] is not None
+        else None,
+        cost_cache_write=float(cost["cache_write"])
+        if "cache_write" in cost and cost["cache_write"] is not None
+        else None,
         knowledge_cutoff=raw.get("knowledge", "") or "",
         release_date=raw.get("release_date", "") or "",
         status=raw.get("status", "") or "",
@@ -624,6 +643,7 @@ def _parse_provider_info(provider_id: str, raw: Dict[str, Any]) -> ProviderInfo:
 # Provider-level queries
 # ---------------------------------------------------------------------------
 
+
 def get_provider_info(provider_id: str) -> Optional[ProviderInfo]:
     """Get full provider metadata from models.dev.
 
@@ -645,9 +665,8 @@ def get_provider_info(provider_id: str) -> Optional[ProviderInfo]:
 # Model-level queries (rich ModelInfo)
 # ---------------------------------------------------------------------------
 
-def get_model_info(
-    provider_id: str, model_id: str
-) -> Optional[ModelInfo]:
+
+def get_model_info(provider_id: str, model_id: str) -> Optional[ModelInfo]:
     """Get full model metadata from models.dev.
 
     Accepts Hermes or models.dev provider ID.  Tries exact match then
@@ -676,5 +695,3 @@ def get_model_info(
             return _parse_model_info(mid, mdata, mdev_id)
 
     return None
-
-

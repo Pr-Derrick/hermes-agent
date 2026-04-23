@@ -59,9 +59,11 @@ def test_no_changes_when_checklist_cancelled(capsys):
     }
     tools = [("create_issue", "Create an issue"), ("search_repos", "Search repos")]
 
-    with patch(_PROBE, return_value={"github": tools}), \
-         patch(_CHECKLIST, return_value={0, 1}), \
-         patch(_SAVE) as mock_save:
+    with (
+        patch(_PROBE, return_value={"github": tools}),
+        patch(_CHECKLIST, return_value={0, 1}),
+        patch(_SAVE) as mock_save,
+    ):
         _configure_mcp_tools_interactive(config)
     mock_save.assert_not_called()
     captured = capsys.readouterr()
@@ -82,9 +84,11 @@ def test_disabling_tool_writes_exclude_list(capsys):
     ]
 
     # User unchecks delete_repo (index 1)
-    with patch(_PROBE, return_value={"github": tools}), \
-         patch(_CHECKLIST, return_value={0, 2}), \
-         patch(_SAVE) as mock_save:
+    with (
+        patch(_PROBE, return_value={"github": tools}),
+        patch(_CHECKLIST, return_value={0, 2}),
+        patch(_SAVE) as mock_save,
+    ):
         _configure_mcp_tools_interactive(config)
 
     mock_save.assert_called_once()
@@ -107,9 +111,11 @@ def test_enabling_all_clears_filters(capsys):
 
     # User checks all tools — pre_selected would be {0} (include mode),
     # so returning {0, 1} is a change
-    with patch(_PROBE, return_value={"github": tools}), \
-         patch(_CHECKLIST, return_value={0, 1}), \
-         patch(_SAVE) as mock_save:
+    with (
+        patch(_PROBE, return_value={"github": tools}),
+        patch(_CHECKLIST, return_value={0, 1}),
+        patch(_SAVE) as mock_save,
+    ):
         _configure_mcp_tools_interactive(config)
 
     mock_save.assert_called_once()
@@ -128,16 +134,22 @@ def test_pre_selection_respects_existing_exclude(capsys):
             },
         }
     }
-    tools = [("create_issue", "Create"), ("delete_repo", "Delete"), ("search", "Search")]
+    tools = [
+        ("create_issue", "Create"),
+        ("delete_repo", "Delete"),
+        ("search", "Search"),
+    ]
     captured_pre_selected = {}
 
     def fake_checklist(title, labels, pre_selected, **kwargs):
         captured_pre_selected["value"] = set(pre_selected)
         return pre_selected  # No changes
 
-    with patch(_PROBE, return_value={"github": tools}), \
-         patch(_CHECKLIST, side_effect=fake_checklist), \
-         patch(_SAVE):
+    with (
+        patch(_PROBE, return_value={"github": tools}),
+        patch(_CHECKLIST, side_effect=fake_checklist),
+        patch(_SAVE),
+    ):
         _configure_mcp_tools_interactive(config)
 
     # create_issue (0) and search (2) should be pre-selected, delete_repo (1) should not
@@ -154,16 +166,22 @@ def test_pre_selection_respects_existing_include(capsys):
             },
         }
     }
-    tools = [("create_issue", "Create"), ("delete_repo", "Delete"), ("search", "Search")]
+    tools = [
+        ("create_issue", "Create"),
+        ("delete_repo", "Delete"),
+        ("search", "Search"),
+    ]
     captured_pre_selected = {}
 
     def fake_checklist(title, labels, pre_selected, **kwargs):
         captured_pre_selected["value"] = set(pre_selected)
         return pre_selected  # No changes
 
-    with patch(_PROBE, return_value={"github": tools}), \
-         patch(_CHECKLIST, side_effect=fake_checklist), \
-         patch(_SAVE):
+    with (
+        patch(_PROBE, return_value={"github": tools}),
+        patch(_CHECKLIST, side_effect=fake_checklist),
+        patch(_SAVE),
+    ):
         _configure_mcp_tools_interactive(config)
 
     # Only search (2) should be pre-selected
@@ -184,14 +202,17 @@ def test_multiple_servers_each_get_checklist(capsys):
         checklist_calls.append(title)
         return pre_selected  # No changes
 
-    with patch(
-        _PROBE,
-        return_value={
-            "github": [("create_issue", "Create")],
-            "slack": [("send_message", "Send")],
-        },
-    ), patch(_CHECKLIST, side_effect=fake_checklist), \
-         patch(_SAVE):
+    with (
+        patch(
+            _PROBE,
+            return_value={
+                "github": [("create_issue", "Create")],
+                "slack": [("send_message", "Send")],
+            },
+        ),
+        patch(_CHECKLIST, side_effect=fake_checklist),
+        patch(_SAVE),
+    ):
         _configure_mcp_tools_interactive(config)
 
     assert len(checklist_calls) == 2
@@ -209,10 +230,14 @@ def test_failed_server_shows_warning(capsys):
     }
 
     # Only github succeeds
-    with patch(
-        _PROBE, return_value={"github": [("create_issue", "Create")]},
-    ), patch(_CHECKLIST, return_value={0}), \
-         patch(_SAVE):
+    with (
+        patch(
+            _PROBE,
+            return_value={"github": [("create_issue", "Create")]},
+        ),
+        patch(_CHECKLIST, return_value={0}),
+        patch(_SAVE),
+    ):
         _configure_mcp_tools_interactive(config)
 
     captured = capsys.readouterr()
@@ -233,10 +258,14 @@ def test_description_truncation_in_labels():
         captured_labels["value"] = labels
         return pre_selected
 
-    with patch(
-        _PROBE, return_value={"github": [("my_tool", long_desc)]},
-    ), patch(_CHECKLIST, side_effect=fake_checklist), \
-         patch(_SAVE):
+    with (
+        patch(
+            _PROBE,
+            return_value={"github": [("my_tool", long_desc)]},
+        ),
+        patch(_CHECKLIST, side_effect=fake_checklist),
+        patch(_SAVE),
+    ):
         _configure_mcp_tools_interactive(config)
 
     label = captured_labels["value"][0]
@@ -258,9 +287,11 @@ def test_switching_from_include_to_exclude(capsys):
 
     # User selects create_issue and search (deselects delete)
     # pre_selected would be {0} (only create_issue from include), so {0, 1} is a change
-    with patch(_PROBE, return_value={"github": tools}), \
-         patch(_CHECKLIST, return_value={0, 1}), \
-         patch(_SAVE):
+    with (
+        patch(_PROBE, return_value={"github": tools}),
+        patch(_CHECKLIST, return_value={0, 1}),
+        patch(_SAVE),
+    ):
         _configure_mcp_tools_interactive(config)
 
     tools_cfg = config["mcp_servers"]["github"]["tools"]
@@ -281,9 +312,11 @@ def test_empty_tools_server_skipped(capsys):
         checklist_calls.append(title)
         return pre_selected
 
-    with patch(_PROBE, return_value={"empty": []}), \
-         patch(_CHECKLIST, side_effect=fake_checklist), \
-         patch(_SAVE):
+    with (
+        patch(_PROBE, return_value={"empty": []}),
+        patch(_CHECKLIST, side_effect=fake_checklist),
+        patch(_SAVE),
+    ):
         _configure_mcp_tools_interactive(config)
 
     assert len(checklist_calls) == 0

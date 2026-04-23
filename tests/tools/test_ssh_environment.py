@@ -25,31 +25,40 @@ requires_ssh = pytest.mark.skipif(
 
 def _run(command, task_id="ssh_test", **kwargs):
     from tools.terminal_tool import terminal_tool
+
     return json.loads(terminal_tool(command, task_id=task_id, **kwargs))
 
 
 def _cleanup(task_id="ssh_test"):
     from tools.terminal_tool import cleanup_vm
+
     cleanup_vm(task_id)
 
 
 class TestBuildSSHCommand:
-
     @pytest.fixture(autouse=True)
     def _mock_connection(self, monkeypatch):
-        monkeypatch.setattr("tools.environments.ssh.subprocess.run",
-                            lambda *a, **k: subprocess.CompletedProcess([], 0))
-        monkeypatch.setattr("tools.environments.ssh.subprocess.Popen",
-                            lambda *a, **k: MagicMock(stdout=iter([]),
-                                                      stderr=iter([]),
-                                                      stdin=MagicMock()))
+        monkeypatch.setattr(
+            "tools.environments.ssh.subprocess.run",
+            lambda *a, **k: subprocess.CompletedProcess([], 0),
+        )
+        monkeypatch.setattr(
+            "tools.environments.ssh.subprocess.Popen",
+            lambda *a, **k: MagicMock(
+                stdout=iter([]), stderr=iter([]), stdin=MagicMock()
+            ),
+        )
         monkeypatch.setattr("tools.environments.base.time.sleep", lambda _: None)
 
     def test_base_flags(self):
         env = SSHEnvironment(host="h", user="u")
         cmd = " ".join(env._build_ssh_command())
-        for flag in ("ControlMaster=auto", "ControlPersist=300",
-                      "BatchMode=yes", "StrictHostKeyChecking=accept-new"):
+        for flag in (
+            "ControlMaster=auto",
+            "ControlPersist=300",
+            "BatchMode=yes",
+            "StrictHostKeyChecking=accept-new",
+        ):
             assert flag in cmd
 
     def test_custom_port(self):
@@ -73,17 +82,20 @@ class TestTerminalToolConfig:
         monkeypatch.delenv("TERMINAL_SSH_PERSISTENT", raising=False)
         monkeypatch.delenv("TERMINAL_PERSISTENT_SHELL", raising=False)
         from tools.terminal_tool import _get_env_config
+
         assert _get_env_config()["ssh_persistent"] is True
 
     def test_ssh_persistent_explicit_false(self, monkeypatch):
         """Per-backend env var overrides the global default."""
         monkeypatch.setenv("TERMINAL_SSH_PERSISTENT", "false")
         from tools.terminal_tool import _get_env_config
+
         assert _get_env_config()["ssh_persistent"] is False
 
     def test_ssh_persistent_explicit_true(self, monkeypatch):
         monkeypatch.setenv("TERMINAL_SSH_PERSISTENT", "true")
         from tools.terminal_tool import _get_env_config
+
         assert _get_env_config()["ssh_persistent"] is True
 
     def test_ssh_persistent_respects_config(self, monkeypatch):
@@ -91,6 +103,7 @@ class TestTerminalToolConfig:
         monkeypatch.delenv("TERMINAL_SSH_PERSISTENT", raising=False)
         monkeypatch.setenv("TERMINAL_PERSISTENT_SHELL", "false")
         from tools.terminal_tool import _get_env_config
+
         assert _get_env_config()["ssh_persistent"] is False
 
 
@@ -106,7 +119,9 @@ class TestSSHPreflight:
         monkeypatch.setattr(
             ssh_env.SSHEnvironment,
             "_establish_connection",
-            lambda self: pytest.fail("_establish_connection should not run when ssh is missing"),
+            lambda self: pytest.fail(
+                "_establish_connection should not run when ssh is missing"
+            ),
         )
 
         with pytest.raises(RuntimeError, match="openssh-client"):
@@ -120,11 +135,21 @@ class TestSSHPreflight:
         def _fake_establish(self):
             called["count"] += 1
 
-        monkeypatch.setattr(ssh_env.SSHEnvironment, "_establish_connection", _fake_establish)
-        monkeypatch.setattr(ssh_env.SSHEnvironment, "_detect_remote_home", lambda self: "/home/alice")
-        monkeypatch.setattr(ssh_env.SSHEnvironment, "_ensure_remote_dirs", lambda self: None)
+        monkeypatch.setattr(
+            ssh_env.SSHEnvironment, "_establish_connection", _fake_establish
+        )
+        monkeypatch.setattr(
+            ssh_env.SSHEnvironment, "_detect_remote_home", lambda self: "/home/alice"
+        )
+        monkeypatch.setattr(
+            ssh_env.SSHEnvironment, "_ensure_remote_dirs", lambda self: None
+        )
         monkeypatch.setattr(ssh_env.SSHEnvironment, "init_session", lambda self: None)
-        monkeypatch.setattr(ssh_env, "FileSyncManager", lambda **kw: type("M", (), {"sync": lambda self, **k: None})())
+        monkeypatch.setattr(
+            ssh_env,
+            "FileSyncManager",
+            lambda **kw: type("M", (), {"sync": lambda self, **k: None})(),
+        )
 
         env = ssh_env.SSHEnvironment(host="example.com", user="alice")
 
@@ -146,7 +171,6 @@ def _setup_ssh_env(monkeypatch, persistent: bool):
 
 @requires_ssh
 class TestOneShotSSH:
-
     @pytest.fixture(autouse=True)
     def _setup(self, monkeypatch):
         _setup_ssh_env(monkeypatch, persistent=False)
@@ -170,7 +194,6 @@ class TestOneShotSSH:
 
 @requires_ssh
 class TestPersistentSSH:
-
     @pytest.fixture(autouse=True)
     def _setup(self, monkeypatch):
         _setup_ssh_env(monkeypatch, persistent=True)

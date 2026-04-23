@@ -10,6 +10,7 @@ import pytest
 # so patch.object works correctly.
 import sys
 import tools.terminal_tool  # noqa: F401 -- ensure module is loaded
+
 _tt_mod = sys.modules["tools.terminal_tool"]
 from tools.terminal_tool import get_active_environments_info, _check_disk_usage_warning
 
@@ -40,8 +41,10 @@ class TestDiskUsageGlob:
             "aaaaaaaa-1111-2222-3333-444444444444": MagicMock(),
         }
 
-        with patch.object(_tt_mod, "_active_environments", fake_envs), \
-             patch.object(_tt_mod, "_get_scratch_dir", return_value=fake_scratch):
+        with (
+            patch.object(_tt_mod, "_active_environments", fake_envs),
+            patch.object(_tt_mod, "_get_scratch_dir", return_value=fake_scratch),
+        ):
             info = get_active_environments_info()
 
         # Task A only: ~1.0 MB. With the bug (hardcoded hermes-*),
@@ -55,8 +58,10 @@ class TestDiskUsageGlob:
             "bbbbbbbb-5555-6666-7777-888888888888": MagicMock(),
         }
 
-        with patch.object(_tt_mod, "_active_environments", fake_envs), \
-             patch.object(_tt_mod, "_get_scratch_dir", return_value=fake_scratch):
+        with (
+            patch.object(_tt_mod, "_active_environments", fake_envs),
+            patch.object(_tt_mod, "_get_scratch_dir", return_value=fake_scratch),
+        ):
             info = get_active_environments_info()
 
         # Should be ~2.0 MB total (1 MB per task).
@@ -66,7 +71,10 @@ class TestDiskUsageGlob:
 
 class TestDiskUsageWarningHardening:
     def test_check_disk_usage_warning_logs_debug_on_unexpected_error(self):
-        with patch.object(_tt_mod, "_get_scratch_dir", side_effect=RuntimeError("boom")),              patch.object(_tt_mod.logger, "debug") as debug_mock:
+        with (
+            patch.object(_tt_mod, "_get_scratch_dir", side_effect=RuntimeError("boom")),
+            patch.object(_tt_mod.logger, "debug") as debug_mock,
+        ):
             result = _check_disk_usage_warning()
 
         assert result is False

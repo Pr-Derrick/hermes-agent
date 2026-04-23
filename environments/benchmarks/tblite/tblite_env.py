@@ -77,25 +77,19 @@ class TBLiteEvalEnv(TerminalBench2EvalEnv):
             enabled_toolsets=["terminal", "file"],
             disabled_toolsets=None,
             distribution=None,
-
             max_agent_turns=60,
             max_token_length=16000,
             agent_temperature=0.6,
             system_prompt=None,
-
             terminal_backend="modal",
             terminal_timeout=300,
-
             test_timeout=180,
-
             # 100 tasks in parallel
             tool_pool_size=128,
-
             eval_handling=EvalHandlingEnum.STOP_TRAIN,
             group_size=1,
             steps_per_eval=1,
             total_steps=1,
-
             tokenizer_name="NousResearch/Hermes-3-Llama-3.1-8B",
             use_wandb=True,
             wandb_name="openthoughts-tblite",

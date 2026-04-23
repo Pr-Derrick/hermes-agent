@@ -39,12 +39,16 @@ def test_prompt_reasoning_effort_falls_back_on_terminalmenu_runtime_error(monkey
     responses = iter(["3"])
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(responses))
 
-    selected = _prompt_reasoning_effort_selection(["low", "medium", "high"], current_effort="")
+    selected = _prompt_reasoning_effort_selection(
+        ["low", "medium", "high"], current_effort=""
+    )
 
     assert selected == "high"
 
 
-def test_remove_custom_provider_falls_back_on_terminalmenu_runtime_error(tmp_path, monkeypatch):
+def test_remove_custom_provider_falls_back_on_terminalmenu_runtime_error(
+    tmp_path, monkeypatch
+):
     from hermes_cli.main import _remove_custom_provider
 
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
@@ -72,7 +76,9 @@ def test_remove_custom_provider_falls_back_on_terminalmenu_runtime_error(tmp_pat
     ]
 
 
-def test_named_custom_provider_model_picker_falls_back_on_terminalmenu_runtime_error(tmp_path, monkeypatch):
+def test_named_custom_provider_model_picker_falls_back_on_terminalmenu_runtime_error(
+    tmp_path, monkeypatch
+):
     from hermes_cli.main import _model_flow_named_custom
 
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
@@ -81,7 +87,10 @@ def test_named_custom_provider_model_picker_falls_back_on_terminalmenu_runtime_e
         "simple_term_menu",
         types.SimpleNamespace(TerminalMenu=_BrokenTerminalMenu),
     )
-    monkeypatch.setattr("hermes_cli.models.fetch_api_models", lambda *args, **kwargs: ["model-a", "model-b"])
+    monkeypatch.setattr(
+        "hermes_cli.models.fetch_api_models",
+        lambda *args, **kwargs: ["model-a", "model-b"],
+    )
     monkeypatch.setattr("hermes_cli.auth.deactivate_provider", lambda: None)
 
     cfg = load_config()

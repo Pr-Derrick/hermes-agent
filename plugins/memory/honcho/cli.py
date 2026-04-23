@@ -41,10 +41,20 @@ def clone_honcho_for_profile(profile_name: str) -> bool:
 
     # Clone settings from default block, override identity fields
     new_block = {}
-    for key in ("recallMode", "writeFrequency", "sessionStrategy",
-                "sessionPeerPrefix", "contextTokens", "dialecticReasoningLevel",
-                "dialecticDynamic", "dialecticMaxChars", "messageMaxChars",
-                "dialecticMaxInputChars", "saveMessages", "observation"):
+    for key in (
+        "recallMode",
+        "writeFrequency",
+        "sessionStrategy",
+        "sessionPeerPrefix",
+        "contextTokens",
+        "dialecticReasoningLevel",
+        "dialecticDynamic",
+        "dialecticMaxChars",
+        "messageMaxChars",
+        "dialecticMaxInputChars",
+        "saveMessages",
+        "observation",
+    ):
         val = default_block.get(key)
         if val is not None:
             new_block[key] = val
@@ -59,7 +69,9 @@ def clone_honcho_for_profile(profile_name: str) -> bool:
     # Use the bare profile name as the peer identity (not the host key)
     # because Honcho's peer ID pattern is ^[a-zA-Z0-9_-]+$ (no dots).
     new_block["aiPeer"] = profile_name
-    new_block["workspace"] = default_block.get("workspace") or cfg.get("workspace") or HOST
+    new_block["workspace"] = (
+        default_block.get("workspace") or cfg.get("workspace") or HOST
+    )
     new_block["enabled"] = default_block.get("enabled", True)
 
     cfg.setdefault("hosts", {})[new_host] = new_block
@@ -78,6 +90,7 @@ def _ensure_peer_exists(host_key: str | None = None) -> bool:
     """
     try:
         from plugins.memory.honcho.client import HonchoClientConfig, get_honcho_client
+
         hcfg = HonchoClientConfig.from_global_config(host=host_key)
         if not hcfg.enabled or not (hcfg.api_key or hcfg.base_url):
             return False
@@ -107,10 +120,19 @@ def cmd_enable(args) -> None:
     # If this is a new profile host block with no settings, clone from default
     if not block.get("aiPeer"):
         default_block = cfg.get("hosts", {}).get(HOST, {})
-        for key in ("recallMode", "writeFrequency", "sessionStrategy",
-                    "contextTokens", "dialecticReasoningLevel", "dialecticDynamic",
-                    "dialecticMaxChars", "messageMaxChars", "dialecticMaxInputChars",
-                    "saveMessages", "observation"):
+        for key in (
+            "recallMode",
+            "writeFrequency",
+            "sessionStrategy",
+            "contextTokens",
+            "dialecticReasoningLevel",
+            "dialecticDynamic",
+            "dialecticMaxChars",
+            "messageMaxChars",
+            "dialecticMaxInputChars",
+            "saveMessages",
+            "observation",
+        ):
             val = default_block.get(key)
             if val is not None and key not in block:
                 block[key] = val
@@ -120,7 +142,9 @@ def cmd_enable(args) -> None:
         # Use bare profile name as AI peer, not the host key
         ai_peer = host.split(".", 1)[1] if "." in host else host
         block.setdefault("aiPeer", ai_peer)
-        block.setdefault("workspace", default_block.get("workspace") or cfg.get("workspace") or HOST)
+        block.setdefault(
+            "workspace", default_block.get("workspace") or cfg.get("workspace") or HOST
+        )
 
     _write_config(cfg)
     print(f"  {label}Honcho enabled.")
@@ -159,6 +183,7 @@ def cmd_sync(args) -> None:
     """
     try:
         from hermes_cli.profiles import list_profiles
+
         profiles = list_profiles()
     except Exception as e:
         print(f"  Could not list profiles: {e}\n")
@@ -174,7 +199,9 @@ def cmd_sync(args) -> None:
     has_key = bool(cfg.get("apiKey") or os.environ.get("HONCHO_API_KEY"))
 
     if not default_block and not has_key:
-        print("  Honcho not configured on default profile. Run 'hermes honcho setup' first.\n")
+        print(
+            "  Honcho not configured on default profile. Run 'hermes honcho setup' first.\n"
+        )
         return
 
     created = 0
@@ -204,6 +231,7 @@ def sync_honcho_profiles_quiet() -> int:
     """
     try:
         from hermes_cli.profiles import list_profiles
+
         profiles = list_profiles()
     except Exception:
         return 0
@@ -285,6 +313,7 @@ def _prompt(label: str, default: str | None = None, secret: bool = False) -> str
     if secret:
         if sys.stdin.isatty():
             import getpass
+
             val = getpass.getpass(prompt="")
         else:
             # Non-TTY (piped input, test runners) — read plaintext
@@ -298,6 +327,7 @@ def _ensure_sdk_installed() -> bool:
     """Check honcho-ai is importable; offer to install if not. Returns True if ready."""
     try:
         import honcho  # noqa: F401
+
         return True
     except ImportError:
         pass
@@ -309,6 +339,7 @@ def _ensure_sdk_installed() -> bool:
         return False
 
     import subprocess
+
     print("  Installing honcho-ai...", flush=True)
     result = subprocess.run(
         [sys.executable, "-m", "pip", "install", "honcho-ai>=2.0.1"],
@@ -347,10 +378,14 @@ def cmd_setup(args) -> None:
     print("  Deployment:")
     print("    cloud -- Honcho cloud (api.honcho.dev)")
     print("    local -- self-hosted Honcho server")
-    current_deploy = "local" if any(
-        h in (cfg.get("baseUrl") or cfg.get("base_url") or "")
-        for h in ("localhost", "127.0.0.1", "::1")
-    ) else "cloud"
+    current_deploy = (
+        "local"
+        if any(
+            h in (cfg.get("baseUrl") or cfg.get("base_url") or "")
+            for h in ("localhost", "127.0.0.1", "::1")
+        )
+        else "cloud"
+    )
     deploy = _prompt("Cloud or local?", default=current_deploy)
     is_local = deploy.lower() in ("local", "l")
 
@@ -378,7 +413,11 @@ def cmd_setup(args) -> None:
         cfg.pop("baseUrl", None)  # cloud uses SDK default
 
         current_key = cfg.get("apiKey", "")
-        masked = f"...{current_key[-8:]}" if len(current_key) > 8 else ("set" if current_key else "not set")
+        masked = (
+            f"...{current_key[-8:]}"
+            if len(current_key) > 8
+            else ("set" if current_key else "not set")
+        )
         print(f"\n  Current API key: {masked}")
         new_key = _prompt("Honcho API key (leave blank to keep current)", secret=True)
         if new_key:
@@ -391,7 +430,9 @@ def cmd_setup(args) -> None:
 
     # --- 3. Identity ---
     current_peer = hermes_host.get("peerName") or cfg.get("peerName", "")
-    new_peer = _prompt("Your name (user peer)", default=current_peer or os.getenv("USER", "user"))
+    new_peer = _prompt(
+        "Your name (user peer)", default=current_peer or os.getenv("USER", "user")
+    )
     if new_peer:
         hermes_host["peerName"] = new_peer
 
@@ -406,10 +447,16 @@ def cmd_setup(args) -> None:
         hermes_host["workspace"] = new_workspace
 
     # --- 4. Observation mode ---
-    current_obs = hermes_host.get("observationMode") or cfg.get("observationMode", "directional")
+    current_obs = hermes_host.get("observationMode") or cfg.get(
+        "observationMode", "directional"
+    )
     print("\n  Observation mode:")
-    print("    directional  -- all observations on, each AI peer builds its own view (default)")
-    print("    unified      -- shared pool, user observes self, AI observes others only")
+    print(
+        "    directional  -- all observations on, each AI peer builds its own view (default)"
+    )
+    print(
+        "    unified      -- shared pool, user observes self, AI observes others only"
+    )
     new_obs = _prompt("Observation mode", default=current_obs)
     if new_obs in ("unified", "directional"):
         hermes_host["observationMode"] = new_obs
@@ -417,7 +464,9 @@ def cmd_setup(args) -> None:
         hermes_host["observationMode"] = "directional"
 
     # --- 5. Write frequency ---
-    current_wf = str(hermes_host.get("writeFrequency") or cfg.get("writeFrequency", "async"))
+    current_wf = str(
+        hermes_host.get("writeFrequency") or cfg.get("writeFrequency", "async")
+    )
     print("\n  Write frequency:")
     print("    async   -- background thread, no token cost (recommended)")
     print("    turn    -- sync write after every turn")
@@ -427,11 +476,15 @@ def cmd_setup(args) -> None:
     try:
         hermes_host["writeFrequency"] = int(new_wf)
     except (ValueError, TypeError):
-        hermes_host["writeFrequency"] = new_wf if new_wf in ("async", "turn", "session") else "async"
+        hermes_host["writeFrequency"] = (
+            new_wf if new_wf in ("async", "turn", "session") else "async"
+        )
 
     # --- 6. Recall mode ---
     _raw_recall = hermes_host.get("recallMode") or cfg.get("recallMode", "hybrid")
-    current_recall = "hybrid" if _raw_recall not in ("hybrid", "context", "tools") else _raw_recall
+    current_recall = (
+        "hybrid" if _raw_recall not in ("hybrid", "context", "tools") else _raw_recall
+    )
     print("\n  Recall mode:")
     print("    hybrid  -- auto-injected context + Honcho tools available (default)")
     print("    context -- auto-injected context only, Honcho tools hidden")
@@ -441,7 +494,9 @@ def cmd_setup(args) -> None:
         hermes_host["recallMode"] = new_recall
 
     # --- 7. Session strategy ---
-    current_strat = hermes_host.get("sessionStrategy") or cfg.get("sessionStrategy", "per-directory")
+    current_strat = hermes_host.get("sessionStrategy") or cfg.get(
+        "sessionStrategy", "per-directory"
+    )
     print("\n  Session strategy:")
     print("    per-directory -- one session per working directory (default)")
     print("    per-session   -- new Honcho session each run")
@@ -460,6 +515,7 @@ def cmd_setup(args) -> None:
     # --- Auto-enable Honcho as memory provider in config.yaml ---
     try:
         from hermes_cli.config import load_config, save_config
+
         hermes_config = load_config()
         hermes_config.setdefault("memory", {})["provider"] = "honcho"
         save_config(hermes_config)
@@ -471,7 +527,12 @@ def cmd_setup(args) -> None:
     # --- Test connection ---
     print("  Testing connection... ", end="", flush=True)
     try:
-        from plugins.memory.honcho.client import HonchoClientConfig, get_honcho_client, reset_honcho_client
+        from plugins.memory.honcho.client import (
+            HonchoClientConfig,
+            get_honcho_client,
+            reset_honcho_client,
+        )
+
         reset_honcho_client()
         hcfg = HonchoClientConfig.from_global_config(host=_host_key())
         get_honcho_client(hcfg)
@@ -508,6 +569,7 @@ def _active_profile_name() -> str:
         return _profile_override
     try:
         from hermes_cli.profiles import get_active_profile_name
+
         return get_active_profile_name()
     except Exception:
         return "default"
@@ -520,6 +582,7 @@ def _all_profile_host_configs() -> list[tuple[str, str, dict]]:
     """
     try:
         from hermes_cli.profiles import list_profiles
+
         profiles = list_profiles()
     except Exception:
         return [(_active_profile_name(), _host_key(), {})]
@@ -567,13 +630,16 @@ def cmd_status(args) -> None:
 
     try:
         from plugins.memory.honcho.client import HonchoClientConfig, get_honcho_client
+
         hcfg = HonchoClientConfig.from_global_config(host=_host_key())
     except Exception as e:
         print(f"  Config error: {e}\n")
         return
 
     api_key = hcfg.api_key or ""
-    masked = f"...{api_key[-8:]}" if len(api_key) > 8 else ("set" if api_key else "not set")
+    masked = (
+        f"...{api_key[-8:]}" if len(api_key) > 8 else ("set" if api_key else "not set")
+    )
 
     profile = _active_profile_name()
     profile_label = f" [{hcfg.host}]" if profile != "default" else ""
@@ -592,7 +658,9 @@ def cmd_status(args) -> None:
     print(f"  User peer:      {hcfg.peer_name or 'not set'}")
     print(f"  Session key:    {hcfg.resolve_session_name()}")
     print(f"  Recall mode:    {hcfg.recall_mode}")
-    print(f"  Observation:    user(me={hcfg.user_observe_me},others={hcfg.user_observe_others}) ai(me={hcfg.ai_observe_me},others={hcfg.ai_observe_others})")
+    print(
+        f"  Observation:    user(me={hcfg.user_observe_me},others={hcfg.user_observe_others}) ai(me={hcfg.ai_observe_me},others={hcfg.ai_observe_others})"
+    )
     print(f"  Write freq:     {hcfg.write_frequency}")
 
     if hcfg.enabled and (hcfg.api_key or hcfg.base_url):
@@ -617,6 +685,7 @@ def _show_peer_cards(hcfg, client) -> None:
     """
     try:
         from plugins.memory.honcho.session import HonchoSessionManager
+
         mgr = HonchoSessionManager(honcho=client, config=hcfg)
         session_key = hcfg.resolve_session_name()
         mgr.get_or_create(session_key)
@@ -723,7 +792,8 @@ def cmd_map(args) -> None:
         return
 
     import re
-    sanitized = re.sub(r'[^a-zA-Z0-9_-]', '-', session_name).strip('-')
+
+    sanitized = re.sub(r"[^a-zA-Z0-9_-]", "-", session_name).strip("-")
     if sanitized != session_name:
         print(f"  Session name sanitized to: {sanitized}")
         session_name = sanitized
@@ -749,15 +819,23 @@ def cmd_peer(args) -> None:
         # Show current values
         hosts = cfg.get("hosts", {})
         hermes = hosts.get(_host_key(), {})
-        user = hermes.get('peerName') or cfg.get('peerName') or '(not set)'
-        ai = hermes.get('aiPeer') or cfg.get('aiPeer') or _host_key()
-        lvl = hermes.get("dialecticReasoningLevel") or cfg.get("dialecticReasoningLevel") or "low"
-        max_chars = hermes.get("dialecticMaxChars") or cfg.get("dialecticMaxChars") or 600
+        user = hermes.get("peerName") or cfg.get("peerName") or "(not set)"
+        ai = hermes.get("aiPeer") or cfg.get("aiPeer") or _host_key()
+        lvl = (
+            hermes.get("dialecticReasoningLevel")
+            or cfg.get("dialecticReasoningLevel")
+            or "low"
+        )
+        max_chars = (
+            hermes.get("dialecticMaxChars") or cfg.get("dialecticMaxChars") or 600
+        )
         print("\nHoncho peers\n" + "─" * 40)
         print(f"  User peer:   {user}")
         print("    Your identity in Honcho. Messages you send build this peer's card.")
         print(f"  AI peer:     {ai}")
-        print("    Hermes' identity in Honcho. Seed with 'hermes honcho identity <file>'.")
+        print(
+            "    Hermes' identity in Honcho. Seed with 'hermes honcho identity <file>'."
+        )
         print("    Dialectic calls ask this peer questions to warm session context.")
         print()
         print(f"  Dialectic reasoning:  {lvl}  ({', '.join(REASONING_LEVELS)})")
@@ -779,9 +857,13 @@ def cmd_peer(args) -> None:
 
     if reasoning is not None:
         if reasoning not in REASONING_LEVELS:
-            print(f"  Invalid reasoning level '{reasoning}'. Options: {', '.join(REASONING_LEVELS)}")
+            print(
+                f"  Invalid reasoning level '{reasoning}'. Options: {', '.join(REASONING_LEVELS)}"
+            )
             return
-        cfg.setdefault("hosts", {}).setdefault(host, {})["dialecticReasoningLevel"] = reasoning
+        cfg.setdefault("hosts", {}).setdefault(host, {})["dialecticReasoningLevel"] = (
+            reasoning
+        )
         changed = True
         print(f"  {label}Dialectic reasoning level -> {reasoning}")
 
@@ -834,9 +916,17 @@ def cmd_tokens(args) -> None:
     dialectic = getattr(args, "dialectic", None)
 
     if context is None and dialectic is None:
-        ctx_tokens = hermes.get("contextTokens") or cfg.get("contextTokens") or "(Honcho default)"
+        ctx_tokens = (
+            hermes.get("contextTokens")
+            or cfg.get("contextTokens")
+            or "(Honcho default)"
+        )
         d_chars = hermes.get("dialecticMaxChars") or cfg.get("dialecticMaxChars") or 600
-        d_level = hermes.get("dialecticReasoningLevel") or cfg.get("dialecticReasoningLevel") or "low"
+        d_level = (
+            hermes.get("dialecticReasoningLevel")
+            or cfg.get("dialecticReasoningLevel")
+            or "low"
+        )
         print("\nHoncho budgets\n" + "─" * 40)
         print()
         print(f"  Context     {ctx_tokens} tokens")
@@ -845,7 +935,7 @@ def cmd_tokens(args) -> None:
         print()
         print(f"  Dialectic   {d_chars} chars, reasoning: {d_level}")
         print("    AI-to-AI inference. Hermes asks Honcho's AI peer a question")
-        print("    (e.g. \"what were we working on?\") and Honcho runs its own model")
+        print('    (e.g. "what were we working on?") and Honcho runs its own model')
         print("    to synthesize an answer. Used for first-turn session continuity.")
         print("    Level controls how much reasoning Honcho spends on the answer.")
         print("\n  Set with: hermes honcho tokens [--context N] [--dialectic N]\n")
@@ -859,7 +949,9 @@ def cmd_tokens(args) -> None:
         print(f"  {label}context tokens -> {context}")
         changed = True
     if dialectic is not None:
-        cfg.setdefault("hosts", {}).setdefault(host, {})["dialecticMaxChars"] = dialectic
+        cfg.setdefault("hosts", {}).setdefault(host, {})["dialecticMaxChars"] = (
+            dialectic
+        )
         print(f"  {label}dialectic cap  -> {dialectic} chars")
         changed = True
 
@@ -881,6 +973,7 @@ def cmd_identity(args) -> None:
     try:
         from plugins.memory.honcho.client import HonchoClientConfig, get_honcho_client
         from plugins.memory.honcho.session import HonchoSessionManager
+
         hcfg = HonchoClientConfig.from_global_config(host=_host_key())
         client = get_honcho_client(hcfg)
         mgr = HonchoSessionManager(honcho=client, config=hcfg)
@@ -918,11 +1011,16 @@ def cmd_identity(args) -> None:
         print(f"  User peer: {hcfg.peer_name or 'not set'}")
         print(f"  AI peer:   {hcfg.ai_peer}")
         print()
-        print("    hermes honcho identity --show        — show both peer representations")
-        print("    hermes honcho identity <file>        — seed AI peer from SOUL.md or any .md/.txt\n")
+        print(
+            "    hermes honcho identity --show        — show both peer representations"
+        )
+        print(
+            "    hermes honcho identity <file>        — seed AI peer from SOUL.md or any .md/.txt\n"
+        )
         return
 
     from pathlib import Path
+
     p = Path(file_path).expanduser()
     if not p.exists():
         print(f"  File not found: {p}\n")
@@ -937,7 +1035,9 @@ def cmd_identity(args) -> None:
     ok = mgr.seed_ai_identity(session_key, content, source=source)
     if ok:
         print(f"  Seeded AI peer identity from {p.name} into session '{session_key}'")
-        print(f"  Honcho will incorporate this into {hcfg.ai_peer}'s representation over time.\n")
+        print(
+            f"  Honcho will incorporate this into {hcfg.ai_peer}'s representation over time.\n"
+        )
     else:
         print("  Failed to seed identity. Check logs for details.\n")
 
@@ -953,7 +1053,13 @@ def cmd_migrate(args) -> None:
     # User peer: facts about the user
     user_file_names = ["USER.md", "MEMORY.md"]
     # AI peer: agent identity / configuration
-    agent_file_names = ["SOUL.md", "IDENTITY.md", "AGENTS.md", "TOOLS.md", "BOOTSTRAP.md"]
+    agent_file_names = [
+        "SOUL.md",
+        "IDENTITY.md",
+        "AGENTS.md",
+        "TOOLS.md",
+        "BOOTSTRAP.md",
+    ]
 
     user_files: list[Path] = []
     agent_files: list[Path] = []
@@ -1002,7 +1108,9 @@ def cmd_migrate(args) -> None:
             has_key = bool(cfg.get("apiKey", ""))
         else:
             print()
-            print("  Run 'hermes honcho setup' when ready, then re-run this walkthrough.")
+            print(
+                "  Run 'hermes honcho setup' when ready, then re-run this walkthrough."
+            )
 
     # ── Step 2: Detected files ────────────────────────────────────────────────
     print()
@@ -1010,11 +1118,15 @@ def cmd_migrate(args) -> None:
     print()
     if user_files or agent_files:
         if user_files:
-            print(f"  User memory ({len(user_files)} file(s)) — will go to Honcho user peer:")
+            print(
+                f"  User memory ({len(user_files)} file(s)) — will go to Honcho user peer:"
+            )
             for f in user_files:
                 print(f"    {f}")
         if agent_files:
-            print(f"  Agent identity ({len(agent_files)} file(s)) — will go to Honcho AI peer:")
+            print(
+                f"  Agent identity ({len(agent_files)} file(s)) — will go to Honcho AI peer:"
+            )
             for f in agent_files:
                 print(f"    {f}")
     else:
@@ -1064,9 +1176,13 @@ def cmd_migrate(args) -> None:
                         if mgr.migrate_memory_files(session_key, d):
                             any_uploaded = True
                     if any_uploaded:
-                        print(f"  Uploaded user memory files from: {', '.join(dirs_with_files)}")
+                        print(
+                            f"  Uploaded user memory files from: {', '.join(dirs_with_files)}"
+                        )
                     else:
-                        print("  Nothing uploaded (files may already be migrated or empty).")
+                        print(
+                            "  Nothing uploaded (files may already be migrated or empty)."
+                        )
                 except Exception as e:
                     print(f"  Failed: {e}")
         else:
@@ -1091,7 +1207,9 @@ def cmd_migrate(args) -> None:
         print(f"  Found: {', '.join(f.name for f in agent_files)}")
         print()
         if has_key:
-            answer = _prompt("  Seed AI identity from all detected files now?", default="y")
+            answer = _prompt(
+                "  Seed AI identity from all detected files now?", default="y"
+            )
             if answer.lower() in ("y", "yes"):
                 try:
                     from plugins.memory.honcho.client import (
@@ -1110,7 +1228,9 @@ def cmd_migrate(args) -> None:
                     for f in agent_files:
                         content = f.read_text(encoding="utf-8").strip()
                         if content:
-                            ok = mgr.seed_ai_identity(session_key, content, source=f.name)
+                            ok = mgr.seed_ai_identity(
+                                session_key, content, source=f.name
+                            )
                             status = "seeded" if ok else "failed"
                             print(f"    {f.name}: {status}")
                 except Exception as e:
@@ -1128,14 +1248,18 @@ def cmd_migrate(args) -> None:
     print("Step 5  What changes vs. OpenClaw native memory")
     print()
     print("  Storage")
-    print("    OpenClaw: markdown files on disk, searched via QMD at prompt-build time.")
+    print(
+        "    OpenClaw: markdown files on disk, searched via QMD at prompt-build time."
+    )
     print("    Hermes:   cloud-backed Honcho peers. Files can stay on disk as source")
     print("              of truth; Honcho holds the live representation.")
     print()
     print("  Context injection")
     print("    OpenClaw: file excerpts injected synchronously before each LLM call.")
     print("    Hermes:   Honcho context fetched async at turn end, injected next turn.")
-    print("              First turn has no Honcho context; subsequent turns are loaded.")
+    print(
+        "              First turn has no Honcho context; subsequent turns are loaded."
+    )
     print()
     print("  Memory growth")
     print("    OpenClaw: you edit files manually to update memory.")
@@ -1143,7 +1267,9 @@ def cmd_migrate(args) -> None:
     print("              automatically. Files become the seed, not the live store.")
     print()
     print("  Honcho tools (available to the agent during conversation)")
-    print("    honcho_context   — ask Honcho a question, get a synthesized answer (LLM)")
+    print(
+        "    honcho_context   — ask Honcho a question, get a synthesized answer (LLM)"
+    )
     print("    honcho_search        — semantic search over stored context (no LLM)")
     print("    honcho_profile       — fast peer card snapshot (no LLM)")
     print("    honcho_conclude      — write a conclusion/fact back to memory (no LLM)")
@@ -1165,7 +1291,9 @@ def cmd_migrate(args) -> None:
         print("  2. hermes                           — start a session")
         print("     (user memory files auto-uploaded on first turn if not done above)")
         print("  3. hermes honcho identity --show    — verify AI peer representation")
-        print("  4. hermes honcho tokens             — tune context and dialectic budgets")
+        print(
+            "  4. hermes honcho tokens             — tune context and dialectic budgets"
+        )
         print("  5. hermes honcho mode               — view or change memory mode")
     print()
 
@@ -1181,6 +1309,7 @@ def honcho_command(args) -> None:
         print("\n  Honcho is configured via the memory provider system.")
         print("  Running 'hermes memory setup'...\n")
         from hermes_cli.memory_setup import cmd_setup_provider
+
         cmd_setup_provider("honcho")
         return
     elif sub is None:
@@ -1211,7 +1340,9 @@ def honcho_command(args) -> None:
         cmd_sync(args)
     else:
         print(f"  Unknown honcho command: {sub}")
-        print("  Available: status, sessions, map, peer, mode, tokens, identity, migrate, enable, disable, sync\n")
+        print(
+            "  Available: status, sessions, map, peer, mode, tokens, identity, migrate, enable, disable, sync\n"
+        )
 
 
 def register_cli(subparser) -> None:
@@ -1222,7 +1353,9 @@ def register_cli(subparser) -> None:
     """
 
     subparser.add_argument(
-        "--target-profile", metavar="NAME", dest="target_profile",
+        "--target-profile",
+        metavar="NAME",
+        dest="target_profile",
         help="Target a specific profile's Honcho config without switching",
     )
     subs = subparser.add_subparsers(dest="honcho_command")
@@ -1233,64 +1366,84 @@ def register_cli(subparser) -> None:
     )
 
     status_parser = subs.add_parser(
-        "status", help="Show current Honcho config and connection status",
+        "status",
+        help="Show current Honcho config and connection status",
     )
     status_parser.add_argument(
-        "--all", action="store_true", help="Show config overview across all profiles",
+        "--all",
+        action="store_true",
+        help="Show config overview across all profiles",
     )
 
     subs.add_parser("peers", help="Show peer identities across all profiles")
     subs.add_parser("sessions", help="List known Honcho session mappings")
 
     map_parser = subs.add_parser(
-        "map", help="Map current directory to a Honcho session name (no arg = list mappings)",
+        "map",
+        help="Map current directory to a Honcho session name (no arg = list mappings)",
     )
     map_parser.add_argument(
-        "session_name", nargs="?", default=None,
+        "session_name",
+        nargs="?",
+        default=None,
         help="Session name to associate with this directory. Omit to list current mappings.",
     )
 
     peer_parser = subs.add_parser(
-        "peer", help="Show or update peer names and dialectic reasoning level",
+        "peer",
+        help="Show or update peer names and dialectic reasoning level",
     )
     peer_parser.add_argument("--user", metavar="NAME", help="Set user peer name")
     peer_parser.add_argument("--ai", metavar="NAME", help="Set AI peer name")
     peer_parser.add_argument(
-        "--reasoning", metavar="LEVEL",
+        "--reasoning",
+        metavar="LEVEL",
         choices=("minimal", "low", "medium", "high", "max"),
         help="Set default dialectic reasoning level (minimal/low/medium/high/max)",
     )
 
     mode_parser = subs.add_parser(
-        "mode", help="Show or set recall mode (hybrid/context/tools)",
+        "mode",
+        help="Show or set recall mode (hybrid/context/tools)",
     )
     mode_parser.add_argument(
-        "mode", nargs="?", metavar="MODE",
+        "mode",
+        nargs="?",
+        metavar="MODE",
         choices=("hybrid", "context", "tools"),
         help="Recall mode to set (hybrid/context/tools). Omit to show current.",
     )
 
     tokens_parser = subs.add_parser(
-        "tokens", help="Show or set token budget for context and dialectic",
+        "tokens",
+        help="Show or set token budget for context and dialectic",
     )
     tokens_parser.add_argument(
-        "--context", type=int, metavar="N",
+        "--context",
+        type=int,
+        metavar="N",
         help="Max tokens Honcho returns from session.context() per turn",
     )
     tokens_parser.add_argument(
-        "--dialectic", type=int, metavar="N",
+        "--dialectic",
+        type=int,
+        metavar="N",
         help="Max chars of dialectic result to inject into system prompt",
     )
 
     identity_parser = subs.add_parser(
-        "identity", help="Seed or show the AI peer's Honcho identity representation",
+        "identity",
+        help="Seed or show the AI peer's Honcho identity representation",
     )
     identity_parser.add_argument(
-        "file", nargs="?", default=None,
+        "file",
+        nargs="?",
+        default=None,
         help="Path to file to seed from (e.g. SOUL.md). Omit to show usage.",
     )
     identity_parser.add_argument(
-        "--show", action="store_true",
+        "--show",
+        action="store_true",
         help="Show current AI peer representation from Honcho",
     )
 

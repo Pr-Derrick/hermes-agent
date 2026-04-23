@@ -61,7 +61,9 @@ class TestGenerateTitle:
             assert generate_title("question", "answer") is None
 
     def test_returns_none_on_exception(self):
-        with patch("agent.title_generator.call_llm", side_effect=RuntimeError("no provider")):
+        with patch(
+            "agent.title_generator.call_llm", side_effect=RuntimeError("no provider")
+        ):
             assert generate_title("question", "answer") is None
 
     def test_truncates_long_messages(self):
@@ -133,6 +135,7 @@ class TestMaybeAutoTitle:
             maybe_auto_title(db, "sess-1", "third", "response 3", history)
             # Wait briefly for any thread to start
             import time
+
             time.sleep(0.1)
             mock_auto.assert_not_called()
 
@@ -149,6 +152,7 @@ class TestMaybeAutoTitle:
             maybe_auto_title(db, "sess-1", "hello", "hi there", history)
             # Wait for the daemon thread to complete
             import time
+
             time.sleep(0.3)
             mock_auto.assert_called_once_with(db, "sess-1", "hello", "hi there")
 

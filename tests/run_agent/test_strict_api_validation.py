@@ -15,6 +15,7 @@ from run_agent import AIAgent
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _tool_defs(*names):
     return [
         {
@@ -38,8 +39,16 @@ class _FakeOpenAI:
         pass
 
 
-def _make_agent(monkeypatch, provider, api_mode="chat_completions", base_url="https://openrouter.ai/api/v1"):
-    monkeypatch.setattr("run_agent.get_tool_definitions", lambda **kw: _tool_defs("web_search", "terminal"))
+def _make_agent(
+    monkeypatch,
+    provider,
+    api_mode="chat_completions",
+    base_url="https://openrouter.ai/api/v1",
+):
+    monkeypatch.setattr(
+        "run_agent.get_tool_definitions",
+        lambda **kw: _tool_defs("web_search", "terminal"),
+    )
     monkeypatch.setattr("run_agent.check_toolset_requirements", lambda: {})
     monkeypatch.setattr("run_agent.OpenAI", _FakeOpenAI)
     return AIAgent(
@@ -73,7 +82,10 @@ class TestStrictApiValidation:
                         "call_id": "call_123",  # Codex-only field
                         "response_item_id": "fc_123",  # Codex-only field
                         "type": "function",
-                        "function": {"name": "terminal", "arguments": '{"command":"pwd"}'},
+                        "function": {
+                            "name": "terminal",
+                            "arguments": '{"command":"pwd"}',
+                        },
                     }
                 ],
             },
@@ -109,7 +121,10 @@ class TestStrictApiValidation:
                         "call_id": "call_123",
                         "response_item_id": "fc_123",
                         "type": "function",
-                        "function": {"name": "terminal", "arguments": '{"command":"pwd"}'},
+                        "function": {
+                            "name": "terminal",
+                            "arguments": '{"command":"pwd"}',
+                        },
                     }
                 ],
             },
@@ -125,7 +140,7 @@ class TestStrictApiValidation:
             monkeypatch,
             "fireworks",
             api_mode="chat_completions",
-            base_url="https://api.fireworks.ai/inference/v1"
+            base_url="https://api.fireworks.ai/inference/v1",
         )
 
         # Should sanitize for Fireworks (chat_completions mode)
@@ -137,7 +152,7 @@ class TestStrictApiValidation:
             monkeypatch,
             "openai",
             api_mode="codex_responses",
-            base_url="https://api.openai.com/v1"
+            base_url="https://api.openai.com/v1",
         )
 
         # Should NOT sanitize for Codex

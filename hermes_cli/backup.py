@@ -24,10 +24,10 @@ from hermes_constants import get_default_hermes_root, display_hermes_home
 
 # Directory names to skip entirely (matched against each path component)
 _EXCLUDED_DIRS = {
-    "hermes-agent",     # the codebase repo — re-clone instead
-    "__pycache__",      # bytecode caches — regenerated on import
-    ".git",             # nested git dirs (profiles shouldn't have these, but safety)
-    "node_modules",     # js deps if website/ somehow leaks in
+    "hermes-agent",  # the codebase repo — re-clone instead
+    "__pycache__",  # bytecode caches — regenerated on import
+    ".git",  # nested git dirs (profiles shouldn't have these, but safety)
+    "node_modules",  # js deps if website/ somehow leaks in
 }
 
 # File-name suffixes to skip
@@ -66,6 +66,7 @@ def _should_exclude(rel_path: Path) -> bool:
 # ---------------------------------------------------------------------------
 # Backup
 # ---------------------------------------------------------------------------
+
 
 def _format_size(nbytes: int) -> str:
     """Human-readable file size."""
@@ -113,10 +114,7 @@ def run_backup(args) -> None:
 
         # Prune excluded directories in-place so os.walk doesn't descend
         orig_dirnames = dirnames[:]
-        dirnames[:] = [
-            d for d in dirnames
-            if d not in _EXCLUDED_DIRS
-        ]
+        dirnames[:] = [d for d in dirnames if d not in _EXCLUDED_DIRS]
         for removed in set(orig_dirnames) - set(dirnames):
             skipped_dirs.add(str(rel_dir / removed))
 
@@ -190,6 +188,7 @@ def run_backup(args) -> None:
 # ---------------------------------------------------------------------------
 # Import
 # ---------------------------------------------------------------------------
+
 
 def _validate_backup_zip(zf: zipfile.ZipFile) -> tuple[bool, str]:
     """Check that a zip looks like a Hermes backup.
@@ -302,7 +301,7 @@ def run_import(args) -> None:
         for member in members:
             # Strip prefix if detected
             if prefix and member.startswith(prefix):
-                rel = member[len(prefix):]
+                rel = member[len(prefix) :]
             else:
                 rel = member
 
@@ -349,15 +348,21 @@ def run_import(args) -> None:
         if profiles_dir.is_dir():
             try:
                 from hermes_cli.profiles import (
-                    create_wrapper_script, check_alias_collision,
-                    _is_wrapper_dir_in_path, _get_wrapper_dir,
+                    create_wrapper_script,
+                    check_alias_collision,
+                    _is_wrapper_dir_in_path,
+                    _get_wrapper_dir,
                 )
+
                 for entry in sorted(profiles_dir.iterdir()):
                     if not entry.is_dir():
                         continue
                     profile_name = entry.name
                     # Only create wrappers for directories with config
-                    if not (entry / "config.yaml").exists() and not (entry / ".env").exists():
+                    if (
+                        not (entry / "config.yaml").exists()
+                        and not (entry / ".env").exists()
+                    ):
                         continue
                     collision = check_alias_collision(profile_name)
                     if collision:
@@ -376,7 +381,7 @@ def run_import(args) -> None:
                         print(f"  Profile aliases skipped:  {', '.join(skipped)}")
                     if not _is_wrapper_dir_in_path():
                         print(f"\n  Note: {_get_wrapper_dir()} is not in your PATH.")
-                        print('  Add to your shell config (~/.bashrc or ~/.zshrc):')
+                        print("  Add to your shell config (~/.bashrc or ~/.zshrc):")
                         print('    export PATH="$HOME/.local/bin:$PATH"')
             except ImportError:
                 # hermes_cli.profiles might not be available (fresh install)

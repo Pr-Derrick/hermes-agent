@@ -16,8 +16,9 @@ from gateway.platforms.base import MessageEvent
 from gateway.session import SessionSource
 
 
-def _make_event(text="/update", platform=Platform.TELEGRAM,
-                user_id="12345", chat_id="67890"):
+def _make_event(
+    text="/update", platform=Platform.TELEGRAM, user_id="12345", chat_id="67890"
+):
     """Build a MessageEvent for testing."""
     source = SessionSource(
         platform=platform,
@@ -31,6 +32,7 @@ def _make_event(text="/update", platform=Platform.TELEGRAM,
 def _make_runner():
     """Create a bare GatewayRunner without calling __init__."""
     from gateway.run import GatewayRunner
+
     runner = object.__new__(GatewayRunner)
     runner.adapters = {}
     runner._voice_mode = {}
@@ -64,8 +66,10 @@ class TestHandleUpdateCommand:
         # Point _hermes_home to tmp_path and project_root to a dir without .git
         fake_root = tmp_path / "project"
         fake_root.mkdir()
-        with patch("gateway.run._hermes_home", tmp_path), \
-             patch("gateway.run.Path") as MockPath:
+        with (
+            patch("gateway.run._hermes_home", tmp_path),
+            patch("gateway.run.Path") as MockPath,
+        ):
             # Path(__file__).parent.parent.resolve() -> fake_root
             MockPath.return_value = MagicMock()
             MockPath.__truediv__ = Path.__truediv__
@@ -74,6 +78,7 @@ class TestHandleUpdateCommand:
 
         # Simpler approach — mock at method level using a wrapper
         from gateway.run import GatewayRunner
+
         runner = _make_runner()
 
         with patch("gateway.run._hermes_home", tmp_path):
@@ -111,10 +116,12 @@ class TestHandleUpdateCommand:
         (fake_root / "gateway" / "run.py").touch()
         fake_file = str(fake_root / "gateway" / "run.py")
 
-        with patch("gateway.run._hermes_home", tmp_path), \
-             patch("gateway.run.__file__", fake_file), \
-             patch("shutil.which", return_value=None), \
-             patch("importlib.util.find_spec", return_value=None):
+        with (
+            patch("gateway.run._hermes_home", tmp_path),
+            patch("gateway.run.__file__", fake_file),
+            patch("shutil.which", return_value=None),
+            patch("importlib.util.find_spec", return_value=None),
+        ):
             result = await runner._handle_update_command(event)
 
         assert "Could not locate" in result
@@ -138,11 +145,13 @@ class TestHandleUpdateCommand:
         mock_popen = MagicMock()
         fake_spec = MagicMock()
 
-        with patch("gateway.run._hermes_home", hermes_home), \
-             patch("gateway.run.__file__", fake_file), \
-             patch("shutil.which", return_value=None), \
-             patch("importlib.util.find_spec", return_value=fake_spec), \
-             patch("subprocess.Popen", mock_popen):
+        with (
+            patch("gateway.run._hermes_home", hermes_home),
+            patch("gateway.run.__file__", fake_file),
+            patch("shutil.which", return_value=None),
+            patch("importlib.util.find_spec", return_value=fake_spec),
+            patch("subprocess.Popen", mock_popen),
+        ):
             result = await runner._handle_update_command(event)
 
         assert "Starting Hermes update" in result
@@ -168,8 +177,10 @@ class TestHandleUpdateCommand:
         from gateway.run import _resolve_hermes_bin
 
         fake_spec = MagicMock()
-        with patch("shutil.which", return_value=None), \
-             patch("importlib.util.find_spec", return_value=fake_spec):
+        with (
+            patch("shutil.which", return_value=None),
+            patch("importlib.util.find_spec", return_value=fake_spec),
+        ):
             result = _resolve_hermes_bin()
 
         assert result == [sys.executable, "-m", "hermes_cli.main"]
@@ -179,8 +190,10 @@ class TestHandleUpdateCommand:
         """_resolve_hermes_bin returns None when both strategies fail."""
         from gateway.run import _resolve_hermes_bin
 
-        with patch("shutil.which", return_value=None), \
-             patch("importlib.util.find_spec", return_value=None):
+        with (
+            patch("shutil.which", return_value=None),
+            patch("importlib.util.find_spec", return_value=None),
+        ):
             result = _resolve_hermes_bin()
 
         assert result is None
@@ -200,10 +213,17 @@ class TestHandleUpdateCommand:
         hermes_home = tmp_path / "hermes"
         hermes_home.mkdir()
 
-        with patch("gateway.run._hermes_home", hermes_home), \
-             patch("gateway.run.__file__", fake_file), \
-             patch("shutil.which", side_effect=lambda x: "/usr/bin/hermes" if x == "hermes" else "/usr/bin/setsid"), \
-             patch("subprocess.Popen"):
+        with (
+            patch("gateway.run._hermes_home", hermes_home),
+            patch("gateway.run.__file__", fake_file),
+            patch(
+                "shutil.which",
+                side_effect=lambda x: (
+                    "/usr/bin/hermes" if x == "hermes" else "/usr/bin/setsid"
+                ),
+            ),
+            patch("subprocess.Popen"),
+        ):
             result = await runner._handle_update_command(event)
 
         pending_path = hermes_home / ".update_pending.json"
@@ -230,10 +250,12 @@ class TestHandleUpdateCommand:
         hermes_home.mkdir()
 
         mock_popen = MagicMock()
-        with patch("gateway.run._hermes_home", hermes_home), \
-             patch("gateway.run.__file__", fake_file), \
-             patch("shutil.which", side_effect=lambda x: f"/usr/bin/{x}"), \
-             patch("subprocess.Popen", mock_popen):
+        with (
+            patch("gateway.run._hermes_home", hermes_home),
+            patch("gateway.run.__file__", fake_file),
+            patch("shutil.which", side_effect=lambda x: f"/usr/bin/{x}"),
+            patch("subprocess.Popen", mock_popen),
+        ):
             result = await runner._handle_update_command(event)
 
         # Verify setsid was used
@@ -267,10 +289,12 @@ class TestHandleUpdateCommand:
                 return None
             return None
 
-        with patch("gateway.run._hermes_home", hermes_home), \
-             patch("gateway.run.__file__", fake_file), \
-             patch("shutil.which", side_effect=which_no_setsid), \
-             patch("subprocess.Popen", mock_popen):
+        with (
+            patch("gateway.run._hermes_home", hermes_home),
+            patch("gateway.run.__file__", fake_file),
+            patch("shutil.which", side_effect=which_no_setsid),
+            patch("subprocess.Popen", mock_popen),
+        ):
             result = await runner._handle_update_command(event)
 
         # Verify plain bash -c fallback (no nohup, no setsid)
@@ -298,10 +322,12 @@ class TestHandleUpdateCommand:
         hermes_home = tmp_path / "hermes"
         hermes_home.mkdir()
 
-        with patch("gateway.run._hermes_home", hermes_home), \
-             patch("gateway.run.__file__", fake_file), \
-             patch("shutil.which", side_effect=lambda x: f"/usr/bin/{x}"), \
-             patch("subprocess.Popen", side_effect=OSError("spawn failed")):
+        with (
+            patch("gateway.run._hermes_home", hermes_home),
+            patch("gateway.run.__file__", fake_file),
+            patch("shutil.which", side_effect=lambda x: f"/usr/bin/{x}"),
+            patch("subprocess.Popen", side_effect=OSError("spawn failed")),
+        ):
             result = await runner._handle_update_command(event)
 
         assert "Failed to start update" in result
@@ -324,10 +350,12 @@ class TestHandleUpdateCommand:
         hermes_home = tmp_path / "hermes"
         hermes_home.mkdir()
 
-        with patch("gateway.run._hermes_home", hermes_home), \
-             patch("gateway.run.__file__", fake_file), \
-             patch("shutil.which", side_effect=lambda x: f"/usr/bin/{x}"), \
-             patch("subprocess.Popen"):
+        with (
+            patch("gateway.run._hermes_home", hermes_home),
+            patch("gateway.run.__file__", fake_file),
+            patch("shutil.which", side_effect=lambda x: f"/usr/bin/{x}"),
+            patch("subprocess.Popen"),
+        ):
             result = await runner._handle_update_command(event)
 
         assert "stream progress" in result
@@ -360,9 +388,15 @@ class TestSendUpdateNotification:
         hermes_home.mkdir()
 
         pending_path = hermes_home / ".update_pending.json"
-        pending_path.write_text(json.dumps({
-            "platform": "telegram", "chat_id": "67890", "user_id": "12345",
-        }))
+        pending_path.write_text(
+            json.dumps(
+                {
+                    "platform": "telegram",
+                    "chat_id": "67890",
+                    "user_id": "12345",
+                }
+            )
+        )
         (hermes_home / ".update_output.txt").write_text("still running")
 
         mock_adapter = AsyncMock()
@@ -383,9 +417,15 @@ class TestSendUpdateNotification:
         hermes_home.mkdir()
 
         claimed_path = hermes_home / ".update_pending.claimed.json"
-        claimed_path.write_text(json.dumps({
-            "platform": "telegram", "chat_id": "67890", "user_id": "12345",
-        }))
+        claimed_path.write_text(
+            json.dumps(
+                {
+                    "platform": "telegram",
+                    "chat_id": "67890",
+                    "user_id": "12345",
+                }
+            )
+        )
         (hermes_home / ".update_output.txt").write_text("done")
         (hermes_home / ".update_exit_code").write_text("0")
 
@@ -430,7 +470,10 @@ class TestSendUpdateNotification:
         mock_adapter.send.assert_called_once()
         call_args = mock_adapter.send.call_args
         assert call_args[0][0] == "67890"  # chat_id
-        assert "Update complete" in call_args[0][1] or "update finished" in call_args[0][1].lower()
+        assert (
+            "Update complete" in call_args[0][1]
+            or "update finished" in call_args[0][1].lower()
+        )
 
     @pytest.mark.asyncio
     async def test_strips_ansi_codes(self, tmp_path):
@@ -534,9 +577,15 @@ class TestSendUpdateNotification:
         pending_path = hermes_home / ".update_pending.json"
         output_path = hermes_home / ".update_output.txt"
         exit_code_path = hermes_home / ".update_exit_code"
-        pending_path.write_text(json.dumps({
-            "platform": "telegram", "chat_id": "111", "user_id": "222",
-        }))
+        pending_path.write_text(
+            json.dumps(
+                {
+                    "platform": "telegram",
+                    "chat_id": "111",
+                    "user_id": "222",
+                }
+            )
+        )
         output_path.write_text("✓ Done")
         exit_code_path.write_text("0")
 
@@ -560,9 +609,15 @@ class TestSendUpdateNotification:
         pending_path = hermes_home / ".update_pending.json"
         output_path = hermes_home / ".update_output.txt"
         exit_code_path = hermes_home / ".update_exit_code"
-        pending_path.write_text(json.dumps({
-            "platform": "telegram", "chat_id": "111", "user_id": "222",
-        }))
+        pending_path.write_text(
+            json.dumps(
+                {
+                    "platform": "telegram",
+                    "chat_id": "111",
+                    "user_id": "222",
+                }
+            )
+        )
         output_path.write_text("✓ Done")
         exit_code_path.write_text("0")
 
@@ -647,5 +702,6 @@ class TestUpdateInHelp:
         # checking the help output includes it.
         from gateway.run import GatewayRunner
         import inspect
+
         source = inspect.getsource(GatewayRunner._handle_message)
         assert '"update"' in source

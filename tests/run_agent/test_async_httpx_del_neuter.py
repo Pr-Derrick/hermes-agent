@@ -24,6 +24,7 @@ import pytest
 # Layer 1: neuter_async_httpx_del
 # ---------------------------------------------------------------------------
 
+
 class TestNeuterAsyncHttpxDel:
     """Verify neuter_async_httpx_del replaces __del__ on the SDK class."""
 
@@ -82,6 +83,7 @@ class TestNeuterAsyncHttpxDel:
 # ---------------------------------------------------------------------------
 # Layer 3: cleanup_stale_async_clients
 # ---------------------------------------------------------------------------
+
 
 class TestCleanupStaleAsyncClients:
     """Verify stale cache entries are evicted and force-closed."""

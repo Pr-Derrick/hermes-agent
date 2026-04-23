@@ -27,8 +27,10 @@ logger = logging.getLogger(__name__)
 # Same filenames as prompt_builder.py but we load ALL found (not first-wins)
 # since different subdirectories may use different conventions.
 _HINT_FILENAMES = [
-    "AGENTS.md", "agents.md",
-    "CLAUDE.md", "claude.md",
+    "AGENTS.md",
+    "agents.md",
+    "CLAUDE.md",
+    "claude.md",
     ".cursorrules",
 ]
 
@@ -44,6 +46,7 @@ _COMMAND_TOOLS = {"terminal"}
 # How many parent directories to walk up when looking for hints.
 # Prevents scanning all the way to / for deeply nested paths.
 _MAX_ANCESTOR_WALK = 5
+
 
 class SubdirectoryHintTracker:
     """Track which directories the agent visits and load hints on first access.
@@ -88,9 +91,7 @@ class SubdirectoryHintTracker:
 
         return "\n\n" + "\n\n".join(all_hints)
 
-    def _extract_directories(
-        self, tool_name: str, args: Dict[str, Any]
-    ) -> list:
+    def _extract_directories(self, tool_name: str, args: Dict[str, Any]) -> list:
         """Extract directory paths from tool call arguments."""
         candidates: Set[Path] = set()
 
@@ -212,9 +213,7 @@ class SubdirectoryHintTracker:
 
         sections = []
         for rel_path, content in found_hints:
-            sections.append(
-                f"[Subdirectory context discovered: {rel_path}]\n{content}"
-            )
+            sections.append(f"[Subdirectory context discovered: {rel_path}]\n{content}")
 
         logger.debug(
             "Loaded subdirectory hints from %s: %s",

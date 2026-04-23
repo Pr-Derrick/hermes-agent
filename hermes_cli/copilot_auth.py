@@ -76,9 +76,7 @@ def resolve_copilot_token() -> tuple[str, str]:
         if val:
             valid, msg = validate_copilot_token(val)
             if not valid:
-                logger.warning(
-                    "Token from %s is not supported: %s", env_var, msg
-                )
+                logger.warning("Token from %s is not supported: %s", env_var, msg)
                 continue
             return val, env_var
 
@@ -136,6 +134,7 @@ def _try_gh_cli_token() -> Optional[str]:
 
 # ─── OAuth Device Code Flow ────────────────────────────────────────────────
 
+
 def copilot_device_code_login(
     *,
     host: str = "github.com",
@@ -156,10 +155,12 @@ def copilot_device_code_login(
     access_token_url = f"https://{domain}/login/oauth/access_token"
 
     # Step 1: Request device code
-    data = urllib.parse.urlencode({
-        "client_id": COPILOT_OAUTH_CLIENT_ID,
-        "scope": "read:user",
-    }).encode()
+    data = urllib.parse.urlencode(
+        {
+            "client_id": COPILOT_OAUTH_CLIENT_ID,
+            "scope": "read:user",
+        }
+    ).encode()
 
     req = urllib.request.Request(
         device_code_url,
@@ -179,7 +180,9 @@ def copilot_device_code_login(
         print(f"  ✗ Failed to start device authorization: {exc}")
         return None
 
-    verification_uri = device_data.get("verification_uri", "https://github.com/login/device")
+    verification_uri = device_data.get(
+        "verification_uri", "https://github.com/login/device"
+    )
     user_code = device_data.get("user_code", "")
     device_code = device_data.get("device_code", "")
     interval = max(device_data.get("interval", _DEVICE_CODE_POLL_INTERVAL), 1)
@@ -201,11 +204,13 @@ def copilot_device_code_login(
     while time.time() < deadline:
         time.sleep(interval + _DEVICE_CODE_POLL_SAFETY_MARGIN)
 
-        poll_data = urllib.parse.urlencode({
-            "client_id": COPILOT_OAUTH_CLIENT_ID,
-            "device_code": device_code,
-            "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-        }).encode()
+        poll_data = urllib.parse.urlencode(
+            {
+                "client_id": COPILOT_OAUTH_CLIENT_ID,
+                "device_code": device_code,
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+            }
+        ).encode()
 
         poll_req = urllib.request.Request(
             access_token_url,
@@ -260,6 +265,7 @@ def copilot_device_code_login(
 
 
 # ─── Copilot API Headers ───────────────────────────────────────────────────
+
 
 def copilot_request_headers(
     *,

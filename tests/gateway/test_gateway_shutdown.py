@@ -60,7 +60,10 @@ async def test_gateway_stop_interrupts_running_agents_and_cancels_adapter_tasks(
     running_agent = MagicMock()
     runner._running_agents = {session_key: running_agent}
 
-    with patch("gateway.status.remove_pid_file"), patch("gateway.status.write_runtime_status"):
+    with (
+        patch("gateway.status.remove_pid_file"),
+        patch("gateway.status.write_runtime_status"),
+    ):
         await runner.stop()
 
     running_agent.interrupt.assert_called_once_with("Gateway shutting down")
@@ -87,7 +90,10 @@ async def test_gateway_stop_drains_running_agents_before_disconnect():
 
     asyncio.create_task(finish_agent())
 
-    with patch("gateway.status.remove_pid_file"), patch("gateway.status.write_runtime_status"):
+    with (
+        patch("gateway.status.remove_pid_file"),
+        patch("gateway.status.write_runtime_status"),
+    ):
         await runner.stop()
 
     running_agent.interrupt.assert_not_called()
@@ -106,7 +112,10 @@ async def test_gateway_stop_interrupts_after_drain_timeout():
     running_agent = MagicMock()
     runner._running_agents = {"session": running_agent}
 
-    with patch("gateway.status.remove_pid_file"), patch("gateway.status.write_runtime_status"):
+    with (
+        patch("gateway.status.remove_pid_file"),
+        patch("gateway.status.write_runtime_status"),
+    ):
         await runner.stop()
 
     running_agent.interrupt.assert_called_once_with("Gateway shutting down")
@@ -119,7 +128,10 @@ async def test_gateway_stop_service_restart_sets_named_exit_code():
     runner, adapter = make_restart_runner()
     adapter.disconnect = AsyncMock()
 
-    with patch("gateway.status.remove_pid_file"), patch("gateway.status.write_runtime_status"):
+    with (
+        patch("gateway.status.remove_pid_file"),
+        patch("gateway.status.write_runtime_status"),
+    ):
         await runner.stop(restart=True, service_restart=True)
 
     assert runner._exit_code == GATEWAY_SERVICE_RESTART_EXIT_CODE

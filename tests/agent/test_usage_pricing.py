@@ -16,7 +16,9 @@ def test_normalize_usage_anthropic_keeps_cache_buckets_separate():
         cache_creation_input_tokens=400,
     )
 
-    normalized = normalize_usage(usage, provider="anthropic", api_mode="anthropic_messages")
+    normalized = normalize_usage(
+        usage, provider="anthropic", api_mode="anthropic_messages"
+    )
 
     assert normalized.input_tokens == 1000
     assert normalized.output_tokens == 500
@@ -39,7 +41,9 @@ def test_normalize_usage_openai_subtracts_cached_prompt_tokens():
     assert normalized.output_tokens == 700
 
 
-def test_openrouter_models_api_pricing_is_converted_from_per_token_to_per_million(monkeypatch):
+def test_openrouter_models_api_pricing_is_converted_from_per_token_to_per_million(
+    monkeypatch,
+):
     monkeypatch.setattr(
         "agent.usage_pricing.fetch_model_metadata",
         lambda: {
@@ -78,7 +82,9 @@ def test_estimate_usage_cost_marks_subscription_routes_included():
     assert float(result.amount_usd) == 0.0
 
 
-def test_estimate_usage_cost_refuses_cache_pricing_without_official_cache_rate(monkeypatch):
+def test_estimate_usage_cost_refuses_cache_pricing_without_official_cache_rate(
+    monkeypatch,
+):
     monkeypatch.setattr(
         "agent.usage_pricing.fetch_model_metadata",
         lambda: {

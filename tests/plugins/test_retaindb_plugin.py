@@ -20,6 +20,7 @@ import pytest
 # Imports — guarded since plugins/memory lives outside the standard test path
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def _isolate_env(tmp_path, monkeypatch):
     """Ensure HERMES_HOME and RETAINDB vars are isolated."""
@@ -33,6 +34,7 @@ def _isolate_env(tmp_path, monkeypatch):
 
 # We need the repo root on sys.path so the plugin can import agent.memory_provider
 import sys
+
 _repo_root = str(Path(__file__).resolve().parents[2])
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
@@ -51,10 +53,16 @@ from plugins.memory.retaindb import (
 # _Client tests
 # ===========================================================================
 
+
 class TestClient:
     """Test the HTTP client with mocked requests."""
 
-    def _make_client(self, api_key="rdb-test-key", base_url="https://api.retaindb.com", project="test"):
+    def _make_client(
+        self,
+        api_key="rdb-test-key",
+        base_url="https://api.retaindb.com",
+        project="test",
+    ):
         return _Client(api_key, base_url, project)
 
     def test_base_url_trailing_slash_stripped(self):
@@ -88,32 +96,41 @@ class TestClient:
         with patch.object(c, "request") as mock_req:
             mock_req.return_value = {"results": []}
             c.query_context("user1", "sess1", "test query", max_tokens=500)
-            mock_req.assert_called_once_with("POST", "/v1/context/query", json_body={
-                "project": "test",
-                "query": "test query",
-                "user_id": "user1",
-                "session_id": "sess1",
-                "include_memories": True,
-                "max_tokens": 500,
-            })
+            mock_req.assert_called_once_with(
+                "POST",
+                "/v1/context/query",
+                json_body={
+                    "project": "test",
+                    "query": "test query",
+                    "user_id": "user1",
+                    "session_id": "sess1",
+                    "include_memories": True,
+                    "max_tokens": 500,
+                },
+            )
 
     def test_search_builds_correct_payload(self):
         c = self._make_client()
         with patch.object(c, "request") as mock_req:
             mock_req.return_value = {"results": []}
             c.search("user1", "sess1", "find this", top_k=5)
-            mock_req.assert_called_once_with("POST", "/v1/memory/search", json_body={
-                "project": "test",
-                "query": "find this",
-                "user_id": "user1",
-                "session_id": "sess1",
-                "top_k": 5,
-                "include_pending": True,
-            })
+            mock_req.assert_called_once_with(
+                "POST",
+                "/v1/memory/search",
+                json_body={
+                    "project": "test",
+                    "query": "find this",
+                    "user_id": "user1",
+                    "session_id": "sess1",
+                    "top_k": 5,
+                    "include_pending": True,
+                },
+            )
 
     def test_add_memory_tries_fallback(self):
         c = self._make_client()
         call_count = 0
+
         def fake_request(method, path, **kwargs):
             nonlocal call_count
             call_count += 1
@@ -129,6 +146,7 @@ class TestClient:
     def test_delete_memory_tries_fallback(self):
         c = self._make_client()
         call_count = 0
+
         def fake_request(method, path, **kwargs):
             nonlocal call_count
             call_count += 1
@@ -147,13 +165,18 @@ class TestClient:
             mock_req.return_value = {"status": "ok"}
             msgs = [{"role": "user", "content": "hi"}]
             c.ingest_session("u1", "s1", msgs, timeout=10.0)
-            mock_req.assert_called_once_with("POST", "/v1/memory/ingest/session", json_body={
-                "project": "test",
-                "session_id": "s1",
-                "user_id": "u1",
-                "messages": msgs,
-                "write_mode": "sync",
-            }, timeout=10.0)
+            mock_req.assert_called_once_with(
+                "POST",
+                "/v1/memory/ingest/session",
+                json_body={
+                    "project": "test",
+                    "session_id": "s1",
+                    "user_id": "u1",
+                    "messages": msgs,
+                    "write_mode": "sync",
+                },
+                timeout=10.0,
+            )
 
     def test_ask_user_payload(self):
         c = self._make_client()
@@ -170,14 +193,17 @@ class TestClient:
             mock_req.return_value = {"memory_count": 3}
             c.get_agent_model("hermes")
             mock_req.assert_called_once_with(
-                "GET", "/v1/memory/agent/hermes/model",
-                params={"project": "test"}, timeout=4.0
+                "GET",
+                "/v1/memory/agent/hermes/model",
+                params={"project": "test"},
+                timeout=4.0,
             )
 
 
 # ===========================================================================
 # _WriteQueue tests
 # ===========================================================================
+
 
 class TestWriteQueue:
     """Test the SQLite-backed write queue with real SQLite."""
@@ -275,6 +301,7 @@ class TestWriteQueue:
 # _build_overlay tests
 # ===========================================================================
 
+
 class TestBuildOverlay:
     """Test the overlay formatter (pure function)."""
 
@@ -333,6 +360,7 @@ class TestBuildOverlay:
 # ===========================================================================
 # RetainDBMemoryProvider tests
 # ===========================================================================
+
 
 class TestRetainDBMemoryProvider:
     """Test the main plugin class."""
@@ -460,8 +488,12 @@ class TestRetainDBMemoryProvider:
     def test_dispatch_search(self, tmp_path, monkeypatch):
         p = self._make_provider(tmp_path, monkeypatch)
         p.initialize("test-session", hermes_home=str(tmp_path / ".hermes"))
-        with patch.object(p._client, "search", return_value={"results": [{"content": "found"}]}):
-            result = json.loads(p.handle_tool_call("retaindb_search", {"query": "test"}))
+        with patch.object(
+            p._client, "search", return_value={"results": [{"content": "found"}]}
+        ):
+            result = json.loads(
+                p.handle_tool_call("retaindb_search", {"query": "test"})
+            )
             assert "results" in result
         p.shutdown()
 
@@ -479,7 +511,9 @@ class TestRetainDBMemoryProvider:
         p = self._make_provider(tmp_path, monkeypatch)
         p.initialize("test-session", hermes_home=str(tmp_path / ".hermes"))
         with patch.object(p._client, "add_memory", return_value={"id": "mem-1"}):
-            result = json.loads(p.handle_tool_call("retaindb_remember", {"content": "test fact"}))
+            result = json.loads(
+                p.handle_tool_call("retaindb_remember", {"content": "test fact"})
+            )
             assert result["id"] == "mem-1"
         p.shutdown()
 
@@ -494,7 +528,9 @@ class TestRetainDBMemoryProvider:
         p = self._make_provider(tmp_path, monkeypatch)
         p.initialize("test-session", hermes_home=str(tmp_path / ".hermes"))
         with patch.object(p._client, "delete_memory", return_value={"deleted": True}):
-            result = json.loads(p.handle_tool_call("retaindb_forget", {"memory_id": "mem-1"}))
+            result = json.loads(
+                p.handle_tool_call("retaindb_forget", {"memory_id": "mem-1"})
+            )
             assert result["deleted"] is True
         p.shutdown()
 
@@ -508,9 +544,17 @@ class TestRetainDBMemoryProvider:
     def test_dispatch_context(self, tmp_path, monkeypatch):
         p = self._make_provider(tmp_path, monkeypatch)
         p.initialize("test-session", hermes_home=str(tmp_path / ".hermes"))
-        with patch.object(p._client, "query_context", return_value={"results": [{"content": "relevant"}]}), \
-             patch.object(p._client, "get_profile", return_value={"memories": []}):
-            result = json.loads(p.handle_tool_call("retaindb_context", {"query": "current task"}))
+        with (
+            patch.object(
+                p._client,
+                "query_context",
+                return_value={"results": [{"content": "relevant"}]},
+            ),
+            patch.object(p._client, "get_profile", return_value={"memories": []}),
+        ):
+            result = json.loads(
+                p.handle_tool_call("retaindb_context", {"query": "current task"})
+            )
             assert "context" in result
             assert "raw" in result
         p.shutdown()
@@ -532,7 +576,11 @@ class TestRetainDBMemoryProvider:
     def test_dispatch_file_upload_not_found(self, tmp_path, monkeypatch):
         p = self._make_provider(tmp_path, monkeypatch)
         p.initialize("test-session", hermes_home=str(tmp_path / ".hermes"))
-        result = json.loads(p.handle_tool_call("retaindb_upload_file", {"local_path": "/nonexistent/file.txt"}))
+        result = json.loads(
+            p.handle_tool_call(
+                "retaindb_upload_file", {"local_path": "/nonexistent/file.txt"}
+            )
+        )
         assert "File not found" in result["error"]
         p.shutdown()
 
@@ -560,7 +608,9 @@ class TestRetainDBMemoryProvider:
     def test_handle_tool_call_wraps_exception(self, tmp_path, monkeypatch):
         p = self._make_provider(tmp_path, monkeypatch)
         p.initialize("test-session", hermes_home=str(tmp_path / ".hermes"))
-        with patch.object(p._client, "get_profile", side_effect=RuntimeError("API exploded")):
+        with patch.object(
+            p._client, "get_profile", side_effect=RuntimeError("API exploded")
+        ):
             result = json.loads(p.handle_tool_call("retaindb_profile", {}))
             assert "API exploded" in result["error"]
         p.shutdown()
@@ -569,6 +619,7 @@ class TestRetainDBMemoryProvider:
 # ===========================================================================
 # Prefetch and thread management tests
 # ===========================================================================
+
 
 class TestPrefetch:
     """Test background prefetch and thread accumulation prevention."""
@@ -640,9 +691,15 @@ class TestPrefetch:
         """Verify old prefetch threads are joined before new ones spawn."""
         p = self._make_initialized_provider(tmp_path, monkeypatch)
         # Mock the prefetch methods to be slow
-        with patch.object(p, "_prefetch_context", side_effect=lambda q: time.sleep(0.5)), \
-             patch.object(p, "_prefetch_dialectic", side_effect=lambda q: time.sleep(0.5)), \
-             patch.object(p, "_prefetch_agent_model", side_effect=lambda: time.sleep(0.5)):
+        with (
+            patch.object(p, "_prefetch_context", side_effect=lambda q: time.sleep(0.5)),
+            patch.object(
+                p, "_prefetch_dialectic", side_effect=lambda q: time.sleep(0.5)
+            ),
+            patch.object(
+                p, "_prefetch_agent_model", side_effect=lambda: time.sleep(0.5)
+            ),
+        ):
             p.queue_prefetch("query 1")
             first_threads = list(p._prefetch_threads)
             assert len(first_threads) == 3
@@ -669,6 +726,7 @@ class TestPrefetch:
 # ===========================================================================
 # sync_turn tests
 # ===========================================================================
+
 
 class TestSyncTurn:
     """Test turn synchronization via the write queue."""
@@ -709,6 +767,7 @@ class TestSyncTurn:
 # on_memory_write hook tests
 # ===========================================================================
 
+
 class TestOnMemoryWrite:
     """Test the built-in memory mirror hook."""
 
@@ -719,7 +778,9 @@ class TestOnMemoryWrite:
         monkeypatch.setenv("HERMES_HOME", str(hermes_home))
         p = RetainDBMemoryProvider()
         p.initialize("test-session", hermes_home=str(hermes_home))
-        with patch.object(p._client, "add_memory", return_value={"id": "mem-1"}) as mock_add:
+        with patch.object(
+            p._client, "add_memory", return_value={"id": "mem-1"}
+        ) as mock_add:
             p.on_memory_write("add", "user", "User prefers dark mode")
             mock_add.assert_called_once()
             assert mock_add.call_args[1]["memory_type"] == "preference"
@@ -756,7 +817,9 @@ class TestOnMemoryWrite:
         monkeypatch.setenv("HERMES_HOME", str(hermes_home))
         p = RetainDBMemoryProvider()
         p.initialize("test-session", hermes_home=str(hermes_home))
-        with patch.object(p._client, "add_memory", return_value={"id": "mem-1"}) as mock_add:
+        with patch.object(
+            p._client, "add_memory", return_value={"id": "mem-1"}
+        ) as mock_add:
             p.on_memory_write("add", "memory", "Some env fact")
             assert mock_add.call_args[1]["memory_type"] == "factual"
         p.shutdown()
@@ -766,9 +829,11 @@ class TestOnMemoryWrite:
 # register() test
 # ===========================================================================
 
+
 class TestRegister:
     def test_register_calls_register_memory_provider(self):
         from plugins.memory.retaindb import register
+
         ctx = MagicMock()
         register(ctx)
         ctx.register_memory_provider.assert_called_once()

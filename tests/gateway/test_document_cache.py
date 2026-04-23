@@ -22,6 +22,7 @@ from gateway.platforms.base import (
 # Fixture: redirect DOCUMENT_CACHE_DIR to a temp directory for every test
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def _redirect_cache(tmp_path, monkeypatch):
     """Point the module-level DOCUMENT_CACHE_DIR to a fresh tmp_path."""
@@ -33,6 +34,7 @@ def _redirect_cache(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 # TestGetDocumentCacheDir
 # ---------------------------------------------------------------------------
+
 
 class TestGetDocumentCacheDir:
     def test_creates_directory(self, tmp_path):
@@ -50,6 +52,7 @@ class TestGetDocumentCacheDir:
 # ---------------------------------------------------------------------------
 # TestCacheDocumentFromBytes
 # ---------------------------------------------------------------------------
+
 
 class TestCacheDocumentFromBytes:
     def test_basic_caching(self):
@@ -103,6 +106,7 @@ class TestCacheDocumentFromBytes:
 # TestCleanupDocumentCache
 # ---------------------------------------------------------------------------
 
+
 class TestCleanupDocumentCache:
     def test_removes_old_files(self, tmp_path):
         cache_dir = get_document_cache_dir()
@@ -142,6 +146,7 @@ class TestCleanupDocumentCache:
 # ---------------------------------------------------------------------------
 # TestSupportedDocumentTypes
 # ---------------------------------------------------------------------------
+
 
 class TestSupportedDocumentTypes:
     def test_all_extensions_have_mime_types(self):

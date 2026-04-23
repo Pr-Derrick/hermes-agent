@@ -31,9 +31,9 @@ class TestLoadDirectory:
         assert result["platforms"] == {}
 
     def test_valid_file(self, tmp_path):
-        cache_file = _write_directory(tmp_path, {
-            "telegram": [{"id": "123", "name": "John", "type": "dm"}]
-        })
+        cache_file = _write_directory(
+            tmp_path, {"telegram": [{"id": "123", "name": "John", "type": "dm"}]}
+        )
         with patch("gateway.channel_directory.DIRECTORY_PATH", cache_file):
             result = load_directory()
         assert result["platforms"]["telegram"][0]["name"] == "John"
@@ -48,9 +48,9 @@ class TestLoadDirectory:
 
 class TestBuildChannelDirectoryWrites:
     def test_failed_write_preserves_previous_cache(self, tmp_path, monkeypatch):
-        cache_file = _write_directory(tmp_path, {
-            "telegram": [{"id": "123", "name": "Alice", "type": "dm"}]
-        })
+        cache_file = _write_directory(
+            tmp_path, {"telegram": [{"id": "123", "name": "Alice", "type": "dm"}]}
+        )
         previous = json.loads(cache_file.read_text())
 
         def broken_dump(data, fp, *args, **kwargs):
@@ -75,8 +75,18 @@ class TestResolveChannelName:
     def test_exact_match(self, tmp_path):
         platforms = {
             "discord": [
-                {"id": "111", "name": "bot-home", "guild": "MyServer", "type": "channel"},
-                {"id": "222", "name": "general", "guild": "MyServer", "type": "channel"},
+                {
+                    "id": "111",
+                    "name": "bot-home",
+                    "guild": "MyServer",
+                    "type": "channel",
+                },
+                {
+                    "id": "222",
+                    "name": "general",
+                    "guild": "MyServer",
+                    "type": "channel",
+                },
             ]
         }
         with self._setup(tmp_path, platforms):
@@ -84,9 +94,7 @@ class TestResolveChannelName:
             assert resolve_channel_name("discord", "#bot-home") == "111"
 
     def test_case_insensitive(self, tmp_path):
-        platforms = {
-            "slack": [{"id": "C01", "name": "Engineering", "type": "channel"}]
-        }
+        platforms = {"slack": [{"id": "C01", "name": "Engineering", "type": "channel"}]}
         with self._setup(tmp_path, platforms):
             assert resolve_channel_name("slack", "engineering") == "C01"
             assert resolve_channel_name("slack", "ENGINEERING") == "C01"
@@ -128,31 +136,45 @@ class TestResolveChannelName:
             assert resolve_channel_name("telegram", "someone") is None
 
     def test_no_match_returns_none(self, tmp_path):
-        platforms = {
-            "telegram": [{"id": "123", "name": "John", "type": "dm"}]
-        }
+        platforms = {"telegram": [{"id": "123", "name": "John", "type": "dm"}]}
         with self._setup(tmp_path, platforms):
             assert resolve_channel_name("telegram", "nonexistent") is None
 
     def test_topic_name_resolves_to_composite_id(self, tmp_path):
         platforms = {
-            "telegram": [{"id": "-1001:17585", "name": "Coaching Chat / topic 17585", "type": "group"}]
+            "telegram": [
+                {
+                    "id": "-1001:17585",
+                    "name": "Coaching Chat / topic 17585",
+                    "type": "group",
+                }
+            ]
         }
         with self._setup(tmp_path, platforms):
-            assert resolve_channel_name("telegram", "Coaching Chat / topic 17585") == "-1001:17585"
+            assert (
+                resolve_channel_name("telegram", "Coaching Chat / topic 17585")
+                == "-1001:17585"
+            )
 
     def test_display_label_with_type_suffix_resolves(self, tmp_path):
         platforms = {
             "telegram": [
                 {"id": "123", "name": "Alice", "type": "dm"},
                 {"id": "456", "name": "Dev Group", "type": "group"},
-                {"id": "-1001:17585", "name": "Coaching Chat / topic 17585", "type": "group"},
+                {
+                    "id": "-1001:17585",
+                    "name": "Coaching Chat / topic 17585",
+                    "type": "group",
+                },
             ]
         }
         with self._setup(tmp_path, platforms):
             assert resolve_channel_name("telegram", "Alice (dm)") == "123"
             assert resolve_channel_name("telegram", "Dev Group (group)") == "456"
-            assert resolve_channel_name("telegram", "Coaching Chat / topic 17585 (group)") == "-1001:17585"
+            assert (
+                resolve_channel_name("telegram", "Coaching Chat / topic 17585 (group)")
+                == "-1001:17585"
+            )
 
 
 class TestBuildFromSessions:
@@ -163,30 +185,33 @@ class TestBuildFromSessions:
         sessions_path.write_text(json.dumps(sessions_data))
 
     def test_builds_from_sessions_json(self, tmp_path):
-        self._write_sessions(tmp_path, {
-            "session_1": {
-                "origin": {
-                    "platform": "telegram",
-                    "chat_id": "12345",
-                    "chat_name": "Alice",
+        self._write_sessions(
+            tmp_path,
+            {
+                "session_1": {
+                    "origin": {
+                        "platform": "telegram",
+                        "chat_id": "12345",
+                        "chat_name": "Alice",
+                    },
+                    "chat_type": "dm",
                 },
-                "chat_type": "dm",
-            },
-            "session_2": {
-                "origin": {
-                    "platform": "telegram",
-                    "chat_id": "67890",
-                    "user_name": "Bob",
+                "session_2": {
+                    "origin": {
+                        "platform": "telegram",
+                        "chat_id": "67890",
+                        "user_name": "Bob",
+                    },
+                    "chat_type": "group",
                 },
-                "chat_type": "group",
-            },
-            "session_3": {
-                "origin": {
-                    "platform": "discord",
-                    "chat_id": "99999",
+                "session_3": {
+                    "origin": {
+                        "platform": "discord",
+                        "chat_id": "99999",
+                    },
                 },
             },
-        })
+        )
 
         with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
             entries = _build_from_sessions("telegram")
@@ -202,10 +227,25 @@ class TestBuildFromSessions:
         assert entries == []
 
     def test_deduplication_by_chat_id(self, tmp_path):
-        self._write_sessions(tmp_path, {
-            "s1": {"origin": {"platform": "telegram", "chat_id": "123", "chat_name": "X"}},
-            "s2": {"origin": {"platform": "telegram", "chat_id": "123", "chat_name": "X"}},
-        })
+        self._write_sessions(
+            tmp_path,
+            {
+                "s1": {
+                    "origin": {
+                        "platform": "telegram",
+                        "chat_id": "123",
+                        "chat_name": "X",
+                    }
+                },
+                "s2": {
+                    "origin": {
+                        "platform": "telegram",
+                        "chat_id": "123",
+                        "chat_name": "X",
+                    }
+                },
+            },
+        )
 
         with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
             entries = _build_from_sessions("telegram")
@@ -213,30 +253,37 @@ class TestBuildFromSessions:
         assert len(entries) == 1
 
     def test_keeps_distinct_topics_with_same_chat_id(self, tmp_path):
-        self._write_sessions(tmp_path, {
-            "group_root": {
-                "origin": {"platform": "telegram", "chat_id": "-1001", "chat_name": "Coaching Chat"},
-                "chat_type": "group",
-            },
-            "topic_a": {
-                "origin": {
-                    "platform": "telegram",
-                    "chat_id": "-1001",
-                    "chat_name": "Coaching Chat",
-                    "thread_id": "17585",
+        self._write_sessions(
+            tmp_path,
+            {
+                "group_root": {
+                    "origin": {
+                        "platform": "telegram",
+                        "chat_id": "-1001",
+                        "chat_name": "Coaching Chat",
+                    },
+                    "chat_type": "group",
                 },
-                "chat_type": "group",
-            },
-            "topic_b": {
-                "origin": {
-                    "platform": "telegram",
-                    "chat_id": "-1001",
-                    "chat_name": "Coaching Chat",
-                    "thread_id": "17587",
+                "topic_a": {
+                    "origin": {
+                        "platform": "telegram",
+                        "chat_id": "-1001",
+                        "chat_name": "Coaching Chat",
+                        "thread_id": "17585",
+                    },
+                    "chat_type": "group",
                 },
-                "chat_type": "group",
+                "topic_b": {
+                    "origin": {
+                        "platform": "telegram",
+                        "chat_id": "-1001",
+                        "chat_name": "Coaching Chat",
+                        "thread_id": "17587",
+                    },
+                    "chat_type": "group",
+                },
             },
-        })
+        )
 
         with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
             entries = _build_from_sessions("telegram")
@@ -256,13 +303,20 @@ class TestFormatDirectoryForDisplay:
         assert "No messaging platforms" in result
 
     def test_telegram_display(self, tmp_path):
-        cache_file = _write_directory(tmp_path, {
-            "telegram": [
-                {"id": "123", "name": "Alice", "type": "dm"},
-                {"id": "456", "name": "Dev Group", "type": "group"},
-                {"id": "-1001:17585", "name": "Coaching Chat / topic 17585", "type": "group"},
-            ]
-        })
+        cache_file = _write_directory(
+            tmp_path,
+            {
+                "telegram": [
+                    {"id": "123", "name": "Alice", "type": "dm"},
+                    {"id": "456", "name": "Dev Group", "type": "group"},
+                    {
+                        "id": "-1001:17585",
+                        "name": "Coaching Chat / topic 17585",
+                        "type": "group",
+                    },
+                ]
+            },
+        )
         with patch("gateway.channel_directory.DIRECTORY_PATH", cache_file):
             result = format_directory_for_display()
 
@@ -272,13 +326,26 @@ class TestFormatDirectoryForDisplay:
         assert "telegram:Coaching Chat / topic 17585" in result
 
     def test_discord_grouped_by_guild(self, tmp_path):
-        cache_file = _write_directory(tmp_path, {
-            "discord": [
-                {"id": "1", "name": "general", "guild": "Server1", "type": "channel"},
-                {"id": "2", "name": "bot-home", "guild": "Server1", "type": "channel"},
-                {"id": "3", "name": "chat", "guild": "Server2", "type": "channel"},
-            ]
-        })
+        cache_file = _write_directory(
+            tmp_path,
+            {
+                "discord": [
+                    {
+                        "id": "1",
+                        "name": "general",
+                        "guild": "Server1",
+                        "type": "channel",
+                    },
+                    {
+                        "id": "2",
+                        "name": "bot-home",
+                        "guild": "Server1",
+                        "type": "channel",
+                    },
+                    {"id": "3", "name": "chat", "guild": "Server2", "type": "channel"},
+                ]
+            },
+        )
         with patch("gateway.channel_directory.DIRECTORY_PATH", cache_file):
             result = format_directory_for_display()
 

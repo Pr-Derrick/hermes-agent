@@ -162,9 +162,17 @@ class TestClawCommand:
     """Test the claw_command router."""
 
     def test_routes_to_migrate(self):
-        args = Namespace(claw_action="migrate", source=None, dry_run=True,
-                         preset="full", overwrite=False, migrate_secrets=False,
-                         workspace_target=None, skill_conflict="skip", yes=False)
+        args = Namespace(
+            claw_action="migrate",
+            source=None,
+            dry_run=True,
+            preset="full",
+            overwrite=False,
+            migrate_secrets=False,
+            workspace_target=None,
+            skill_conflict="skip",
+            yes=False,
+        )
         with patch.object(claw_mod, "_cmd_migrate") as mock:
             claw_mod.claw_command(args)
         mock.assert_called_once_with(args)
@@ -200,9 +208,13 @@ class TestCmdMigrate:
     def test_error_when_source_missing(self, tmp_path, capsys):
         args = Namespace(
             source=str(tmp_path / "nonexistent"),
-            dry_run=True, preset="full", overwrite=False,
-            migrate_secrets=False, workspace_target=None,
-            skill_conflict="skip", yes=False,
+            dry_run=True,
+            preset="full",
+            overwrite=False,
+            migrate_secrets=False,
+            workspace_target=None,
+            skill_conflict="skip",
+            yes=False,
         )
         claw_mod._cmd_migrate(args)
         captured = capsys.readouterr()
@@ -213,9 +225,13 @@ class TestCmdMigrate:
         openclaw_dir.mkdir()
         args = Namespace(
             source=str(openclaw_dir),
-            dry_run=True, preset="full", overwrite=False,
-            migrate_secrets=False, workspace_target=None,
-            skill_conflict="skip", yes=False,
+            dry_run=True,
+            preset="full",
+            overwrite=False,
+            migrate_secrets=False,
+            workspace_target=None,
+            skill_conflict="skip",
+            yes=False,
         )
         with (
             patch.object(claw_mod, "_OPENCLAW_SCRIPT", tmp_path / "a.py"),
@@ -246,15 +262,21 @@ class TestCmdMigrate:
 
         args = Namespace(
             source=str(openclaw_dir),
-            dry_run=True, preset="full", overwrite=False,
-            migrate_secrets=False, workspace_target=None,
-            skill_conflict="skip", yes=False,
+            dry_run=True,
+            preset="full",
+            overwrite=False,
+            migrate_secrets=False,
+            workspace_target=None,
+            skill_conflict="skip",
+            yes=False,
         )
 
         with (
             patch.object(claw_mod, "_find_migration_script", return_value=script),
             patch.object(claw_mod, "_load_migration_module", return_value=fake_mod),
-            patch.object(claw_mod, "get_config_path", return_value=tmp_path / "config.yaml"),
+            patch.object(
+                claw_mod, "get_config_path", return_value=tmp_path / "config.yaml"
+            ),
             patch.object(claw_mod, "save_config"),
             patch.object(claw_mod, "load_config", return_value={}),
         ):
@@ -276,24 +298,38 @@ class TestCmdMigrate:
         fake_migrator.migrate.return_value = {
             "summary": {"migrated": 2, "skipped": 1, "conflict": 0, "error": 0},
             "items": [
-                {"kind": "soul", "status": "migrated", "destination": str(tmp_path / "SOUL.md")},
-                {"kind": "memory", "status": "migrated", "destination": str(tmp_path / "memories/MEMORY.md")},
+                {
+                    "kind": "soul",
+                    "status": "migrated",
+                    "destination": str(tmp_path / "SOUL.md"),
+                },
+                {
+                    "kind": "memory",
+                    "status": "migrated",
+                    "destination": str(tmp_path / "memories/MEMORY.md"),
+                },
             ],
         }
         fake_mod.Migrator = MagicMock(return_value=fake_migrator)
 
         args = Namespace(
             source=str(openclaw_dir),
-            dry_run=False, preset="user-data", overwrite=False,
-            migrate_secrets=False, workspace_target=None,
-            skill_conflict="skip", yes=False,
+            dry_run=False,
+            preset="user-data",
+            overwrite=False,
+            migrate_secrets=False,
+            workspace_target=None,
+            skill_conflict="skip",
+            yes=False,
         )
 
         mock_stdin = MagicMock()
         mock_stdin.isatty.return_value = True
 
         with (
-            patch.object(claw_mod, "_find_migration_script", return_value=tmp_path / "s.py"),
+            patch.object(
+                claw_mod, "_find_migration_script", return_value=tmp_path / "s.py"
+            ),
             patch.object(claw_mod, "_load_migration_module", return_value=fake_mod),
             patch.object(claw_mod, "get_config_path", return_value=config_path),
             patch.object(claw_mod, "prompt_yes_no", return_value=True),
@@ -322,15 +358,23 @@ class TestCmdMigrate:
 
         args = Namespace(
             source=str(openclaw_dir),
-            dry_run=True, preset="full", overwrite=False,
-            migrate_secrets=False, workspace_target=None,
-            skill_conflict="skip", yes=False,
+            dry_run=True,
+            preset="full",
+            overwrite=False,
+            migrate_secrets=False,
+            workspace_target=None,
+            skill_conflict="skip",
+            yes=False,
         )
 
         with (
-            patch.object(claw_mod, "_find_migration_script", return_value=tmp_path / "s.py"),
+            patch.object(
+                claw_mod, "_find_migration_script", return_value=tmp_path / "s.py"
+            ),
             patch.object(claw_mod, "_load_migration_module", return_value=fake_mod),
-            patch.object(claw_mod, "get_config_path", return_value=tmp_path / "config.yaml"),
+            patch.object(
+                claw_mod, "get_config_path", return_value=tmp_path / "config.yaml"
+            ),
             patch.object(claw_mod, "save_config"),
             patch.object(claw_mod, "load_config", return_value={}),
         ):
@@ -350,22 +394,36 @@ class TestCmdMigrate:
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
             "summary": {"migrated": 1, "skipped": 0, "conflict": 0, "error": 0},
-            "items": [{"kind": "soul", "status": "migrated", "source": "s", "destination": "d", "reason": ""}],
+            "items": [
+                {
+                    "kind": "soul",
+                    "status": "migrated",
+                    "source": "s",
+                    "destination": "d",
+                    "reason": "",
+                }
+            ],
         }
         fake_mod.Migrator = MagicMock(return_value=fake_migrator)
 
         args = Namespace(
             source=str(openclaw_dir),
-            dry_run=False, preset="full", overwrite=False,
-            migrate_secrets=False, workspace_target=None,
-            skill_conflict="skip", yes=False,
+            dry_run=False,
+            preset="full",
+            overwrite=False,
+            migrate_secrets=False,
+            workspace_target=None,
+            skill_conflict="skip",
+            yes=False,
         )
 
         mock_stdin = MagicMock()
         mock_stdin.isatty.return_value = True
 
         with (
-            patch.object(claw_mod, "_find_migration_script", return_value=tmp_path / "s.py"),
+            patch.object(
+                claw_mod, "_find_migration_script", return_value=tmp_path / "s.py"
+            ),
             patch.object(claw_mod, "_load_migration_module", return_value=fake_mod),
             patch.object(claw_mod, "get_config_path", return_value=config_path),
             patch.object(claw_mod, "prompt_yes_no", return_value=False),
@@ -393,13 +451,19 @@ class TestCmdMigrate:
 
         args = Namespace(
             source=str(openclaw_dir),
-            dry_run=False, preset="full", overwrite=False,
-            migrate_secrets=False, workspace_target=None,
-            skill_conflict="skip", yes=True,
+            dry_run=False,
+            preset="full",
+            overwrite=False,
+            migrate_secrets=False,
+            workspace_target=None,
+            skill_conflict="skip",
+            yes=True,
         )
 
         with (
-            patch.object(claw_mod, "_find_migration_script", return_value=tmp_path / "s.py"),
+            patch.object(
+                claw_mod, "_find_migration_script", return_value=tmp_path / "s.py"
+            ),
             patch.object(claw_mod, "_load_migration_module", return_value=fake_mod),
             patch.object(claw_mod, "get_config_path", return_value=config_path),
             patch.object(claw_mod, "prompt_yes_no") as mock_prompt,
@@ -416,14 +480,22 @@ class TestCmdMigrate:
 
         args = Namespace(
             source=str(openclaw_dir),
-            dry_run=True, preset="full", overwrite=False,
-            migrate_secrets=False, workspace_target=None,
-            skill_conflict="skip", yes=False,
+            dry_run=True,
+            preset="full",
+            overwrite=False,
+            migrate_secrets=False,
+            workspace_target=None,
+            skill_conflict="skip",
+            yes=False,
         )
 
         with (
-            patch.object(claw_mod, "_find_migration_script", return_value=tmp_path / "s.py"),
-            patch.object(claw_mod, "_load_migration_module", side_effect=RuntimeError("boom")),
+            patch.object(
+                claw_mod, "_find_migration_script", return_value=tmp_path / "s.py"
+            ),
+            patch.object(
+                claw_mod, "_load_migration_module", side_effect=RuntimeError("boom")
+            ),
             patch.object(claw_mod, "get_config_path", return_value=config_path),
             patch.object(claw_mod, "save_config"),
             patch.object(claw_mod, "load_config", return_value={}),
@@ -449,16 +521,23 @@ class TestCmdMigrate:
 
         args = Namespace(
             source=str(openclaw_dir),
-            dry_run=True, preset="full", overwrite=False,
+            dry_run=True,
+            preset="full",
+            overwrite=False,
             migrate_secrets=False,  # Not explicitly set by user
             workspace_target=None,
-            skill_conflict="skip", yes=False,
+            skill_conflict="skip",
+            yes=False,
         )
 
         with (
-            patch.object(claw_mod, "_find_migration_script", return_value=tmp_path / "s.py"),
+            patch.object(
+                claw_mod, "_find_migration_script", return_value=tmp_path / "s.py"
+            ),
             patch.object(claw_mod, "_load_migration_module", return_value=fake_mod),
-            patch.object(claw_mod, "get_config_path", return_value=tmp_path / "config.yaml"),
+            patch.object(
+                claw_mod, "get_config_path", return_value=tmp_path / "config.yaml"
+            ),
             patch.object(claw_mod, "save_config"),
             patch.object(claw_mod, "load_config", return_value={}),
         ):
@@ -569,7 +648,9 @@ class TestCmdCleanup:
         clawdbot.mkdir()
 
         args = Namespace(source=None, dry_run=False, yes=True)
-        with patch.object(claw_mod, "_find_openclaw_dirs", return_value=[openclaw, clawdbot]):
+        with patch.object(
+            claw_mod, "_find_openclaw_dirs", return_value=[openclaw, clawdbot]
+        ):
             claw_mod._cmd_cleanup(args)
 
         captured = capsys.readouterr()
@@ -590,8 +671,16 @@ class TestPrintMigrationReport:
         report = {
             "summary": {"migrated": 2, "skipped": 1, "conflict": 1, "error": 0},
             "items": [
-                {"kind": "soul", "status": "migrated", "destination": "/home/user/.hermes/SOUL.md"},
-                {"kind": "memory", "status": "migrated", "destination": "/home/user/.hermes/memories/MEMORY.md"},
+                {
+                    "kind": "soul",
+                    "status": "migrated",
+                    "destination": "/home/user/.hermes/SOUL.md",
+                },
+                {
+                    "kind": "memory",
+                    "status": "migrated",
+                    "destination": "/home/user/.hermes/memories/MEMORY.md",
+                },
                 {"kind": "skills", "status": "conflict", "reason": "already exists"},
                 {"kind": "tts-assets", "status": "skipped", "reason": "not found"},
             ],
@@ -608,7 +697,11 @@ class TestPrintMigrationReport:
         report = {
             "summary": {"migrated": 3, "skipped": 0, "conflict": 0, "error": 0},
             "items": [
-                {"kind": "soul", "status": "migrated", "destination": "/home/user/.hermes/SOUL.md"},
+                {
+                    "kind": "soul",
+                    "status": "migrated",
+                    "destination": "/home/user/.hermes/SOUL.md",
+                },
             ],
             "output_dir": "/home/user/.hermes/migration/openclaw/20250312T120000",
         }

@@ -1,4 +1,5 @@
 """Tests for user-defined quick commands that bypass the agent loop."""
+
 import subprocess
 from unittest.mock import MagicMock, patch, AsyncMock
 from rich.text import Text
@@ -6,6 +7,7 @@ import pytest
 
 
 # ── CLI tests ──────────────────────────────────────────────────────────────
+
 
 class TestCLIQuickCommands:
     """Test quick command dispatch in HermesCLI.process_command."""
@@ -18,6 +20,7 @@ class TestCLIQuickCommands:
 
     def _make_cli(self, quick_commands):
         from cli import HermesCLI
+
         cli = HermesCLI.__new__(HermesCLI)
         cli.config = {"quick_commands": quick_commands}
         cli.console = MagicMock()
@@ -102,7 +105,9 @@ class TestCLIQuickCommands:
 
     def test_timeout_shows_error(self):
         cli = self._make_cli({"slow": {"type": "exec", "command": "sleep 100"}})
-        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("sleep", 30)):
+        with patch(
+            "subprocess.run", side_effect=subprocess.TimeoutExpired("sleep", 30)
+        ):
             cli.process_command("/slow")
         cli.console.print.assert_called_once()
         args = cli.console.print.call_args[0][0]
@@ -110,6 +115,7 @@ class TestCLIQuickCommands:
 
 
 # ── Gateway tests ──────────────────────────────────────────────────────────
+
 
 class TestGatewayQuickCommands:
     """Test quick command dispatch in GatewayRunner._handle_message."""
@@ -130,8 +136,11 @@ class TestGatewayQuickCommands:
     @pytest.mark.asyncio
     async def test_exec_command_returns_output(self):
         from gateway.run import GatewayRunner
+
         runner = GatewayRunner.__new__(GatewayRunner)
-        runner.config = {"quick_commands": {"limits": {"type": "exec", "command": "echo ok"}}}
+        runner.config = {
+            "quick_commands": {"limits": {"type": "exec", "command": "echo ok"}}
+        }
         runner._running_agents = {}
         runner._pending_messages = {}
         runner._is_user_authorized = MagicMock(return_value=True)
@@ -143,8 +152,11 @@ class TestGatewayQuickCommands:
     @pytest.mark.asyncio
     async def test_unsupported_type_returns_error(self):
         from gateway.run import GatewayRunner
+
         runner = GatewayRunner.__new__(GatewayRunner)
-        runner.config = {"quick_commands": {"bad": {"type": "prompt", "command": "echo hi"}}}
+        runner.config = {
+            "quick_commands": {"bad": {"type": "prompt", "command": "echo hi"}}
+        }
         runner._running_agents = {}
         runner._pending_messages = {}
         runner._is_user_authorized = MagicMock(return_value=True)
@@ -158,8 +170,11 @@ class TestGatewayQuickCommands:
     async def test_timeout_returns_error(self):
         from gateway.run import GatewayRunner
         import asyncio
+
         runner = GatewayRunner.__new__(GatewayRunner)
-        runner.config = {"quick_commands": {"slow": {"type": "exec", "command": "sleep 100"}}}
+        runner.config = {
+            "quick_commands": {"slow": {"type": "exec", "command": "sleep 100"}}
+        }
         runner._running_agents = {}
         runner._pending_messages = {}
         runner._is_user_authorized = MagicMock(return_value=True)

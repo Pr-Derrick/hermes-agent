@@ -16,23 +16,30 @@ from agent.model_metadata import is_local_endpoint
 class TestLocalStreamReadTimeout:
     """Verify stream read timeout auto-detection logic."""
 
-    @pytest.mark.parametrize("base_url", [
-        "http://localhost:11434",
-        "http://127.0.0.1:8080",
-        "http://0.0.0.0:5000",
-        "http://192.168.1.100:8000",
-        "http://10.0.0.5:1234",
-        "http://host.docker.internal:11434",
-        "http://host.containers.internal:11434",
-        "http://host.lima.internal:11434",
-    ])
+    @pytest.mark.parametrize(
+        "base_url",
+        [
+            "http://localhost:11434",
+            "http://127.0.0.1:8080",
+            "http://0.0.0.0:5000",
+            "http://192.168.1.100:8000",
+            "http://10.0.0.5:1234",
+            "http://host.docker.internal:11434",
+            "http://host.containers.internal:11434",
+            "http://host.lima.internal:11434",
+        ],
+    )
     def test_local_endpoint_bumps_read_timeout(self, base_url):
         """Local endpoint + default timeout -> bumps to base_timeout."""
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("HERMES_STREAM_READ_TIMEOUT", None)
             _base_timeout = float(os.getenv("HERMES_API_TIMEOUT", 1800.0))
             _stream_read_timeout = float(os.getenv("HERMES_STREAM_READ_TIMEOUT", 120.0))
-            if _stream_read_timeout == 120.0 and base_url and is_local_endpoint(base_url):
+            if (
+                _stream_read_timeout == 120.0
+                and base_url
+                and is_local_endpoint(base_url)
+            ):
                 _stream_read_timeout = _base_timeout
             assert _stream_read_timeout == 1800.0
 
@@ -42,22 +49,33 @@ class TestLocalStreamReadTimeout:
             _base_timeout = float(os.getenv("HERMES_API_TIMEOUT", 1800.0))
             _stream_read_timeout = float(os.getenv("HERMES_STREAM_READ_TIMEOUT", 120.0))
             base_url = "http://localhost:11434"
-            if _stream_read_timeout == 120.0 and base_url and is_local_endpoint(base_url):
+            if (
+                _stream_read_timeout == 120.0
+                and base_url
+                and is_local_endpoint(base_url)
+            ):
                 _stream_read_timeout = _base_timeout
             assert _stream_read_timeout == 300.0
 
-    @pytest.mark.parametrize("base_url", [
-        "https://api.openai.com",
-        "https://openrouter.ai/api",
-        "https://api.anthropic.com",
-    ])
+    @pytest.mark.parametrize(
+        "base_url",
+        [
+            "https://api.openai.com",
+            "https://openrouter.ai/api",
+            "https://api.anthropic.com",
+        ],
+    )
     def test_remote_endpoint_keeps_default(self, base_url):
         """Remote endpoint -> keep 120s default."""
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("HERMES_STREAM_READ_TIMEOUT", None)
             _base_timeout = float(os.getenv("HERMES_API_TIMEOUT", 1800.0))
             _stream_read_timeout = float(os.getenv("HERMES_STREAM_READ_TIMEOUT", 120.0))
-            if _stream_read_timeout == 120.0 and base_url and is_local_endpoint(base_url):
+            if (
+                _stream_read_timeout == 120.0
+                and base_url
+                and is_local_endpoint(base_url)
+            ):
                 _stream_read_timeout = _base_timeout
             assert _stream_read_timeout == 120.0
 
@@ -68,7 +86,11 @@ class TestLocalStreamReadTimeout:
             _base_timeout = float(os.getenv("HERMES_API_TIMEOUT", 1800.0))
             _stream_read_timeout = float(os.getenv("HERMES_STREAM_READ_TIMEOUT", 120.0))
             base_url = ""
-            if _stream_read_timeout == 120.0 and base_url and is_local_endpoint(base_url):
+            if (
+                _stream_read_timeout == 120.0
+                and base_url
+                and is_local_endpoint(base_url)
+            ):
                 _stream_read_timeout = _base_timeout
             assert _stream_read_timeout == 120.0
 
@@ -76,33 +98,42 @@ class TestLocalStreamReadTimeout:
 class TestIsLocalEndpoint:
     """Direct unit tests for is_local_endpoint."""
 
-    @pytest.mark.parametrize("url", [
-        "http://localhost:11434",
-        "http://127.0.0.1:8080",
-        "http://0.0.0.0:5000",
-        "http://[::1]:11434",
-        "http://192.168.1.100:8000",
-        "http://10.0.0.5:1234",
-        "http://172.17.0.1:11434",
-    ])
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://localhost:11434",
+            "http://127.0.0.1:8080",
+            "http://0.0.0.0:5000",
+            "http://[::1]:11434",
+            "http://192.168.1.100:8000",
+            "http://10.0.0.5:1234",
+            "http://172.17.0.1:11434",
+        ],
+    )
     def test_classic_local_addresses(self, url):
         assert is_local_endpoint(url) is True
 
-    @pytest.mark.parametrize("url", [
-        "http://host.docker.internal:11434",
-        "http://host.docker.internal:8080/v1",
-        "http://gateway.docker.internal:11434",
-        "http://host.containers.internal:11434",
-        "http://host.lima.internal:11434",
-    ])
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://host.docker.internal:11434",
+            "http://host.docker.internal:8080/v1",
+            "http://gateway.docker.internal:11434",
+            "http://host.containers.internal:11434",
+            "http://host.lima.internal:11434",
+        ],
+    )
     def test_container_dns_names(self, url):
         assert is_local_endpoint(url) is True
 
-    @pytest.mark.parametrize("url", [
-        "https://api.openai.com",
-        "https://openrouter.ai/api",
-        "https://api.anthropic.com",
-        "https://evil.docker.internal.example.com",
-    ])
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://api.openai.com",
+            "https://openrouter.ai/api",
+            "https://api.anthropic.com",
+            "https://evil.docker.internal.example.com",
+        ],
+    )
     def test_remote_endpoints(self, url):
         assert is_local_endpoint(url) is False

@@ -60,7 +60,9 @@ class TestOfferOpenclawMigration:
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
             "summary": {"migrated": 3, "skipped": 1, "conflict": 0, "error": 0},
-            "items": [{"kind": "config", "status": "migrated", "destination": "/tmp/x"}],
+            "items": [
+                {"kind": "config", "status": "migrated", "destination": "/tmp/x"}
+            ],
             "output_dir": str(hermes_home / "migration"),
         }
         fake_mod.Migrator = MagicMock(return_value=fake_migrator)
@@ -128,7 +130,9 @@ class TestOfferOpenclawMigration:
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
             "summary": {"migrated": 3, "skipped": 0, "conflict": 0, "error": 0},
-            "items": [{"kind": "config", "status": "migrated", "destination": "/tmp/x"}],
+            "items": [
+                {"kind": "config", "status": "migrated", "destination": "/tmp/x"}
+            ],
         }
         fake_mod.Migrator = MagicMock(return_value=fake_migrator)
 
@@ -501,7 +505,8 @@ class TestSetupWizardSkipsConfiguredSections:
         with (
             patch.object(setup_mod, "ensure_hermes_home"),
             patch.object(
-                setup_mod, "load_config",
+                setup_mod,
+                "load_config",
                 side_effect=[{}, reloaded_config],
             ),
             patch.object(setup_mod, "get_hermes_home", return_value=tmp_path),
@@ -512,7 +517,8 @@ class TestSetupWizardSkipsConfiguredSections:
             patch.object(setup_mod, "prompt_choice", return_value=1),
             # Migration succeeds and flips the env_side flag
             patch.object(
-                setup_mod, "_offer_openclaw_migration",
+                setup_mod,
+                "_offer_openclaw_migration",
                 side_effect=fake_migration,
             ),
             # User says No to all reconfig prompts

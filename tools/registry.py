@@ -25,14 +25,31 @@ class ToolEntry:
     """Metadata for a single registered tool."""
 
     __slots__ = (
-        "name", "toolset", "schema", "handler", "check_fn",
-        "requires_env", "is_async", "description", "emoji",
+        "name",
+        "toolset",
+        "schema",
+        "handler",
+        "check_fn",
+        "requires_env",
+        "is_async",
+        "description",
+        "emoji",
         "max_result_size_chars",
     )
 
-    def __init__(self, name, toolset, schema, handler, check_fn,
-                 requires_env, is_async, description, emoji,
-                 max_result_size_chars=None):
+    def __init__(
+        self,
+        name,
+        toolset,
+        schema,
+        handler,
+        check_fn,
+        requires_env,
+        is_async,
+        description,
+        emoji,
+        max_result_size_chars=None,
+    ):
         self.name = name
         self.toolset = toolset
         self.schema = schema
@@ -75,7 +92,9 @@ class ToolRegistry:
             logger.warning(
                 "Tool name collision: '%s' (toolset '%s') is being "
                 "overwritten by toolset '%s'",
-                name, existing.toolset, toolset,
+                name,
+                existing.toolset,
+                toolset,
             )
         self._tools[name] = ToolEntry(
             name=name,
@@ -159,17 +178,22 @@ class ToolRegistry:
         try:
             if entry.is_async:
                 from model_tools import _run_async
+
                 return _run_async(entry.handler(args, **kwargs))
             return entry.handler(args, **kwargs)
         except Exception as e:
             logger.exception("Tool %s dispatch error: %s", name, e)
-            return json.dumps({"error": f"Tool execution failed: {type(e).__name__}: {e}"})
+            return json.dumps(
+                {"error": f"Tool execution failed: {type(e).__name__}: {e}"}
+            )
 
     # ------------------------------------------------------------------
     # Query helpers  (replace redundant dicts in model_tools.py)
     # ------------------------------------------------------------------
 
-    def get_max_result_size(self, name: str, default: int | float | None = None) -> int | float:
+    def get_max_result_size(
+        self, name: str, default: int | float | None = None
+    ) -> int | float:
         """Return per-tool max result size, or *default* (or global default)."""
         entry = self._tools.get(name)
         if entry and entry.max_result_size_chars is not None:
@@ -177,6 +201,7 @@ class ToolRegistry:
         if default is not None:
             return default
         from tools.budget_config import DEFAULT_RESULT_SIZE_CHARS
+
         return DEFAULT_RESULT_SIZE_CHARS
 
     def get_all_tool_names(self) -> List[str]:
@@ -200,7 +225,7 @@ class ToolRegistry:
     def get_emoji(self, name: str, default: str = "⚡") -> str:
         """Return the emoji for a tool, or *default* if unset."""
         entry = self._tools.get(name)
-        return (entry.emoji if entry and entry.emoji else default)
+        return entry.emoji if entry and entry.emoji else default
 
     def get_tool_to_toolset_map(self) -> Dict[str, str]:
         """Return ``{tool_name: toolset_name}`` for every registered tool."""
@@ -278,11 +303,15 @@ class ToolRegistry:
             if self.is_toolset_available(ts):
                 available.append(ts)
             else:
-                unavailable.append({
-                    "name": ts,
-                    "env_vars": entry.requires_env,
-                    "tools": [e.name for e in self._tools.values() if e.toolset == ts],
-                })
+                unavailable.append(
+                    {
+                        "name": ts,
+                        "env_vars": entry.requires_env,
+                        "tools": [
+                            e.name for e in self._tools.values() if e.toolset == ts
+                        ],
+                    }
+                )
         return available, unavailable
 
 

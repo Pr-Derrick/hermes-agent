@@ -37,7 +37,9 @@ from gateway.platforms.base import (
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_HOST = "127.0.0.1"  # Bind to loopback by default; Chrome Extension is local-only
+DEFAULT_HOST = (
+    "127.0.0.1"  # Bind to loopback by default; Chrome Extension is local-only
+)
 DEFAULT_PORT = 8765
 AGENT_TIMEOUT_SECS = 15  # After this, degrade gracefully to Listener Mode
 FREEZE_PROMPT_TEMPLATE = (
@@ -253,8 +255,7 @@ class AlterChromeAdapter(BasePlatformAdapter):
     ) -> None:
         """Send a warm fallback response; signal client to suspend alarms."""
         fallback_text = (
-            "我在这里。先深呼吸一下，不用着急。"
-            "（系统正在恢复连接，稍后会继续陪伴你。）"
+            "我在这里。先深呼吸一下，不用着急。（系统正在恢复连接，稍后会继续陪伴你。）"
         )
         try:
             await ws.send_json(

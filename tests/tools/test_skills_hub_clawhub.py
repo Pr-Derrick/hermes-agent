@@ -139,7 +139,9 @@ class TestClawHubSource(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].identifier, "self-improving-agent")
         mock_get.assert_called_once()
-        self.assertTrue(mock_get.call_args.args[0].endswith("/skills/self-improving-agent"))
+        self.assertTrue(
+            mock_get.call_args.args[0].endswith("/skills/self-improving-agent")
+        )
 
     @patch.object(
         ClawHubSource,
@@ -219,7 +221,10 @@ class TestClawHubSource(unittest.TestCase):
                     status_code=200,
                     json_data={
                         "files": [
-                            {"path": "SKILL.md", "rawUrl": "https://files.example/skill-md"},
+                            {
+                                "path": "SKILL.md",
+                                "rawUrl": "https://files.example/skill-md",
+                            },
                             {"path": "README.md", "content": "hello"},
                         ]
                     },
@@ -242,11 +247,15 @@ class TestClawHubSource(unittest.TestCase):
     def test_fetch_falls_back_to_versions_list(self, mock_get):
         def side_effect(url, *args, **kwargs):
             if url.endswith("/skills/caldav-calendar"):
-                return _MockResponse(status_code=200, json_data={"slug": "caldav-calendar"})
+                return _MockResponse(
+                    status_code=200, json_data={"slug": "caldav-calendar"}
+                )
             if url.endswith("/skills/caldav-calendar/versions"):
                 return _MockResponse(status_code=200, json_data=[{"version": "2.0.0"}])
             if url.endswith("/skills/caldav-calendar/versions/2.0.0"):
-                return _MockResponse(status_code=200, json_data={"files": {"SKILL.md": "# Skill"}})
+                return _MockResponse(
+                    status_code=200, json_data={"files": {"SKILL.md": "# Skill"}}
+                )
             return _MockResponse(status_code=404, json_data={})
 
         mock_get.side_effect = side_effect

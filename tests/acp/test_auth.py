@@ -22,7 +22,9 @@ class TestHasProvider:
         def _boom():
             raise RuntimeError("no provider")
 
-        monkeypatch.setattr("hermes_cli.runtime_provider.resolve_runtime_provider", _boom)
+        monkeypatch.setattr(
+            "hermes_cli.runtime_provider.resolve_runtime_provider", _boom
+        )
         assert has_provider() is False
 
 
@@ -52,5 +54,7 @@ class TestDetectProvider:
         def _boom():
             raise RuntimeError("broken")
 
-        monkeypatch.setattr("hermes_cli.runtime_provider.resolve_runtime_provider", _boom)
+        monkeypatch.setattr(
+            "hermes_cli.runtime_provider.resolve_runtime_provider", _boom
+        )
         assert detect_provider() is None

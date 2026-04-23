@@ -103,7 +103,9 @@ class BaseModalExecutionEnvironment(BaseEnvironment):
 
         deadline = None
         if self._client_timeout_grace_seconds is not None:
-            deadline = time.monotonic() + prepared.timeout + self._client_timeout_grace_seconds
+            deadline = (
+                time.monotonic() + prepared.timeout + self._client_timeout_grace_seconds
+            )
 
         while True:
             if is_interrupted():

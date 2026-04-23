@@ -26,9 +26,19 @@ class TestChromeDebugLaunch:
             captured["kwargs"] = kwargs
             return object()
 
-        with patch("cli.shutil.which", side_effect=lambda name: r"C:\Chrome\chrome.exe" if name == "chrome.exe" else None), \
-             patch("cli.os.path.isfile", side_effect=lambda path: path == r"C:\Chrome\chrome.exe"), \
-             patch("subprocess.Popen", side_effect=fake_popen):
+        with (
+            patch(
+                "cli.shutil.which",
+                side_effect=lambda name: (
+                    r"C:\Chrome\chrome.exe" if name == "chrome.exe" else None
+                ),
+            ),
+            patch(
+                "cli.os.path.isfile",
+                side_effect=lambda path: path == r"C:\Chrome\chrome.exe",
+            ),
+            patch("subprocess.Popen", side_effect=fake_popen),
+        ):
             assert HermesCLI._try_launch_chrome_debug(9333, "Windows") is True
 
         _assert_chrome_debug_cmd(captured["cmd"], r"C:\Chrome\chrome.exe", 9333)
@@ -38,7 +48,9 @@ class TestChromeDebugLaunch:
         captured = {}
         program_files = r"C:\Program Files"
         # Use os.path.join so path separators match cross-platform
-        installed = os.path.join(program_files, "Google", "Chrome", "Application", "chrome.exe")
+        installed = os.path.join(
+            program_files, "Google", "Chrome", "Application", "chrome.exe"
+        )
 
         def fake_popen(cmd, **kwargs):
             captured["cmd"] = cmd
@@ -49,9 +61,11 @@ class TestChromeDebugLaunch:
         monkeypatch.delenv("ProgramFiles(x86)", raising=False)
         monkeypatch.delenv("LOCALAPPDATA", raising=False)
 
-        with patch("cli.shutil.which", return_value=None), \
-             patch("cli.os.path.isfile", side_effect=lambda path: path == installed), \
-             patch("subprocess.Popen", side_effect=fake_popen):
+        with (
+            patch("cli.shutil.which", return_value=None),
+            patch("cli.os.path.isfile", side_effect=lambda path: path == installed),
+            patch("subprocess.Popen", side_effect=fake_popen),
+        ):
             assert HermesCLI._try_launch_chrome_debug(9222, "Windows") is True
 
         _assert_chrome_debug_cmd(captured["cmd"], installed, 9222)

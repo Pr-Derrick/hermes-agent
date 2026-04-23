@@ -54,6 +54,7 @@ def discover_context_engines() -> List[Tuple[str, str, bool]]:
         if yaml_file.exists():
             try:
                 import yaml
+
                 with open(yaml_file) as f:
                     meta = yaml.safe_load(f) or {}
                 desc = meta.get("description", "")
@@ -83,7 +84,9 @@ def load_context_engine(name: str) -> Optional["ContextEngine"]:
     """
     engine_dir = _CONTEXT_ENGINE_PLUGINS_DIR / name
     if not engine_dir.is_dir():
-        logger.debug("Context engine '%s' not found in %s", name, _CONTEXT_ENGINE_PLUGINS_DIR)
+        logger.debug(
+            "Context engine '%s' not found in %s", name, _CONTEXT_ENGINE_PLUGINS_DIR
+        )
         return None
 
     try:
@@ -125,8 +128,9 @@ def _load_engine_from_dir(engine_dir: Path) -> Optional["ContextEngine"]:
                 parent_init = parent_path / "__init__.py"
                 if parent_init.exists():
                     spec = importlib.util.spec_from_file_location(
-                        parent, str(parent_init),
-                        submodule_search_locations=[str(parent_path)]
+                        parent,
+                        str(parent_init),
+                        submodule_search_locations=[str(parent_path)],
                     )
                     if spec:
                         parent_mod = importlib.util.module_from_spec(spec)
@@ -138,8 +142,7 @@ def _load_engine_from_dir(engine_dir: Path) -> Optional["ContextEngine"]:
 
         # Now load the engine module
         spec = importlib.util.spec_from_file_location(
-            module_name, str(init_file),
-            submodule_search_locations=[str(engine_dir)]
+            module_name, str(init_file), submodule_search_locations=[str(engine_dir)]
         )
         if not spec:
             return None
@@ -163,7 +166,9 @@ def _load_engine_from_dir(engine_dir: Path) -> Optional["ContextEngine"]:
                     try:
                         sub_spec.loader.exec_module(sub_mod)
                     except Exception as e:
-                        logger.debug("Failed to load submodule %s: %s", full_sub_name, e)
+                        logger.debug(
+                            "Failed to load submodule %s: %s", full_sub_name, e
+                        )
 
         try:
             spec.loader.exec_module(mod)
@@ -184,10 +189,14 @@ def _load_engine_from_dir(engine_dir: Path) -> Optional["ContextEngine"]:
 
     # Fallback: find a ContextEngine subclass and instantiate it
     from agent.context_engine import ContextEngine
+
     for attr_name in dir(mod):
         attr = getattr(mod, attr_name, None)
-        if (isinstance(attr, type) and issubclass(attr, ContextEngine)
-                and attr is not ContextEngine):
+        if (
+            isinstance(attr, type)
+            and issubclass(attr, ContextEngine)
+            and attr is not ContextEngine
+        ):
             try:
                 return attr()
             except Exception:

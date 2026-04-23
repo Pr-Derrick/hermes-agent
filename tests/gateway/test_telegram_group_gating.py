@@ -5,7 +5,9 @@ from unittest.mock import AsyncMock
 from gateway.config import Platform, PlatformConfig, load_gateway_config
 
 
-def _make_adapter(require_mention=None, free_response_chats=None, mention_patterns=None):
+def _make_adapter(
+    require_mention=None, free_response_chats=None, mention_patterns=None
+):
     from gateway.platforms.telegram import TelegramAdapter
 
     extra = {}
@@ -28,7 +30,15 @@ def _make_adapter(require_mention=None, free_response_chats=None, mention_patter
     return adapter
 
 
-def _group_message(text="hello", *, chat_id=-100, reply_to_bot=False, entities=None, caption=None, caption_entities=None):
+def _group_message(
+    text="hello",
+    *,
+    chat_id=-100,
+    reply_to_bot=False,
+    entities=None,
+    caption=None,
+    caption_entities=None,
+):
     reply_to_message = None
     if reply_to_bot:
         reply_to_message = SimpleNamespace(from_user=SimpleNamespace(id=999))
@@ -57,16 +67,35 @@ def test_group_messages_can_require_direct_trigger_via_config():
     adapter = _make_adapter(require_mention=True)
 
     assert adapter._should_process_message(_group_message("hello everyone")) is False
-    assert adapter._should_process_message(_group_message("hi @hermes_bot", entities=[_mention_entity("hi @hermes_bot")])) is True
-    assert adapter._should_process_message(_group_message("replying", reply_to_bot=True)) is True
-    assert adapter._should_process_message(_group_message("/status"), is_command=True) is True
+    assert (
+        adapter._should_process_message(
+            _group_message(
+                "hi @hermes_bot", entities=[_mention_entity("hi @hermes_bot")]
+            )
+        )
+        is True
+    )
+    assert (
+        adapter._should_process_message(_group_message("replying", reply_to_bot=True))
+        is True
+    )
+    assert (
+        adapter._should_process_message(_group_message("/status"), is_command=True)
+        is True
+    )
 
 
 def test_free_response_chats_bypass_mention_requirement():
     adapter = _make_adapter(require_mention=True, free_response_chats=["-200"])
 
-    assert adapter._should_process_message(_group_message("hello everyone", chat_id=-200)) is True
-    assert adapter._should_process_message(_group_message("hello everyone", chat_id=-201)) is False
+    assert (
+        adapter._should_process_message(_group_message("hello everyone", chat_id=-200))
+        is True
+    )
+    assert (
+        adapter._should_process_message(_group_message("hello everyone", chat_id=-201))
+        is False
+    )
 
 
 def test_regex_mention_patterns_allow_custom_wake_words():
@@ -78,7 +107,9 @@ def test_regex_mention_patterns_allow_custom_wake_words():
 
 
 def test_invalid_regex_patterns_are_ignored():
-    adapter = _make_adapter(require_mention=True, mention_patterns=[r"(", r"^\s*chompy\b"])
+    adapter = _make_adapter(
+        require_mention=True, mention_patterns=[r"(", r"^\s*chompy\b"]
+    )
 
     assert adapter._should_process_message(_group_message("chompy status")) is True
     assert adapter._should_process_message(_group_message("hello everyone")) is False
@@ -91,9 +122,9 @@ def test_config_bridges_telegram_group_settings(monkeypatch, tmp_path):
         "telegram:\n"
         "  require_mention: true\n"
         "  mention_patterns:\n"
-        "    - \"^\\\\s*chompy\\\\b\"\n"
+        '    - "^\\\\s*chompy\\\\b"\n'
         "  free_response_chats:\n"
-        "    - \"-123\"\n",
+        '    - "-123"\n',
         encoding="utf-8",
     )
 
@@ -106,5 +137,7 @@ def test_config_bridges_telegram_group_settings(monkeypatch, tmp_path):
 
     assert config is not None
     assert __import__("os").environ["TELEGRAM_REQUIRE_MENTION"] == "true"
-    assert json.loads(__import__("os").environ["TELEGRAM_MENTION_PATTERNS"]) == [r"^\s*chompy\b"]
+    assert json.loads(__import__("os").environ["TELEGRAM_MENTION_PATTERNS"]) == [
+        r"^\s*chompy\b"
+    ]
     assert __import__("os").environ["TELEGRAM_FREE_RESPONSE_CHATS"] == "-123"

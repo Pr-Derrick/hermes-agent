@@ -7,7 +7,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 import acp
-from acp.schema import ToolCallStart, ToolCallProgress, AgentThoughtChunk, AgentMessageChunk
+from acp.schema import (
+    ToolCallStart,
+    ToolCallProgress,
+    AgentThoughtChunk,
+    AgentMessageChunk,
+)
 
 from acp_adapter.events import (
     make_message_cb,
@@ -75,7 +80,12 @@ class TestToolProgressCallback:
             future.result.return_value = None
             mock_rcts.return_value = future
 
-            cb("tool.started", "read_file", "Reading /etc/hosts", '{"path": "/etc/hosts"}')
+            cb(
+                "tool.started",
+                "read_file",
+                "Reading /etc/hosts",
+                '{"path": "/etc/hosts"}',
+            )
 
         assert "read_file" in tool_call_ids
 
@@ -95,7 +105,9 @@ class TestToolProgressCallback:
 
         assert "terminal" in tool_call_ids
 
-    def test_duplicate_same_name_tool_calls_use_fifo_ids(self, mock_conn, event_loop_fixture):
+    def test_duplicate_same_name_tool_calls_use_fifo_ids(
+        self, mock_conn, event_loop_fixture
+    ):
         """Multiple same-name tool calls should be tracked independently in order."""
         tool_call_ids = {}
         loop = event_loop_fixture
@@ -214,8 +226,10 @@ class TestStepCallback:
 
         cb = make_step_cb(mock_conn, "session-1", loop, tool_call_ids)
 
-        with patch("acp_adapter.events.asyncio.run_coroutine_threadsafe") as mock_rcts, \
-             patch("acp_adapter.events.build_tool_complete") as mock_btc:
+        with (
+            patch("acp_adapter.events.asyncio.run_coroutine_threadsafe") as mock_rcts,
+            patch("acp_adapter.events.build_tool_complete") as mock_btc,
+        ):
             future = MagicMock(spec=Future)
             future.result.return_value = None
             mock_rcts.return_value = future
@@ -236,8 +250,10 @@ class TestStepCallback:
 
         cb = make_step_cb(mock_conn, "session-1", loop, tool_call_ids)
 
-        with patch("acp_adapter.events.asyncio.run_coroutine_threadsafe") as mock_rcts, \
-             patch("acp_adapter.events.build_tool_complete") as mock_btc:
+        with (
+            patch("acp_adapter.events.asyncio.run_coroutine_threadsafe") as mock_rcts,
+            patch("acp_adapter.events.build_tool_complete") as mock_btc,
+        ):
             future = MagicMock(spec=Future)
             future.result.return_value = None
             mock_rcts.return_value = future

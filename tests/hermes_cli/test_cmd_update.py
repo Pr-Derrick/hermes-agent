@@ -26,7 +26,9 @@ def _make_run_side_effect(branch="main", verify_ok=True, commit_count="0"):
 
         # git rev-list HEAD..origin/{branch} --count
         if "rev-list" in joined:
-            return subprocess.CompletedProcess(cmd, 0, stdout=f"{commit_count}\n", stderr="")
+            return subprocess.CompletedProcess(
+                cmd, 0, stdout=f"{commit_count}\n", stderr=""
+            )
 
         # Fallback: return a successful CompletedProcess with empty stdout
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
@@ -53,7 +55,9 @@ class TestCmdUpdateBranchFallback:
 
         cmd_update(mock_args)
 
-        commands = [" ".join(str(a) for a in c.args[0]) for c in mock_run.call_args_list]
+        commands = [
+            " ".join(str(a) for a in c.args[0]) for c in mock_run.call_args_list
+        ]
 
         # rev-list should use origin/main, not origin/fix/stoicneko
         rev_list_cmds = [c for c in commands if "rev-list" in c]
@@ -77,7 +81,9 @@ class TestCmdUpdateBranchFallback:
 
         cmd_update(mock_args)
 
-        commands = [" ".join(str(a) for a in c.args[0]) for c in mock_run.call_args_list]
+        commands = [
+            " ".join(str(a) for a in c.args[0]) for c in mock_run.call_args_list
+        ]
 
         rev_list_cmds = [c for c in commands if "rev-list" in c]
         assert len(rev_list_cmds) == 1
@@ -89,9 +95,7 @@ class TestCmdUpdateBranchFallback:
 
     @patch("shutil.which", return_value=None)
     @patch("subprocess.run")
-    def test_update_already_up_to_date(
-        self, mock_run, _mock_which, mock_args, capsys
-    ):
+    def test_update_already_up_to_date(self, mock_run, _mock_which, mock_args, capsys):
         mock_run.side_effect = _make_run_side_effect(
             branch="main", verify_ok=True, commit_count="0"
         )
@@ -102,19 +106,25 @@ class TestCmdUpdateBranchFallback:
         assert "Already up to date!" in captured.out
 
         # Should NOT have called pull
-        commands = [" ".join(str(a) for a in c.args[0]) for c in mock_run.call_args_list]
+        commands = [
+            " ".join(str(a) for a in c.args[0]) for c in mock_run.call_args_list
+        ]
         pull_cmds = [c for c in commands if "pull" in c]
         assert len(pull_cmds) == 0
 
     def test_update_non_interactive_skips_migration_prompt(self, mock_args, capsys):
         """When stdin/stdout aren't TTYs, config migration prompt is skipped."""
-        with patch("shutil.which", return_value=None), patch(
-            "subprocess.run"
-        ) as mock_run, patch("builtins.input") as mock_input, patch(
-            "hermes_cli.config.get_missing_env_vars", return_value=["MISSING_KEY"]
-        ), patch("hermes_cli.config.get_missing_config_fields", return_value=[]), patch(
-            "hermes_cli.config.check_config_version", return_value=(1, 2)
-        ), patch("hermes_cli.main.sys") as mock_sys:
+        with (
+            patch("shutil.which", return_value=None),
+            patch("subprocess.run") as mock_run,
+            patch("builtins.input") as mock_input,
+            patch(
+                "hermes_cli.config.get_missing_env_vars", return_value=["MISSING_KEY"]
+            ),
+            patch("hermes_cli.config.get_missing_config_fields", return_value=[]),
+            patch("hermes_cli.config.check_config_version", return_value=(1, 2)),
+            patch("hermes_cli.main.sys") as mock_sys,
+        ):
             mock_sys.stdin.isatty.return_value = False
             mock_sys.stdout.isatty.return_value = False
             mock_run.side_effect = _make_run_side_effect(

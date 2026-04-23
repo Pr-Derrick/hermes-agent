@@ -12,7 +12,9 @@ from gateway.platforms.base import MessageEvent
 from gateway.session import SessionSource
 
 
-def _make_event(text="/verbose", platform=Platform.TELEGRAM, user_id="12345", chat_id="67890"):
+def _make_event(
+    text="/verbose", platform=Platform.TELEGRAM, user_id="12345", chat_id="67890"
+):
     """Build a MessageEvent for testing."""
     source = SessionSource(
         platform=platform,
@@ -105,11 +107,12 @@ class TestVerboseCommand:
             result = await runner._handle_verbose_command(_make_event())
             saved = yaml.safe_load(config_path.read_text(encoding="utf-8"))
             actual = saved["display"]["platforms"]["telegram"]["tool_progress"]
-            assert actual == mode, \
-                f"Expected {mode}, got {actual}"
+            assert actual == mode, f"Expected {mode}, got {actual}"
 
     @pytest.mark.asyncio
-    async def test_defaults_to_all_when_no_tool_progress_set(self, tmp_path, monkeypatch):
+    async def test_defaults_to_all_when_no_tool_progress_set(
+        self, tmp_path, monkeypatch
+    ):
         """When tool_progress is not in config, defaults to 'all' then cycles to verbose."""
         hermes_home = tmp_path / "hermes"
         hermes_home.mkdir()
@@ -149,13 +152,9 @@ class TestVerboseCommand:
         runner = _make_runner()
 
         # Cycle on Telegram
-        await runner._handle_verbose_command(
-            _make_event(platform=Platform.TELEGRAM)
-        )
+        await runner._handle_verbose_command(_make_event(platform=Platform.TELEGRAM))
         # Cycle on Slack
-        await runner._handle_verbose_command(
-            _make_event(platform=Platform.SLACK)
-        )
+        await runner._handle_verbose_command(_make_event(platform=Platform.SLACK))
 
         saved = yaml.safe_load(config_path.read_text(encoding="utf-8"))
         platforms = saved["display"]["platforms"]
@@ -180,4 +179,5 @@ class TestVerboseCommand:
     def test_verbose_is_in_gateway_known_commands(self):
         """The /verbose command is recognized by the gateway dispatch."""
         from hermes_cli.commands import GATEWAY_KNOWN_COMMANDS
+
         assert "verbose" in GATEWAY_KNOWN_COMMANDS

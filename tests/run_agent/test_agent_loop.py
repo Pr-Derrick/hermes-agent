@@ -243,10 +243,15 @@ class TestHermesAgentLoop:
     @pytest.mark.asyncio
     async def test_tool_call_then_text(self, basic_tools, valid_names):
         """Model calls a tool, then responds with text."""
-        server = MockServer([
-            make_tool_response("todo", {"todos": [{"id": "1", "content": "test", "status": "pending"}]}),
-            make_text_response("I created a todo for you."),
-        ])
+        server = MockServer(
+            [
+                make_tool_response(
+                    "todo",
+                    {"todos": [{"id": "1", "content": "test", "status": "pending"}]},
+                ),
+                make_text_response("I created a todo for you."),
+            ]
+        )
         agent = HermesAgentLoop(
             server=server,
             tool_schemas=basic_tools,
@@ -267,7 +272,15 @@ class TestHermesAgentLoop:
         """Model keeps calling tools until max_turns is hit."""
         # Create responses that always call a tool
         responses = [
-            make_tool_response("todo", {"todos": [{"id": str(i), "content": f"task {i}", "status": "pending"}]}, tool_call_id=f"call_{i}")
+            make_tool_response(
+                "todo",
+                {
+                    "todos": [
+                        {"id": str(i), "content": f"task {i}", "status": "pending"}
+                    ]
+                },
+                tool_call_id=f"call_{i}",
+            )
             for i in range(10)
         ]
         server = MockServer(responses)
@@ -286,10 +299,12 @@ class TestHermesAgentLoop:
     @pytest.mark.asyncio
     async def test_unknown_tool_name(self, basic_tools, valid_names):
         """Model calls a tool not in valid_tool_names."""
-        server = MockServer([
-            make_tool_response("nonexistent_tool", {"arg": "val"}),
-            make_text_response("OK, that didn't work."),
-        ])
+        server = MockServer(
+            [
+                make_tool_response("nonexistent_tool", {"arg": "val"}),
+                make_text_response("OK, that didn't work."),
+            ]
+        )
         agent = HermesAgentLoop(
             server=server,
             tool_schemas=basic_tools,
@@ -410,10 +425,14 @@ class TestHermesAgentLoop:
     async def test_memory_tool_blocked(self, basic_tools):
         """Memory tool should return error in RL environments."""
         valid = {"terminal", "read_file", "todo", "memory"}
-        server = MockServer([
-            make_tool_response("memory", {"action": "add", "target": "user", "content": "test"}),
-            make_text_response("Done"),
-        ])
+        server = MockServer(
+            [
+                make_tool_response(
+                    "memory", {"action": "add", "target": "user", "content": "test"}
+                ),
+                make_text_response("Done"),
+            ]
+        )
         agent = HermesAgentLoop(
             server=server,
             tool_schemas=basic_tools,
@@ -434,10 +453,12 @@ class TestHermesAgentLoop:
     async def test_session_search_blocked(self, basic_tools):
         """session_search should return error in RL environments."""
         valid = {"terminal", "read_file", "todo", "session_search"}
-        server = MockServer([
-            make_tool_response("session_search", {"query": "test"}),
-            make_text_response("Done"),
-        ])
+        server = MockServer(
+            [
+                make_tool_response("session_search", {"query": "test"}),
+                make_text_response("Done"),
+            ]
+        )
         agent = HermesAgentLoop(
             server=server,
             tool_schemas=basic_tools,

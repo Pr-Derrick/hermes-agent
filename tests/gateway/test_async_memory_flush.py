@@ -152,7 +152,7 @@ class TestGetOrCreateSessionNoCallback:
         idle_store._save()
 
         # Verify no _on_auto_reset attribute
-        assert not hasattr(idle_store, '_on_auto_reset')
+        assert not hasattr(idle_store, "_on_auto_reset")
 
         # This should NOT block (no sync LLM call)
         entry2 = idle_store.get_or_create_session(source)

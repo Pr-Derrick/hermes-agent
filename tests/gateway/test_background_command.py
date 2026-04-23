@@ -15,8 +15,9 @@ from gateway.platforms.base import MessageEvent
 from gateway.session import SessionSource
 
 
-def _make_event(text="/background", platform=Platform.TELEGRAM,
-                user_id="12345", chat_id="67890"):
+def _make_event(
+    text="/background", platform=Platform.TELEGRAM, user_id="12345", chat_id="67890"
+):
     """Build a MessageEvent for testing."""
     source = SessionSource(
         platform=platform,
@@ -30,6 +31,7 @@ def _make_event(text="/background", platform=Platform.TELEGRAM,
 def _make_runner():
     """Create a bare GatewayRunner with minimal mocks."""
     from gateway.run import GatewayRunner
+
     runner = object.__new__(GatewayRunner)
     runner.adapters = {}
     runner._voice_mode = {}
@@ -44,6 +46,7 @@ def _make_runner():
     runner.session_store = mock_store
 
     from gateway.hooks import HookRegistry
+
     runner.hooks = HookRegistry()
 
     return runner
@@ -114,7 +117,10 @@ class TestHandleBackgroundCommand:
         runner = _make_runner()
         long_prompt = "A" * 100
 
-        with patch("gateway.run.asyncio.create_task", side_effect=lambda c, **kw: (c.close(), MagicMock())[1]):
+        with patch(
+            "gateway.run.asyncio.create_task",
+            side_effect=lambda c, **kw: (c.close(), MagicMock())[1],
+        ):
             event = _make_event(text=f"/background {long_prompt}")
             result = await runner._handle_background_command(event)
 
@@ -128,7 +134,10 @@ class TestHandleBackgroundCommand:
         runner = _make_runner()
         task_ids = set()
 
-        with patch("gateway.run.asyncio.create_task", side_effect=lambda c, **kw: (c.close(), MagicMock())[1]):
+        with patch(
+            "gateway.run.asyncio.create_task",
+            side_effect=lambda c, **kw: (c.close(), MagicMock())[1],
+        ):
             for i in range(5):
                 event = _make_event(text=f"/background task {i}")
                 result = await runner._handle_background_command(event)
@@ -145,7 +154,10 @@ class TestHandleBackgroundCommand:
         """The /background command works for all platforms."""
         for platform in [Platform.TELEGRAM, Platform.DISCORD, Platform.SLACK]:
             runner = _make_runner()
-            with patch("gateway.run.asyncio.create_task", side_effect=lambda c, **kw: (c.close(), MagicMock())[1]):
+            with patch(
+                "gateway.run.asyncio.create_task",
+                side_effect=lambda c, **kw: (c.close(), MagicMock())[1],
+            ):
                 event = _make_event(
                     text="/background test task",
                     platform=platform,
@@ -190,13 +202,20 @@ class TestRunBackgroundTask:
             user_name="testuser",
         )
 
-        with patch("gateway.run._resolve_runtime_agent_kwargs", return_value={"api_key": None}):
+        with patch(
+            "gateway.run._resolve_runtime_agent_kwargs", return_value={"api_key": None}
+        ):
             await runner._run_background_task("test prompt", source, "bg_test")
 
         # Should have sent an error message
         mock_adapter.send.assert_called_once()
         call_args = mock_adapter.send.call_args
-        assert "failed" in call_args[1].get("content", call_args[0][1] if len(call_args[0]) > 1 else "").lower()
+        assert (
+            "failed"
+            in call_args[1]
+            .get("content", call_args[0][1] if len(call_args[0]) > 1 else "")
+            .lower()
+        )
 
     @pytest.mark.asyncio
     async def test_successful_task_sends_result(self):
@@ -204,8 +223,12 @@ class TestRunBackgroundTask:
         runner = _make_runner()
         mock_adapter = AsyncMock()
         mock_adapter.send = AsyncMock()
-        mock_adapter.extract_media = MagicMock(return_value=([], "Hello from background!"))
-        mock_adapter.extract_images = MagicMock(return_value=([], "Hello from background!"))
+        mock_adapter.extract_media = MagicMock(
+            return_value=([], "Hello from background!")
+        )
+        mock_adapter.extract_images = MagicMock(
+            return_value=([], "Hello from background!")
+        )
         runner.adapters[Platform.TELEGRAM] = mock_adapter
 
         source = SessionSource(
@@ -217,8 +240,13 @@ class TestRunBackgroundTask:
 
         mock_result = {"final_response": "Hello from background!", "messages": []}
 
-        with patch("gateway.run._resolve_runtime_agent_kwargs", return_value={"api_key": "test-key"}), \
-             patch("run_agent.AIAgent") as MockAgent:
+        with (
+            patch(
+                "gateway.run._resolve_runtime_agent_kwargs",
+                return_value={"api_key": "test-key"},
+            ),
+            patch("run_agent.AIAgent") as MockAgent,
+        ):
             mock_agent_instance = MagicMock()
             mock_agent_instance.run_conversation.return_value = mock_result
             MockAgent.return_value = mock_agent_instance
@@ -228,7 +256,9 @@ class TestRunBackgroundTask:
         # Should have sent the result
         mock_adapter.send.assert_called_once()
         call_args = mock_adapter.send.call_args
-        content = call_args[1].get("content", call_args[0][1] if len(call_args[0]) > 1 else "")
+        content = call_args[1].get(
+            "content", call_args[0][1] if len(call_args[0]) > 1 else ""
+        )
         assert "Background task complete" in content
         assert "Hello from background!" in content
 
@@ -247,12 +277,17 @@ class TestRunBackgroundTask:
             user_name="testuser",
         )
 
-        with patch("gateway.run._resolve_runtime_agent_kwargs", side_effect=RuntimeError("boom")):
+        with patch(
+            "gateway.run._resolve_runtime_agent_kwargs",
+            side_effect=RuntimeError("boom"),
+        ):
             await runner._run_background_task("test prompt", source, "bg_test")
 
         mock_adapter.send.assert_called_once()
         call_args = mock_adapter.send.call_args
-        content = call_args[1].get("content", call_args[0][1] if len(call_args[0]) > 1 else "")
+        content = call_args[1].get(
+            "content", call_args[0][1] if len(call_args[0]) > 1 else ""
+        )
         assert "failed" in content.lower()
 
 
@@ -275,11 +310,13 @@ class TestBackgroundInHelp:
     def test_background_is_known_command(self):
         """The /background command is in GATEWAY_KNOWN_COMMANDS."""
         from hermes_cli.commands import GATEWAY_KNOWN_COMMANDS
+
         assert "background" in GATEWAY_KNOWN_COMMANDS
 
     def test_bg_alias_is_known_command(self):
         """The /bg alias is in GATEWAY_KNOWN_COMMANDS."""
         from hermes_cli.commands import GATEWAY_KNOWN_COMMANDS
+
         assert "bg" in GATEWAY_KNOWN_COMMANDS
 
 
@@ -294,16 +331,19 @@ class TestBackgroundInCLICommands:
     def test_background_in_commands_dict(self):
         """The /background command is in the COMMANDS dict."""
         from hermes_cli.commands import COMMANDS
+
         assert "/background" in COMMANDS
 
     def test_bg_alias_in_commands_dict(self):
         """The /bg alias is in the COMMANDS dict."""
         from hermes_cli.commands import COMMANDS
+
         assert "/bg" in COMMANDS
 
     def test_background_in_session_category(self):
         """The /background command is in the Session category."""
         from hermes_cli.commands import COMMANDS_BY_CATEGORY
+
         assert "/background" in COMMANDS_BY_CATEGORY["Session"]
 
     def test_background_autocompletes(self):

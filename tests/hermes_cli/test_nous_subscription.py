@@ -32,7 +32,9 @@ def test_get_nous_subscription_features_prefers_managed_modal_in_auto_mode(monke
     monkeypatch.setattr(ns, "_has_agent_browser", lambda: False)
     monkeypatch.setattr(ns, "resolve_openai_audio_api_key", lambda: "")
     monkeypatch.setattr(ns, "has_direct_modal_credentials", lambda: True)
-    monkeypatch.setattr(ns, "is_managed_tool_gateway_ready", lambda vendor: vendor == "modal")
+    monkeypatch.setattr(
+        ns, "is_managed_tool_gateway_ready", lambda vendor: vendor == "modal"
+    )
 
     features = ns.get_nous_subscription_features(
         {"terminal": {"backend": "modal", "modal_mode": "auto"}}
@@ -44,7 +46,9 @@ def test_get_nous_subscription_features_prefers_managed_modal_in_auto_mode(monke
     assert features.modal.direct_override is False
 
 
-def test_get_nous_subscription_features_marks_browser_use_as_managed_when_gateway_ready(monkeypatch):
+def test_get_nous_subscription_features_marks_browser_use_as_managed_when_gateway_ready(
+    monkeypatch,
+):
     monkeypatch.setattr(ns, "get_env_value", lambda name: "")
     monkeypatch.setattr(ns, "get_nous_auth_status", lambda: {"logged_in": True})
     monkeypatch.setattr(ns, "managed_nous_tools_enabled", lambda: True)
@@ -69,7 +73,9 @@ def test_get_nous_subscription_features_marks_browser_use_as_managed_when_gatewa
     assert features.browser.current_provider == "Browser Use"
 
 
-def test_get_nous_subscription_features_uses_direct_browserbase_when_no_managed_gateway(monkeypatch):
+def test_get_nous_subscription_features_uses_direct_browserbase_when_no_managed_gateway(
+    monkeypatch,
+):
     """When direct Browserbase keys are set and no managed gateway is available,
     the unconfigured fallback should pick Browserbase as a direct provider."""
     env = {
@@ -99,7 +105,9 @@ def test_get_nous_subscription_features_uses_direct_browserbase_when_no_managed_
     assert features.browser.current_provider == "Browserbase"
 
 
-def test_get_nous_subscription_features_prefers_camofox_over_managed_browser_use(monkeypatch):
+def test_get_nous_subscription_features_prefers_camofox_over_managed_browser_use(
+    monkeypatch,
+):
     env = {"CAMOFOX_URL": "http://localhost:9377"}
 
     monkeypatch.setattr(ns, "get_env_value", lambda name: env.get(name, ""))
@@ -126,7 +134,9 @@ def test_get_nous_subscription_features_prefers_camofox_over_managed_browser_use
     assert features.browser.current_provider == "Camofox"
 
 
-def test_get_nous_subscription_features_requires_agent_browser_for_browserbase(monkeypatch):
+def test_get_nous_subscription_features_requires_agent_browser_for_browserbase(
+    monkeypatch,
+):
     env = {
         "BROWSERBASE_API_KEY": "bb-key",
         "BROWSERBASE_PROJECT_ID": "bb-project",

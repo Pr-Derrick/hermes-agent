@@ -16,7 +16,9 @@ class _PendingAdapter:
 
 def _make_runner():
     runner = object.__new__(GatewayRunner)
-    runner.config = GatewayConfig(platforms={Platform.TELEGRAM: PlatformConfig(enabled=True, token="***")})
+    runner.config = GatewayConfig(
+        platforms={Platform.TELEGRAM: PlatformConfig(enabled=True, token="***")}
+    )
     runner.adapters = {Platform.TELEGRAM: _PendingAdapter()}
     runner._running_agents = {}
     runner._pending_messages = {}

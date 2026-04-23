@@ -23,6 +23,7 @@ import pytest
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 async def _get_current_loop():
     """Return the running event loop from inside a coroutine."""
     return asyncio.get_event_loop()
@@ -43,6 +44,7 @@ async def _create_and_return_transport():
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestRunAsyncLoopLifecycle:
     """Verify _run_async() keeps the event loop alive after returning."""
@@ -202,6 +204,7 @@ class TestRunAsyncWithRunningLoop:
 # Integration: full vision_analyze dispatch chain
 # ---------------------------------------------------------------------------
 
+
 def _mock_vision_response():
     """Build a fake LLM response matching async_call_llm's return shape."""
     message = SimpleNamespace(content="A cat sitting on a chair.")
@@ -244,7 +247,10 @@ class TestVisionDispatchLoopSafety:
         ):
             result_json = registry.dispatch(
                 "vision_analyze",
-                {"image_url": "https://example.com/cat.png", "question": "What is this?"},
+                {
+                    "image_url": "https://example.com/cat.png",
+                    "question": "What is this?",
+                },
             )
 
         result = json.loads(result_json)

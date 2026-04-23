@@ -3,6 +3,7 @@
 Tests the unified streaming API call, delta callbacks, tool-call
 suppression, provider fallback, and CLI streaming display.
 """
+
 import json
 import threading
 import uuid
@@ -16,8 +17,12 @@ import pytest
 
 
 def _make_stream_chunk(
-    content=None, tool_calls=None, finish_reason=None,
-    model=None, reasoning_content=None, usage=None,
+    content=None,
+    tool_calls=None,
+    finish_reason=None,
+    model=None,
+    reasoning_content=None,
+    usage=None,
 ):
     """Build a mock streaming chunk matching OpenAI's ChatCompletionChunk shape."""
     delta = SimpleNamespace(
@@ -39,7 +44,9 @@ def _make_stream_chunk(
     return chunk
 
 
-def _make_tool_call_delta(index=0, tc_id=None, name=None, arguments=None, extra_content=None, model_extra=None):
+def _make_tool_call_delta(
+    index=0, tc_id=None, name=None, arguments=None, extra_content=None, model_extra=None
+):
     """Build a mock tool call delta."""
     func = SimpleNamespace(name=name, arguments=arguments)
     delta = SimpleNamespace(index=index, id=tc_id, function=func)
@@ -72,7 +79,9 @@ class TestStreamingAccumulator:
             _make_stream_chunk(content="Hello"),
             _make_stream_chunk(content=" world"),
             _make_stream_chunk(content="!", finish_reason="stop", model="test-model"),
-            _make_empty_chunk(usage=SimpleNamespace(prompt_tokens=10, completion_tokens=3)),
+            _make_empty_chunk(
+                usage=SimpleNamespace(prompt_tokens=10, completion_tokens=3)
+            ),
         ]
 
         mock_client = MagicMock()
@@ -103,15 +112,17 @@ class TestStreamingAccumulator:
         from run_agent import AIAgent
 
         chunks = [
-            _make_stream_chunk(tool_calls=[
-                _make_tool_call_delta(index=0, tc_id="call_123", name="terminal")
-            ]),
-            _make_stream_chunk(tool_calls=[
-                _make_tool_call_delta(index=0, arguments='{"command":')
-            ]),
-            _make_stream_chunk(tool_calls=[
-                _make_tool_call_delta(index=0, arguments=' "ls"}')
-            ]),
+            _make_stream_chunk(
+                tool_calls=[
+                    _make_tool_call_delta(index=0, tc_id="call_123", name="terminal")
+                ]
+            ),
+            _make_stream_chunk(
+                tool_calls=[_make_tool_call_delta(index=0, arguments='{"command":')]
+            ),
+            _make_stream_chunk(
+                tool_calls=[_make_tool_call_delta(index=0, arguments=' "ls"}')]
+            ),
             _make_stream_chunk(finish_reason="tool_calls"),
         ]
 
@@ -144,21 +155,27 @@ class TestStreamingAccumulator:
         from run_agent import AIAgent
 
         chunks = [
-            _make_stream_chunk(tool_calls=[
-                _make_tool_call_delta(
-                    index=0,
-                    tc_id="call_gemini",
-                    name="cronjob",
-                    model_extra={
-                        "extra_content": {
-                            "google": {"thought_signature": "sig-123"}
-                        }
-                    },
-                )
-            ]),
-            _make_stream_chunk(tool_calls=[
-                _make_tool_call_delta(index=0, arguments='{"task": "deep index on ."}')
-            ]),
+            _make_stream_chunk(
+                tool_calls=[
+                    _make_tool_call_delta(
+                        index=0,
+                        tc_id="call_gemini",
+                        name="cronjob",
+                        model_extra={
+                            "extra_content": {
+                                "google": {"thought_signature": "sig-123"}
+                            }
+                        },
+                    )
+                ]
+            ),
+            _make_stream_chunk(
+                tool_calls=[
+                    _make_tool_call_delta(
+                        index=0, arguments='{"task": "deep index on ."}'
+                    )
+                ]
+            ),
             _make_stream_chunk(finish_reason="tool_calls"),
         ]
 
@@ -179,9 +196,7 @@ class TestStreamingAccumulator:
 
         tc = response.choices[0].message.tool_calls
         assert tc is not None
-        assert tc[0].extra_content == {
-            "google": {"thought_signature": "sig-123"}
-        }
+        assert tc[0].extra_content == {"google": {"thought_signature": "sig-123"}}
 
     @patch("run_agent.AIAgent._create_request_openai_client")
     @patch("run_agent.AIAgent._close_request_openai_client")
@@ -191,12 +206,16 @@ class TestStreamingAccumulator:
 
         chunks = [
             _make_stream_chunk(content="Let me check"),
-            _make_stream_chunk(tool_calls=[
-                _make_tool_call_delta(index=0, tc_id="call_456", name="web_search")
-            ]),
-            _make_stream_chunk(tool_calls=[
-                _make_tool_call_delta(index=0, arguments='{"query": "test"}')
-            ]),
+            _make_stream_chunk(
+                tool_calls=[
+                    _make_tool_call_delta(index=0, tc_id="call_456", name="web_search")
+                ]
+            ),
+            _make_stream_chunk(
+                tool_calls=[
+                    _make_tool_call_delta(index=0, arguments='{"query": "test"}')
+                ]
+            ),
             _make_stream_chunk(finish_reason="tool_calls"),
         ]
 
@@ -298,12 +317,16 @@ class TestStreamingCallbacks:
         from run_agent import AIAgent
 
         chunks = [
-            _make_stream_chunk(tool_calls=[
-                _make_tool_call_delta(index=0, tc_id="call_789", name="terminal")
-            ]),
-            _make_stream_chunk(tool_calls=[
-                _make_tool_call_delta(index=0, arguments='{"command": "ls"}')
-            ]),
+            _make_stream_chunk(
+                tool_calls=[
+                    _make_tool_call_delta(index=0, tc_id="call_789", name="terminal")
+                ]
+            ),
+            _make_stream_chunk(
+                tool_calls=[
+                    _make_tool_call_delta(index=0, arguments='{"command": "ls"}')
+                ]
+            ),
             _make_stream_chunk(finish_reason="tool_calls"),
         ]
 
@@ -335,9 +358,11 @@ class TestStreamingCallbacks:
 
         chunks = [
             _make_stream_chunk(content="thinking..."),
-            _make_stream_chunk(tool_calls=[
-                _make_tool_call_delta(index=0, tc_id="call_abc", name="read_file")
-            ]),
+            _make_stream_chunk(
+                tool_calls=[
+                    _make_tool_call_delta(index=0, tc_id="call_abc", name="read_file")
+                ]
+            ),
             _make_stream_chunk(content=" more text"),
             _make_stream_chunk(finish_reason="tool_calls"),
         ]
@@ -392,16 +417,18 @@ class TestStreamingFallback:
         fallback_response = SimpleNamespace(
             id="fallback",
             model="test",
-            choices=[SimpleNamespace(
-                index=0,
-                message=SimpleNamespace(
-                    role="assistant",
-                    content="fallback response",
-                    tool_calls=None,
-                    reasoning_content=None,
-                ),
-                finish_reason="stop",
-            )],
+            choices=[
+                SimpleNamespace(
+                    index=0,
+                    message=SimpleNamespace(
+                        role="assistant",
+                        content="fallback response",
+                        tool_calls=None,
+                        reasoning_content=None,
+                    ),
+                    finish_reason="stop",
+                )
+            ],
             usage=None,
         )
         mock_non_stream.return_value = fallback_response
@@ -423,7 +450,9 @@ class TestStreamingFallback:
     @patch("run_agent.AIAgent._interruptible_api_call")
     @patch("run_agent.AIAgent._create_request_openai_client")
     @patch("run_agent.AIAgent._close_request_openai_client")
-    def test_any_stream_error_falls_back(self, mock_close, mock_create, mock_non_stream):
+    def test_any_stream_error_falls_back(
+        self, mock_close, mock_create, mock_non_stream
+    ):
         """ANY streaming error triggers fallback — not just specific messages."""
         from run_agent import AIAgent
 
@@ -436,16 +465,18 @@ class TestStreamingFallback:
         fallback_response = SimpleNamespace(
             id="fallback",
             model="test",
-            choices=[SimpleNamespace(
-                index=0,
-                message=SimpleNamespace(
-                    role="assistant",
-                    content="fallback after connection error",
-                    tool_calls=None,
-                    reasoning_content=None,
-                ),
-                finish_reason="stop",
-            )],
+            choices=[
+                SimpleNamespace(
+                    index=0,
+                    message=SimpleNamespace(
+                        role="assistant",
+                        content="fallback after connection error",
+                        tool_calls=None,
+                        reasoning_content=None,
+                    ),
+                    finish_reason="stop",
+                )
+            ],
             usage=None,
         )
         mock_non_stream.return_value = fallback_response
@@ -492,28 +523,34 @@ class TestStreamingFallback:
     @patch("run_agent.AIAgent._interruptible_api_call")
     @patch("run_agent.AIAgent._create_request_openai_client")
     @patch("run_agent.AIAgent._close_request_openai_client")
-    def test_exhausted_transient_stream_error_falls_back(self, mock_close, mock_create, mock_non_stream):
+    def test_exhausted_transient_stream_error_falls_back(
+        self, mock_close, mock_create, mock_non_stream
+    ):
         """Transient stream errors retry first, then fall back after retries are exhausted."""
         from run_agent import AIAgent
         import httpx
 
         mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = httpx.ConnectError("socket closed")
+        mock_client.chat.completions.create.side_effect = httpx.ConnectError(
+            "socket closed"
+        )
         mock_create.return_value = mock_client
 
         fallback_response = SimpleNamespace(
             id="fallback",
             model="test",
-            choices=[SimpleNamespace(
-                index=0,
-                message=SimpleNamespace(
-                    role="assistant",
-                    content="fallback after retries exhausted",
-                    tool_calls=None,
-                    reasoning_content=None,
-                ),
-                finish_reason="stop",
-            )],
+            choices=[
+                SimpleNamespace(
+                    index=0,
+                    message=SimpleNamespace(
+                        role="assistant",
+                        content="fallback after retries exhausted",
+                        tool_calls=None,
+                        reasoning_content=None,
+                    ),
+                    finish_reason="stop",
+                )
+            ],
             usage=None,
         )
         mock_non_stream.return_value = fallback_response
@@ -537,7 +574,9 @@ class TestStreamingFallback:
     @patch("run_agent.AIAgent._interruptible_api_call")
     @patch("run_agent.AIAgent._create_request_openai_client")
     @patch("run_agent.AIAgent._close_request_openai_client")
-    def test_sse_connection_lost_retried_as_transient(self, mock_close, mock_create, mock_non_stream):
+    def test_sse_connection_lost_retried_as_transient(
+        self, mock_close, mock_create, mock_non_stream
+    ):
         """SSE 'Network connection lost' (APIError w/ no status_code) retries like httpx errors.
 
         OpenRouter sends {"error":{"message":"Network connection lost."}} as an SSE
@@ -551,9 +590,12 @@ class TestStreamingFallback:
         # Create an APIError that mimics what the OpenAI SDK raises from SSE error events.
         # Key: no status_code attribute (unlike APIStatusError which has one).
         from openai import APIError as OAIAPIError
+
         sse_error = OAIAPIError(
             message="Network connection lost.",
-            request=httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions"),
+            request=httpx.Request(
+                "POST", "https://openrouter.ai/api/v1/chat/completions"
+            ),
             body={"message": "Network connection lost."},
         )
 
@@ -564,16 +606,18 @@ class TestStreamingFallback:
         fallback_response = SimpleNamespace(
             id="fallback",
             model="test",
-            choices=[SimpleNamespace(
-                index=0,
-                message=SimpleNamespace(
-                    role="assistant",
-                    content="fallback after SSE retries",
-                    tool_calls=None,
-                    reasoning_content=None,
-                ),
-                finish_reason="stop",
-            )],
+            choices=[
+                SimpleNamespace(
+                    index=0,
+                    message=SimpleNamespace(
+                        role="assistant",
+                        content="fallback after SSE retries",
+                        tool_calls=None,
+                        reasoning_content=None,
+                    ),
+                    finish_reason="stop",
+                )
+            ],
             usage=None,
         )
         mock_non_stream.return_value = fallback_response
@@ -600,15 +644,20 @@ class TestStreamingFallback:
     @patch("run_agent.AIAgent._interruptible_api_call")
     @patch("run_agent.AIAgent._create_request_openai_client")
     @patch("run_agent.AIAgent._close_request_openai_client")
-    def test_sse_non_connection_error_falls_back_immediately(self, mock_close, mock_create, mock_non_stream):
+    def test_sse_non_connection_error_falls_back_immediately(
+        self, mock_close, mock_create, mock_non_stream
+    ):
         """SSE errors that aren't connection-related still fall back immediately (no stream retry)."""
         from run_agent import AIAgent
         import httpx
 
         from openai import APIError as OAIAPIError
+
         sse_error = OAIAPIError(
             message="Invalid model configuration.",
-            request=httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions"),
+            request=httpx.Request(
+                "POST", "https://openrouter.ai/api/v1/chat/completions"
+            ),
             body={"message": "Invalid model configuration."},
         )
 
@@ -619,16 +668,18 @@ class TestStreamingFallback:
         fallback_response = SimpleNamespace(
             id="fallback",
             model="test",
-            choices=[SimpleNamespace(
-                index=0,
-                message=SimpleNamespace(
-                    role="assistant",
-                    content="fallback no retry",
-                    tool_calls=None,
-                    reasoning_content=None,
-                ),
-                finish_reason="stop",
-            )],
+            choices=[
+                SimpleNamespace(
+                    index=0,
+                    message=SimpleNamespace(
+                        role="assistant",
+                        content="fallback no retry",
+                        tool_calls=None,
+                        reasoning_content=None,
+                    ),
+                    finish_reason="stop",
+                )
+            ],
             usage=None,
         )
         mock_non_stream.return_value = fallback_response
@@ -691,7 +742,9 @@ class TestReasoningStreaming:
 
         assert reasoning_deltas == ["Let me think", " about this"]
         assert text_deltas == ["The answer is 42"]
-        assert response.choices[0].message.reasoning_content == "Let me think about this"
+        assert (
+            response.choices[0].message.reasoning_content == "Let me think about this"
+        )
         assert response.choices[0].message.content == "The answer is 42"
 
 
@@ -703,6 +756,7 @@ class TestHasStreamConsumers:
 
     def test_no_consumers(self):
         from run_agent import AIAgent
+
         agent = AIAgent(
             model="test/model",
             quiet_mode=True,
@@ -713,6 +767,7 @@ class TestHasStreamConsumers:
 
     def test_delta_callback_set(self):
         from run_agent import AIAgent
+
         agent = AIAgent(
             model="test/model",
             quiet_mode=True,
@@ -724,6 +779,7 @@ class TestHasStreamConsumers:
 
     def test_stream_callback_set(self):
         from run_agent import AIAgent
+
         agent = AIAgent(
             model="test/model",
             quiet_mode=True,
@@ -768,12 +824,18 @@ class TestCodexStreamCallbacks:
         mock_stream = MagicMock()
         mock_stream.__enter__ = MagicMock(return_value=mock_stream)
         mock_stream.__exit__ = MagicMock(return_value=False)
-        mock_stream.__iter__ = MagicMock(return_value=iter([mock_event_text, mock_event_done]))
+        mock_stream.__iter__ = MagicMock(
+            return_value=iter([mock_event_text, mock_event_done])
+        )
         mock_stream.get_final_response.return_value = SimpleNamespace(
-            output=[SimpleNamespace(
-                type="message",
-                content=[SimpleNamespace(type="output_text", text="Hello from Codex!")],
-            )],
+            output=[
+                SimpleNamespace(
+                    type="message",
+                    content=[
+                        SimpleNamespace(type="output_text", text="Hello from Codex!")
+                    ],
+                )
+            ],
             status="completed",
         )
 
@@ -788,10 +850,16 @@ class TestCodexStreamCallbacks:
         import httpx
 
         fallback_response = SimpleNamespace(
-            output=[SimpleNamespace(
-                type="message",
-                content=[SimpleNamespace(type="output_text", text="fallback from create stream")],
-            )],
+            output=[
+                SimpleNamespace(
+                    type="message",
+                    content=[
+                        SimpleNamespace(
+                            type="output_text", text="fallback from create stream"
+                        )
+                    ],
+                )
+            ],
             status="completed",
         )
 
@@ -809,7 +877,9 @@ class TestCodexStreamCallbacks:
         agent.api_mode = "codex_responses"
         agent._interrupt_requested = False
 
-        with patch.object(agent, "_run_codex_create_stream_fallback", return_value=fallback_response) as mock_fallback:
+        with patch.object(
+            agent, "_run_codex_create_stream_fallback", return_value=fallback_response
+        ) as mock_fallback:
             response = agent._run_codex_stream({}, client=mock_client)
 
         assert response is fallback_response

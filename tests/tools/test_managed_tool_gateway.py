@@ -71,7 +71,9 @@ def test_resolve_managed_tool_gateway_is_inactive_without_nous_token():
 
 
 def test_resolve_managed_tool_gateway_is_disabled_without_feature_flag():
-    with patch.dict(os.environ, {"TOOL_GATEWAY_DOMAIN": "nousresearch.com"}, clear=False):
+    with patch.dict(
+        os.environ, {"TOOL_GATEWAY_DOMAIN": "nousresearch.com"}, clear=False
+    ):
         result = resolve_managed_tool_gateway(
             "firecrawl",
             token_reader=lambda: "nous-token",
@@ -84,15 +86,19 @@ def test_read_nous_access_token_refreshes_expiring_cached_token(tmp_path, monkey
     monkeypatch.delenv("TOOL_GATEWAY_USER_TOKEN", raising=False)
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     expires_at = (datetime.now(timezone.utc) + timedelta(seconds=30)).isoformat()
-    (tmp_path / "auth.json").write_text(json.dumps({
-        "providers": {
-            "nous": {
-                "access_token": "stale-token",
-                "refresh_token": "refresh-token",
-                "expires_at": expires_at,
+    (tmp_path / "auth.json").write_text(
+        json.dumps(
+            {
+                "providers": {
+                    "nous": {
+                        "access_token": "stale-token",
+                        "refresh_token": "refresh-token",
+                        "expires_at": expires_at,
+                    }
+                }
             }
-        }
-    }))
+        )
+    )
     monkeypatch.setattr(
         "hermes_cli.auth.resolve_nous_access_token",
         lambda refresh_skew_seconds=120: "fresh-token",

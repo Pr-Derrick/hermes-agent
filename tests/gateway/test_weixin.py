@@ -37,17 +37,11 @@ class TestWeixinFormatting:
         adapter = _make_adapter()
 
         content = (
-            "| Setting | Value |\n"
-            "| --- | --- |\n"
-            "| Timeout | 30s |\n"
-            "| Retries | 3 |\n"
+            "| Setting | Value |\n| --- | --- |\n| Timeout | 30s |\n| Retries | 3 |\n"
         )
 
         assert adapter.format_message(content) == (
-            "- Setting: Timeout\n"
-            "  Value: 30s\n"
-            "- Setting: Retries\n"
-            "  Value: 3"
+            "- Setting: Timeout\n  Value: 30s\n- Setting: Retries\n  Value: 3"
         )
 
     def test_format_message_preserves_fenced_code_blocks(self):
@@ -55,7 +49,10 @@ class TestWeixinFormatting:
 
         content = "## Snippet\n\n```python\nprint('hi')\n```"
 
-        assert adapter.format_message(content) == "**Snippet**\n\n```python\nprint('hi')\n```"
+        assert (
+            adapter.format_message(content)
+            == "**Snippet**\n\n```python\nprint('hi')\n```"
+        )
 
     def test_format_message_returns_empty_string_for_none(self):
         adapter = _make_adapter()
@@ -80,20 +77,21 @@ class TestWeixinChunking:
         )
         chunks = adapter._split_text(content)
 
-        assert chunks == ["- Setting: Timeout\n  Value: 30s\n- Setting: Retries\n  Value: 3"]
+        assert chunks == [
+            "- Setting: Timeout\n  Value: 30s\n- Setting: Retries\n  Value: 3"
+        ]
 
     def test_split_text_keeps_four_line_structured_blocks_together(self):
         adapter = _make_adapter()
 
         content = adapter.format_message(
-            "今天结论：\n"
-            "- 留存下降 3%\n"
-            "- 转化上涨 8%\n"
-            "- 主要问题在首日激活"
+            "今天结论：\n- 留存下降 3%\n- 转化上涨 8%\n- 主要问题在首日激活"
         )
         chunks = adapter._split_text(content)
 
-        assert chunks == ["今天结论：\n- 留存下降 3%\n- 转化上涨 8%\n- 主要问题在首日激活"]
+        assert chunks == [
+            "今天结论：\n- 留存下降 3%\n- 转化上涨 8%\n- 主要问题在首日激活"
+        ]
 
     def test_split_text_keeps_heading_with_body_together(self):
         adapter = _make_adapter()
@@ -107,10 +105,7 @@ class TestWeixinChunking:
         adapter = _make_adapter()
 
         content = adapter.format_message(
-            "| Setting | Value |\n"
-            "| --- | --- |\n"
-            "| Timeout | 30s |\n"
-            "| Retries | 3 |\n"
+            "| Setting | Value |\n| --- | --- |\n| Timeout | 30s |\n| Retries | 3 |\n"
         )
         chunks = adapter._split_text(content)
 
@@ -192,7 +187,9 @@ class TestWeixinConfig:
         assert platform_config.extra["dm_policy"] == "allowlist"
         assert platform_config.extra["split_multiline_messages"] == "true"
         assert platform_config.extra["allow_from"] == "wxid_1,wxid_2"
-        assert platform_config.home_channel == HomeChannel(Platform.WEIXIN, "wxid_1", "Primary DM")
+        assert platform_config.home_channel == HomeChannel(
+            Platform.WEIXIN, "wxid_1", "Primary DM"
+        )
 
     def test_get_connected_platforms_includes_weixin_with_token(self):
         config = GatewayConfig(
@@ -221,7 +218,9 @@ class TestWeixinConfig:
 
 
 class TestWeixinStatePersistence:
-    def test_save_weixin_account_preserves_existing_file_on_replace_failure(self, tmp_path, monkeypatch):
+    def test_save_weixin_account_preserves_existing_file_on_replace_failure(
+        self, tmp_path, monkeypatch
+    ):
         account_path = tmp_path / "weixin" / "accounts" / "acct.json"
         account_path.parent.mkdir(parents=True, exist_ok=True)
         original = {"token": "old-token", "base_url": "https://old.example.com"}
@@ -243,11 +242,15 @@ class TestWeixinStatePersistence:
         except OSError:
             pass
         else:
-            raise AssertionError("expected save_weixin_account to propagate replace failure")
+            raise AssertionError(
+                "expected save_weixin_account to propagate replace failure"
+            )
 
         assert json.loads(account_path.read_text(encoding="utf-8")) == original
 
-    def test_context_token_persist_preserves_existing_file_on_replace_failure(self, tmp_path, monkeypatch):
+    def test_context_token_persist_preserves_existing_file_on_replace_failure(
+        self, tmp_path, monkeypatch
+    ):
         token_path = tmp_path / "weixin" / "accounts" / "acct.context-tokens.json"
         token_path.parent.mkdir(parents=True, exist_ok=True)
         token_path.write_text(json.dumps({"user-a": "old-token"}), encoding="utf-8")
@@ -261,13 +264,19 @@ class TestWeixinStatePersistence:
         with patch.object(weixin.logger, "warning") as warning_mock:
             store.set("acct", "user-b", "new-token")
 
-        assert json.loads(token_path.read_text(encoding="utf-8")) == {"user-a": "old-token"}
+        assert json.loads(token_path.read_text(encoding="utf-8")) == {
+            "user-a": "old-token"
+        }
         warning_mock.assert_called_once()
 
-    def test_save_sync_buf_preserves_existing_file_on_replace_failure(self, tmp_path, monkeypatch):
+    def test_save_sync_buf_preserves_existing_file_on_replace_failure(
+        self, tmp_path, monkeypatch
+    ):
         sync_path = tmp_path / "weixin" / "accounts" / "acct.sync.json"
         sync_path.parent.mkdir(parents=True, exist_ok=True)
-        sync_path.write_text(json.dumps({"get_updates_buf": "old-sync"}), encoding="utf-8")
+        sync_path.write_text(
+            json.dumps({"get_updates_buf": "old-sync"}), encoding="utf-8"
+        )
 
         def _boom(_src, _dst):
             raise OSError("disk full")
@@ -281,19 +290,37 @@ class TestWeixinStatePersistence:
         else:
             raise AssertionError("expected _save_sync_buf to propagate replace failure")
 
-        assert json.loads(sync_path.read_text(encoding="utf-8")) == {"get_updates_buf": "old-sync"}
+        assert json.loads(sync_path.read_text(encoding="utf-8")) == {
+            "get_updates_buf": "old-sync"
+        }
 
 
 class TestWeixinSendMessageIntegration:
     def test_parse_target_ref_accepts_weixin_ids(self):
-        assert _parse_target_ref("weixin", "wxid_test123") == ("wxid_test123", None, True)
+        assert _parse_target_ref("weixin", "wxid_test123") == (
+            "wxid_test123",
+            None,
+            True,
+        )
         assert _parse_target_ref("weixin", "filehelper") == ("filehelper", None, True)
-        assert _parse_target_ref("weixin", "group@chatroom") == ("group@chatroom", None, True)
+        assert _parse_target_ref("weixin", "group@chatroom") == (
+            "group@chatroom",
+            None,
+            True,
+        )
 
     @patch("tools.send_message_tool._send_weixin", new_callable=AsyncMock)
-    def test_send_to_platform_routes_weixin_media_to_native_helper(self, send_weixin_mock):
-        send_weixin_mock.return_value = {"success": True, "platform": "weixin", "chat_id": "wxid_test123"}
-        config = PlatformConfig(enabled=True, token="bot-token", extra={"account_id": "bot-account"})
+    def test_send_to_platform_routes_weixin_media_to_native_helper(
+        self, send_weixin_mock
+    ):
+        send_weixin_mock.return_value = {
+            "success": True,
+            "platform": "weixin",
+            "chat_id": "wxid_test123",
+        }
+        config = PlatformConfig(
+            enabled=True, token="bot-token", extra={"account_id": "bot-account"}
+        )
 
         result = asyncio.run(
             _send_to_platform(
@@ -338,7 +365,9 @@ class TestWeixinChunkDelivery:
 
     @patch("gateway.platforms.weixin.asyncio.sleep", new_callable=AsyncMock)
     @patch("gateway.platforms.weixin._send_message", new_callable=AsyncMock)
-    def test_send_retries_failed_chunk_before_continuing(self, send_message_mock, sleep_mock):
+    def test_send_retries_failed_chunk_before_continuing(
+        self, send_message_mock, sleep_mock
+    ):
         adapter = self._connected_adapter()
         adapter.MAX_MESSAGE_LENGTH = 12
         calls = {"count": 0}
@@ -369,7 +398,9 @@ class TestWeixinRemoteMediaSafety:
 
         with patch("tools.url_safety.is_safe_url", return_value=False):
             try:
-                asyncio.run(adapter._download_remote_media("http://127.0.0.1/private.png"))
+                asyncio.run(
+                    adapter._download_remote_media("http://127.0.0.1/private.png")
+                )
             except ValueError as exc:
                 assert "Blocked unsafe URL" in str(exc)
             else:

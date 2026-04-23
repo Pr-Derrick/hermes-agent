@@ -96,7 +96,7 @@ class HonchoSessionManager:
         self._sessions_cache: dict[str, Any] = {}
 
         # Write frequency state
-        write_frequency = (config.write_frequency if config else "async")
+        write_frequency = config.write_frequency if config else "async"
         self._write_frequency = write_frequency
         self._turn_counter: int = 0
 
@@ -107,12 +107,8 @@ class HonchoSessionManager:
         self._dialectic_reasoning_level: str = (
             config.dialectic_reasoning_level if config else "low"
         )
-        self._dialectic_dynamic: bool = (
-            config.dialectic_dynamic if config else True
-        )
-        self._dialectic_max_chars: int = (
-            config.dialectic_max_chars if config else 600
-        )
+        self._dialectic_dynamic: bool = config.dialectic_dynamic if config else True
+        self._dialectic_max_chars: int = config.dialectic_max_chars if config else 600
         self._observation_mode: str = (
             config.observation_mode if config else "directional"
         )
@@ -121,9 +117,7 @@ class HonchoSessionManager:
         self._user_observe_others: bool = config.user_observe_others if config else True
         self._ai_observe_me: bool = config.ai_observe_me if config else True
         self._ai_observe_others: bool = config.ai_observe_others if config else True
-        self._message_max_chars: int = (
-            config.message_max_chars if config else 25000
-        )
+        self._message_max_chars: int = config.message_max_chars if config else 25000
         self._dialectic_max_input_chars: int = (
             config.dialectic_max_input_chars if config else 10000
         )
@@ -180,6 +174,7 @@ class HonchoSessionManager:
         # These map 1:1 to Honcho's SessionPeerConfig toggles.
         try:
             from honcho.session import SessionPeerConfig
+
             user_config = SessionPeerConfig(
                 observe_me=self._user_observe_me,
                 observe_others=self._user_observe_others,
@@ -208,15 +203,20 @@ class HonchoSessionManager:
                     self._ai_observe_others = server_ai.observe_others
                 logger.debug(
                     "Honcho observation synced from server: user(me=%s,others=%s) ai(me=%s,others=%s)",
-                    self._user_observe_me, self._user_observe_others,
-                    self._ai_observe_me, self._ai_observe_others,
+                    self._user_observe_me,
+                    self._user_observe_others,
+                    self._ai_observe_me,
+                    self._ai_observe_others,
                 )
             except Exception as e:
-                logger.debug("Honcho get_peer_configuration failed (using local config): %s", e)
+                logger.debug(
+                    "Honcho get_peer_configuration failed (using local config): %s", e
+                )
         except Exception as e:
             logger.warning(
                 "Honcho session '%s' add_peers failed (non-fatal): %s",
-                session_id, e,
+                session_id,
+                e,
             )
 
         # Load existing messages via context() - single call for messages + metadata
@@ -241,14 +241,16 @@ class HonchoSessionManager:
             if existing_messages:
                 logger.info(
                     "Honcho session '%s' retrieved (%d existing messages)",
-                    session_id, len(existing_messages),
+                    session_id,
+                    len(existing_messages),
                 )
             else:
                 logger.info("Honcho session '%s' created (new)", session_id)
         except Exception as e:
             logger.warning(
                 "Honcho session '%s' loaded (failed to fetch context: %s)",
-                session_id, e,
+                session_id,
+                e,
             )
 
         self._sessions_cache[session_id] = session
@@ -256,7 +258,7 @@ class HonchoSessionManager:
 
     def _sanitize_id(self, id_str: str) -> str:
         """Sanitize an ID to match Honcho's pattern: ^[a-zA-Z0-9_-]+"""
-        return re.sub(r'[^a-zA-Z0-9_-]', '-', id_str)
+        return re.sub(r"[^a-zA-Z0-9_-]", "-", id_str)
 
     def get_or_create(self, key: str) -> HonchoSession:
         """
@@ -302,12 +304,14 @@ class HonchoSessionManager:
         local_messages = []
         for msg in existing_messages:
             role = "assistant" if msg.peer_id == assistant_peer_id else "user"
-            local_messages.append({
-                "role": role,
-                "content": msg.content,
-                "timestamp": msg.created_at.isoformat() if msg.created_at else "",
-                "_synced": True,  # Already in Honcho
-            })
+            local_messages.append(
+                {
+                    "role": role,
+                    "content": msg.content,
+                    "timestamp": msg.created_at.isoformat() if msg.created_at else "",
+                    "_synced": True,  # Already in Honcho
+                }
+            )
 
         # Create local session wrapper with existing messages
         session = HonchoSession(
@@ -348,7 +352,9 @@ class HonchoSessionManager:
             honcho_session.add_messages(honcho_messages)
             for msg in new_messages:
                 msg["_synced"] = True
-            logger.debug("Synced %d messages to Honcho for %s", len(honcho_messages), session.key)
+            logger.debug(
+                "Synced %d messages to Honcho for %s", len(honcho_messages), session.key
+            )
             self._cache[session.key] = session
             return True
         except Exception as e:
@@ -377,17 +383,22 @@ class HonchoSessionManager:
                     continue
 
                 if first_error is not None:
-                    logger.warning("Honcho async write failed, retrying once: %s", first_error)
+                    logger.warning(
+                        "Honcho async write failed, retrying once: %s", first_error
+                    )
                 else:
                     logger.warning("Honcho async write failed, retrying once")
 
                 import time as _time
+
                 _time.sleep(2)
 
                 try:
                     retry_success = self._flush_session(item)
                 except Exception as e2:
-                    logger.error("Honcho async write retry failed, dropping batch: %s", e2)
+                    logger.error(
+                        "Honcho async write retry failed, dropping batch: %s", e2
+                    )
                     continue
 
                 if not retry_success:
@@ -481,7 +492,9 @@ class HonchoSessionManager:
         # Cache under the original key so callers find it by the expected name
         self._cache[key] = session
 
-        logger.info("Created new session for %s (honcho: %s)", key, session.honcho_session_id)
+        logger.info(
+            "Created new session for %s (honcho: %s)", key, session.honcho_session_id
+        )
         return session
 
     _REASONING_LEVELS = ("minimal", "low", "medium", "high", "max")
@@ -505,7 +518,11 @@ class HonchoSessionManager:
             return self._dialectic_reasoning_level
 
         levels = self._REASONING_LEVELS
-        default_idx = levels.index(self._dialectic_reasoning_level) if self._dialectic_reasoning_level in levels else 1
+        default_idx = (
+            levels.index(self._dialectic_reasoning_level)
+            if self._dialectic_reasoning_level in levels
+            else 1
+        )
         n = len(query)
         if n < 120:
             bump = 0
@@ -518,7 +535,9 @@ class HonchoSessionManager:
         return levels[idx]
 
     def dialectic_query(
-        self, session_key: str, query: str,
+        self,
+        session_key: str,
+        query: str,
         reasoning_level: str | None = None,
         peer: str = "user",
     ) -> str:
@@ -545,7 +564,7 @@ class HonchoSessionManager:
 
         # Guard: truncate query to Honcho's dialectic input limit
         if len(query) > self._dialectic_max_input_chars:
-            query = query[:self._dialectic_max_input_chars].rsplit(" ", 1)[0]
+            query = query[: self._dialectic_max_input_chars].rsplit(" ", 1)[0]
 
         level = reasoning_level or self._dynamic_reasoning_level(query)
 
@@ -557,20 +576,29 @@ class HonchoSessionManager:
                     result = ai_peer_obj.chat(query, reasoning_level=level) or ""
                 else:
                     ai_peer_obj = self._get_or_create_peer(session.assistant_peer_id)
-                    result = ai_peer_obj.chat(
-                        query,
-                        target=session.user_peer_id,
-                        reasoning_level=level,
-                    ) or ""
+                    result = (
+                        ai_peer_obj.chat(
+                            query,
+                            target=session.user_peer_id,
+                            reasoning_level=level,
+                        )
+                        or ""
+                    )
             else:
                 # AI can't observe others — each peer queries self
-                peer_id = session.assistant_peer_id if peer == "ai" else session.user_peer_id
+                peer_id = (
+                    session.assistant_peer_id if peer == "ai" else session.user_peer_id
+                )
                 target_peer = self._get_or_create_peer(peer_id)
                 result = target_peer.chat(query, reasoning_level=level) or ""
 
             # Apply Hermes-side char cap before caching
-            if result and self._dialectic_max_chars and len(result) > self._dialectic_max_chars:
-                result = result[:self._dialectic_max_chars].rsplit(" ", 1)[0] + " …"
+            if (
+                result
+                and self._dialectic_max_chars
+                and len(result) > self._dialectic_max_chars
+            ):
+                result = result[: self._dialectic_max_chars].rsplit(" ", 1)[0] + " …"
             return result
         except Exception as e:
             logger.warning("Honcho dialectic query failed: %s", e)
@@ -588,6 +616,7 @@ class HonchoSessionManager:
             session_key: The session key to query against.
             query: The user's current message, used as the query.
         """
+
         def _run():
             result = self.dialectic_query(session_key, query)
             if result:
@@ -612,13 +641,16 @@ class HonchoSessionManager:
         with self._prefetch_cache_lock:
             return self._dialectic_cache.pop(session_key, "")
 
-    def prefetch_context(self, session_key: str, user_message: str | None = None) -> None:
+    def prefetch_context(
+        self, session_key: str, user_message: str | None = None
+    ) -> None:
         """
         Fire get_prefetch_context in a background thread, caching the result.
 
         Non-blocking. Consumed next turn via pop_context_result(). This avoids
         a synchronous HTTP round-trip blocking every response.
         """
+
         def _run():
             result = self.get_prefetch_context(session_key, user_message)
             if result:
@@ -643,7 +675,9 @@ class HonchoSessionManager:
         with self._prefetch_cache_lock:
             return self._context_cache.pop(session_key, {})
 
-    def get_prefetch_context(self, session_key: str, user_message: str | None = None) -> dict[str, str]:
+    def get_prefetch_context(
+        self, session_key: str, user_message: str | None = None
+    ) -> dict[str, str]:
         """
         Pre-fetch user and AI peer context from Honcho.
 
@@ -682,7 +716,9 @@ class HonchoSessionManager:
 
         return result
 
-    def migrate_local_history(self, session_key: str, messages: list[dict[str, Any]]) -> bool:
+    def migrate_local_history(
+        self, session_key: str, messages: list[dict[str, Any]]
+    ) -> bool:
         """
         Upload local session history to Honcho as a file.
 
@@ -697,12 +733,16 @@ class HonchoSessionManager:
         """
         session = self._cache.get(session_key)
         if not session:
-            logger.warning("No local session cached for '%s', skipping migration", session_key)
+            logger.warning(
+                "No local session cached for '%s', skipping migration", session_key
+            )
             return False
 
         honcho_session = self._sessions_cache.get(session.honcho_session_id)
         if not honcho_session:
-            logger.warning("No Honcho session cached for '%s', skipping migration", session_key)
+            logger.warning(
+                "No Honcho session cached for '%s', skipping migration", session_key
+            )
             return False
 
         user_peer = self._get_or_create_peer(session.user_peer_id)
@@ -717,14 +757,22 @@ class HonchoSessionManager:
                 metadata={"source": "local_jsonl", "count": len(messages)},
                 created_at=first_ts,
             )
-            logger.info("Migrated %d local messages to Honcho for %s", len(messages), session_key)
+            logger.info(
+                "Migrated %d local messages to Honcho for %s",
+                len(messages),
+                session_key,
+            )
             return True
         except Exception as e:
-            logger.error("Failed to upload local history to Honcho for %s: %s", session_key, e)
+            logger.error(
+                "Failed to upload local history to Honcho for %s: %s", session_key, e
+            )
             return False
 
     @staticmethod
-    def _format_migration_transcript(session_key: str, messages: list[dict[str, Any]]) -> bytes:
+    def _format_migration_transcript(
+        session_key: str, messages: list[dict[str, Any]]
+    ) -> bytes:
         """Format local messages as an XML transcript for Honcho file upload."""
         timestamps = [m.get("timestamp", "") for m in messages]
         time_range = f"{timestamps[0]} to {timestamps[-1]}" if timestamps else "unknown"
@@ -769,6 +817,7 @@ class HonchoSessionManager:
             True if at least one file was uploaded, False otherwise.
         """
         from pathlib import Path
+
         memory_path = Path(memory_dir)
 
         if not memory_path.exists():
@@ -776,12 +825,18 @@ class HonchoSessionManager:
 
         session = self._cache.get(session_key)
         if not session:
-            logger.warning("No local session cached for '%s', skipping memory migration", session_key)
+            logger.warning(
+                "No local session cached for '%s', skipping memory migration",
+                session_key,
+            )
             return False
 
         honcho_session = self._sessions_cache.get(session.honcho_session_id)
         if not honcho_session:
-            logger.warning("No Honcho session cached for '%s', skipping memory migration", session_key)
+            logger.warning(
+                "No Honcho session cached for '%s', skipping memory migration",
+                session_key,
+            )
             return False
 
         user_peer = self._get_or_create_peer(session.user_peer_id)
@@ -880,14 +935,20 @@ class HonchoSessionManager:
 
         return []
 
-    def _fetch_peer_context(self, peer_id: str, search_query: str | None = None) -> dict[str, Any]:
+    def _fetch_peer_context(
+        self, peer_id: str, search_query: str | None = None
+    ) -> dict[str, Any]:
         """Fetch representation + peer card directly from a peer object."""
         peer = self._get_or_create_peer(peer_id)
         representation = ""
         card: list[str] = []
 
         try:
-            ctx = peer.context(search_query=search_query) if search_query else peer.context()
+            ctx = (
+                peer.context(search_query=search_query)
+                if search_query
+                else peer.context()
+            )
             representation = (
                 getattr(ctx, "representation", None)
                 or getattr(ctx, "peer_representation", None)
@@ -901,7 +962,9 @@ class HonchoSessionManager:
             try:
                 representation = peer.representation() or ""
             except Exception as e:
-                logger.debug("Direct peer.representation() failed for '%s': %s", peer_id, e)
+                logger.debug(
+                    "Direct peer.representation() failed for '%s': %s", peer_id, e
+                )
 
         if not card:
             try:
@@ -929,7 +992,9 @@ class HonchoSessionManager:
             logger.debug("Failed to fetch peer card from Honcho: %s", e)
             return []
 
-    def search_context(self, session_key: str, query: str, max_tokens: int = 800) -> str:
+    def search_context(
+        self, session_key: str, query: str, max_tokens: int = 800
+    ) -> str:
         """
         Semantic search over Honcho session context.
 
@@ -981,7 +1046,9 @@ class HonchoSessionManager:
 
         session = self._cache.get(session_key)
         if not session:
-            logger.warning("No session cached for '%s', skipping conclusion", session_key)
+            logger.warning(
+                "No session cached for '%s', skipping conclusion", session_key
+            )
             return False
 
         try:
@@ -994,17 +1061,23 @@ class HonchoSessionManager:
                 user_peer = self._get_or_create_peer(session.user_peer_id)
                 conclusions_scope = user_peer.conclusions_of(session.user_peer_id)
 
-            conclusions_scope.create([{
-                "content": content.strip(),
-                "session_id": session.honcho_session_id,
-            }])
+            conclusions_scope.create(
+                [
+                    {
+                        "content": content.strip(),
+                        "session_id": session.honcho_session_id,
+                    }
+                ]
+            )
             logger.info("Created conclusion for %s: %s", session_key, content[:80])
             return True
         except Exception as e:
             logger.error("Failed to create conclusion: %s", e)
             return False
 
-    def seed_ai_identity(self, session_key: str, content: str, source: str = "manual") -> bool:
+    def seed_ai_identity(
+        self, session_key: str, content: str, source: str = "manual"
+    ) -> bool:
         """
         Seed the AI peer's Honcho representation from text content.
 
@@ -1031,7 +1104,9 @@ class HonchoSessionManager:
         assistant_peer = self._get_or_create_peer(session.assistant_peer_id)
         honcho_session = self._sessions_cache.get(session.honcho_session_id)
         if not honcho_session:
-            logger.warning("No Honcho session cached for '%s', skipping AI seed", session_key)
+            logger.warning(
+                "No Honcho session cached for '%s', skipping AI seed", session_key
+            )
             return False
 
         try:

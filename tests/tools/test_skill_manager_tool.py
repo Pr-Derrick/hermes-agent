@@ -31,8 +31,10 @@ from tools.skill_manager_tool import (
 def _skill_dir(tmp_path):
     """Patch both SKILLS_DIR and get_all_skills_dirs so _find_skill searches
     only the temp directory — not the real ~/.hermes/skills/."""
-    with patch("tools.skill_manager_tool.SKILLS_DIR", tmp_path), \
-         patch("agent.skill_utils.get_all_skills_dirs", return_value=[tmp_path]):
+    with (
+        patch("tools.skill_manager_tool.SKILLS_DIR", tmp_path),
+        patch("agent.skill_utils.get_all_skills_dirs", return_value=[tmp_path]),
+    ):
         yield
 
 
@@ -126,23 +128,37 @@ class TestValidateFrontmatter:
 
     def test_no_frontmatter(self):
         err = _validate_frontmatter("# Just a heading\nSome content.\n")
-        assert err == "SKILL.md must start with YAML frontmatter (---). See existing skills for format."
+        assert (
+            err
+            == "SKILL.md must start with YAML frontmatter (---). See existing skills for format."
+        )
 
     def test_unclosed_frontmatter(self):
         content = "---\nname: test\ndescription: desc\nBody content.\n"
-        assert _validate_frontmatter(content) == "SKILL.md frontmatter is not closed. Ensure you have a closing '---' line."
+        assert (
+            _validate_frontmatter(content)
+            == "SKILL.md frontmatter is not closed. Ensure you have a closing '---' line."
+        )
 
     def test_missing_name_field(self):
         content = "---\ndescription: desc\n---\n\nBody.\n"
-        assert _validate_frontmatter(content) == "Frontmatter must include 'name' field."
+        assert (
+            _validate_frontmatter(content) == "Frontmatter must include 'name' field."
+        )
 
     def test_missing_description_field(self):
         content = "---\nname: test\n---\n\nBody.\n"
-        assert _validate_frontmatter(content) == "Frontmatter must include 'description' field."
+        assert (
+            _validate_frontmatter(content)
+            == "Frontmatter must include 'description' field."
+        )
 
     def test_no_body_after_frontmatter(self):
         content = "---\nname: test\ndescription: desc\n---\n"
-        assert _validate_frontmatter(content) == "SKILL.md must have content after the frontmatter (instructions, procedures, etc.)."
+        assert (
+            _validate_frontmatter(content)
+            == "SKILL.md must have content after the frontmatter (instructions, procedures, etc.)."
+        )
 
     def test_invalid_yaml(self):
         content = "---\n: invalid: yaml: {{{\n---\n\nBody.\n"
@@ -224,9 +240,13 @@ class TestCreateSkill:
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()
 
-        with patch("tools.skill_manager_tool.SKILLS_DIR", skills_dir), \
-             patch("agent.skill_utils.get_all_skills_dirs", return_value=[skills_dir]):
-            result = _create_skill("my-skill", VALID_SKILL_CONTENT, category="../escape")
+        with (
+            patch("tools.skill_manager_tool.SKILLS_DIR", skills_dir),
+            patch("agent.skill_utils.get_all_skills_dirs", return_value=[skills_dir]),
+        ):
+            result = _create_skill(
+                "my-skill", VALID_SKILL_CONTENT, category="../escape"
+            )
 
         assert result["success"] is False
         assert "Invalid category '../escape'" in result["error"]
@@ -237,9 +257,13 @@ class TestCreateSkill:
         skills_dir.mkdir()
         outside = tmp_path / "outside"
 
-        with patch("tools.skill_manager_tool.SKILLS_DIR", skills_dir), \
-             patch("agent.skill_utils.get_all_skills_dirs", return_value=[skills_dir]):
-            result = _create_skill("my-skill", VALID_SKILL_CONTENT, category=str(outside))
+        with (
+            patch("tools.skill_manager_tool.SKILLS_DIR", skills_dir),
+            patch("agent.skill_utils.get_all_skills_dirs", return_value=[skills_dir]),
+        ):
+            result = _create_skill(
+                "my-skill", VALID_SKILL_CONTENT, category=str(outside)
+            )
 
         assert result["success"] is False
         assert f"Invalid category '{outside}'" in result["error"]
@@ -285,7 +309,10 @@ class TestPatchSkill:
             _create_skill("my-skill", VALID_SKILL_CONTENT)
             result = _patch_skill("my-skill", "this text does not exist", "replacement")
         assert result["success"] is False
-        assert "not found" in result["error"].lower() or "could not find" in result["error"].lower()
+        assert (
+            "not found" in result["error"].lower()
+            or "could not find" in result["error"].lower()
+        )
 
     def test_patch_ambiguous_match_rejected(self, tmp_path):
         content = """\
@@ -324,7 +351,9 @@ word word
         with _skill_dir(tmp_path):
             _create_skill("my-skill", VALID_SKILL_CONTENT)
             _write_file("my-skill", "references/api.md", "old text here")
-            result = _patch_skill("my-skill", "old text", "new text", file_path="references/api.md")
+            result = _patch_skill(
+                "my-skill", "old text", "new text", file_path="references/api.md"
+            )
         assert result["success"] is True
 
     def test_patch_skill_not_found(self, tmp_path):
@@ -345,7 +374,9 @@ word word
             except OSError:
                 pytest.skip("Symlinks not supported")
 
-            result = _patch_skill("my-skill", "old text", "new text", file_path="references/evil.md")
+            result = _patch_skill(
+                "my-skill", "old text", "new text", file_path="references/evil.md"
+            )
 
         assert result["success"] is False
         assert "escapes" in result["error"].lower()
@@ -381,7 +412,9 @@ class TestWriteFile:
     def test_write_reference_file(self, tmp_path):
         with _skill_dir(tmp_path):
             _create_skill("my-skill", VALID_SKILL_CONTENT)
-            result = _write_file("my-skill", "references/api.md", "# API\nEndpoint docs.")
+            result = _write_file(
+                "my-skill", "references/api.md", "# API\nEndpoint docs."
+            )
         assert result["success"] is True
         assert (tmp_path / "my-skill" / "references" / "api.md").exists()
 
@@ -481,6 +514,8 @@ class TestSkillManageDispatcher:
 
     def test_full_create_via_dispatcher(self, tmp_path):
         with _skill_dir(tmp_path):
-            raw = skill_manage(action="create", name="test-skill", content=VALID_SKILL_CONTENT)
+            raw = skill_manage(
+                action="create", name="test-skill", content=VALID_SKILL_CONTENT
+            )
         result = json.loads(raw)
         assert result["success"] is True

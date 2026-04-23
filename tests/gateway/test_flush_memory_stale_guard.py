@@ -87,20 +87,30 @@ class TestMemoryInjection:
         """When memory files exist, their content appears in the flush prompt."""
         memory_dir = tmp_path / "memories"
         memory_dir.mkdir()
-        (memory_dir / "MEMORY.md").write_text("Agent knows Python\n§\nUser prefers dark mode")
+        (memory_dir / "MEMORY.md").write_text(
+            "Agent knows Python\n§\nUser prefers dark mode"
+        )
         (memory_dir / "USER.md").write_text("Name: Alice\n§\nTimezone: PST")
 
         runner, tmp_agent, _ = _make_flush_context(monkeypatch, memory_dir)
 
         with (
-            patch("gateway.run._resolve_runtime_agent_kwargs", return_value={"api_key": "k"}),
+            patch(
+                "gateway.run._resolve_runtime_agent_kwargs",
+                return_value={"api_key": "k"},
+            ),
             patch("gateway.run._resolve_gateway_model", return_value="test-model"),
-            patch.dict("sys.modules", {"tools.memory_tool": MagicMock(get_memory_dir=lambda: memory_dir)}),
+            patch.dict(
+                "sys.modules",
+                {"tools.memory_tool": MagicMock(get_memory_dir=lambda: memory_dir)},
+            ),
         ):
             runner._flush_memories_for_session("session_123")
 
         tmp_agent.run_conversation.assert_called_once()
-        flush_prompt = tmp_agent.run_conversation.call_args.kwargs.get("user_message", "")
+        flush_prompt = tmp_agent.run_conversation.call_args.kwargs.get(
+            "user_message", ""
+        )
 
         assert "Agent knows Python" in flush_prompt
         assert "User prefers dark mode" in flush_prompt
@@ -117,14 +127,22 @@ class TestMemoryInjection:
         runner, tmp_agent, _ = _make_flush_context(monkeypatch)
 
         with (
-            patch("gateway.run._resolve_runtime_agent_kwargs", return_value={"api_key": "k"}),
+            patch(
+                "gateway.run._resolve_runtime_agent_kwargs",
+                return_value={"api_key": "k"},
+            ),
             patch("gateway.run._resolve_gateway_model", return_value="test-model"),
-            patch.dict("sys.modules", {"tools.memory_tool": MagicMock(get_memory_dir=lambda: empty_dir)}),
+            patch.dict(
+                "sys.modules",
+                {"tools.memory_tool": MagicMock(get_memory_dir=lambda: empty_dir)},
+            ),
         ):
             runner._flush_memories_for_session("session_456")
 
         tmp_agent.run_conversation.assert_called_once()
-        flush_prompt = tmp_agent.run_conversation.call_args.kwargs.get("user_message", "")
+        flush_prompt = tmp_agent.run_conversation.call_args.kwargs.get(
+            "user_message", ""
+        )
         assert "Do NOT overwrite or remove entries" not in flush_prompt
         assert "Review the conversation above" in flush_prompt
 
@@ -138,14 +156,22 @@ class TestMemoryInjection:
         runner, tmp_agent, _ = _make_flush_context(monkeypatch)
 
         with (
-            patch("gateway.run._resolve_runtime_agent_kwargs", return_value={"api_key": "k"}),
+            patch(
+                "gateway.run._resolve_runtime_agent_kwargs",
+                return_value={"api_key": "k"},
+            ),
             patch("gateway.run._resolve_gateway_model", return_value="test-model"),
-            patch.dict("sys.modules", {"tools.memory_tool": MagicMock(get_memory_dir=lambda: memory_dir)}),
+            patch.dict(
+                "sys.modules",
+                {"tools.memory_tool": MagicMock(get_memory_dir=lambda: memory_dir)},
+            ),
         ):
             runner._flush_memories_for_session("session_789")
 
         tmp_agent.run_conversation.assert_called_once()
-        flush_prompt = tmp_agent.run_conversation.call_args.kwargs.get("user_message", "")
+        flush_prompt = tmp_agent.run_conversation.call_args.kwargs.get(
+            "user_message", ""
+        )
         assert "current live state of memory" not in flush_prompt
 
 
@@ -169,14 +195,22 @@ class TestFlushAgentSilenced:
         monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
         with (
-            patch("gateway.run._resolve_runtime_agent_kwargs", return_value={"api_key": "k"}),
+            patch(
+                "gateway.run._resolve_runtime_agent_kwargs",
+                return_value={"api_key": "k"},
+            ),
             patch("gateway.run._resolve_gateway_model", return_value="test-model"),
-            patch.dict("sys.modules", {"tools.memory_tool": MagicMock(get_memory_dir=lambda: tmp_path)}),
+            patch.dict(
+                "sys.modules",
+                {"tools.memory_tool": MagicMock(get_memory_dir=lambda: tmp_path)},
+            ),
         ):
             runner._flush_memories_for_session("session_silent")
 
         agent = captured_agent["instance"]
-        assert agent._print_fn is not None, "_print_fn should be overridden to suppress output"
+        assert agent._print_fn is not None, (
+            "_print_fn should be overridden to suppress output"
+        )
         # Confirm it is callable and produces no output (no exception)
         agent._print_fn("should be silenced")
 
@@ -191,6 +225,7 @@ class TestFlushAgentSilenced:
 
         # A no-op print_fn must produce no output to stdout
         import io, sys
+
         buf = io.StringIO()
         old_stdout = sys.stdout
         sys.stdout = buf
@@ -211,13 +246,25 @@ class TestFlushPromptStructure:
         runner, tmp_agent, _ = _make_flush_context(monkeypatch)
 
         with (
-            patch("gateway.run._resolve_runtime_agent_kwargs", return_value={"api_key": "k"}),
+            patch(
+                "gateway.run._resolve_runtime_agent_kwargs",
+                return_value={"api_key": "k"},
+            ),
             patch("gateway.run._resolve_gateway_model", return_value="test-model"),
-            patch.dict("sys.modules", {"tools.memory_tool": MagicMock(get_memory_dir=lambda: Path("/nonexistent"))}),
+            patch.dict(
+                "sys.modules",
+                {
+                    "tools.memory_tool": MagicMock(
+                        get_memory_dir=lambda: Path("/nonexistent")
+                    )
+                },
+            ),
         ):
             runner._flush_memories_for_session("session_struct")
 
-        flush_prompt = tmp_agent.run_conversation.call_args.kwargs.get("user_message", "")
+        flush_prompt = tmp_agent.run_conversation.call_args.kwargs.get(
+            "user_message", ""
+        )
         assert "automatically reset" in flush_prompt
         assert "Save any important facts" in flush_prompt
         assert "consider saving it as a skill" in flush_prompt

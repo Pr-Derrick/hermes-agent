@@ -25,6 +25,7 @@ from tools.mcp_oauth import (
 # HermesTokenStorage
 # ---------------------------------------------------------------------------
 
+
 class TestHermesTokenStorage:
     def test_roundtrip_tokens(self, tmp_path, monkeypatch):
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
@@ -89,7 +90,9 @@ class TestHermesTokenStorage:
 
         d = tmp_path / "mcp-tokens"
         d.mkdir(parents=True)
-        (d / "my-server.json").write_text('{"access_token": "x", "token_type": "Bearer"}')
+        (d / "my-server.json").write_text(
+            '{"access_token": "x", "token_type": "Bearer"}'
+        )
 
         assert storage.has_cached_tokens()
 
@@ -102,6 +105,7 @@ class TestHermesTokenStorage:
         (d / "bad-server.json").write_text("NOT VALID JSON{{{")
 
         import asyncio
+
         assert asyncio.run(storage.get_tokens()) is None
 
     def test_corrupt_client_info_returns_none(self, tmp_path, monkeypatch):
@@ -113,12 +117,14 @@ class TestHermesTokenStorage:
         (d / "bad-server.client.json").write_text("GARBAGE")
 
         import asyncio
+
         assert asyncio.run(storage.get_client_info()) is None
 
 
 # ---------------------------------------------------------------------------
 # build_oauth_auth
 # ---------------------------------------------------------------------------
+
 
 class TestBuildOAuthAuth:
     def test_returns_oauth_provider(self, tmp_path, monkeypatch):
@@ -133,6 +139,7 @@ class TestBuildOAuthAuth:
 
     def test_returns_none_without_sdk(self, monkeypatch):
         import tools.mcp_oauth as mod
+
         monkeypatch.setattr(mod, "_OAUTH_AVAILABLE", False)
         result = build_oauth_auth("test", "https://example.com")
         assert result is None
@@ -144,11 +151,15 @@ class TestBuildOAuthAuth:
             pytest.skip("MCP SDK auth not available")
 
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        build_oauth_auth("slack", "https://slack.example.com/mcp", {
-            "client_id": "my-app-id",
-            "client_secret": "my-secret",
-            "scope": "channels:read",
-        })
+        build_oauth_auth(
+            "slack",
+            "https://slack.example.com/mcp",
+            {
+                "client_id": "my-app-id",
+                "client_secret": "my-secret",
+                "scope": "channels:read",
+            },
+        )
 
         client_path = tmp_path / "mcp-tokens" / "slack.client.json"
         assert client_path.exists()
@@ -163,9 +174,13 @@ class TestBuildOAuthAuth:
             pytest.skip("MCP SDK auth not available")
 
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        provider = build_oauth_auth("scoped", "https://example.com/mcp", {
-            "scope": "read write admin",
-        })
+        provider = build_oauth_auth(
+            "scoped",
+            "https://example.com/mcp",
+            {
+                "scope": "read write admin",
+            },
+        )
         assert provider is not None
         assert provider.context.client_metadata.scope == "read write admin"
 
@@ -173,6 +188,7 @@ class TestBuildOAuthAuth:
 # ---------------------------------------------------------------------------
 # Utility functions
 # ---------------------------------------------------------------------------
+
 
 class TestUtilities:
     def test_find_free_port_returns_int(self):
@@ -212,6 +228,7 @@ class TestUtilities:
 # Path traversal protection
 # ---------------------------------------------------------------------------
 
+
 class TestPathTraversal:
     """Verify server_name is sanitized to prevent path traversal."""
 
@@ -247,6 +264,7 @@ class TestPathTraversal:
 # ---------------------------------------------------------------------------
 # Callback handler isolation
 # ---------------------------------------------------------------------------
+
 
 class TestCallbackHandlerIsolation:
     """Verify concurrent OAuth flows don't share state."""
@@ -296,11 +314,13 @@ class TestCallbackHandlerIsolation:
 # Port sharing
 # ---------------------------------------------------------------------------
 
+
 class TestOAuthPortSharing:
     """Verify build_oauth_auth and _wait_for_callback use the same port."""
 
     def test_port_stored_globally(self, tmp_path, monkeypatch):
         import tools.mcp_oauth as mod
+
         mod._oauth_port = None
 
         try:
@@ -318,6 +338,7 @@ class TestOAuthPortSharing:
 # ---------------------------------------------------------------------------
 # remove_oauth_tokens
 # ---------------------------------------------------------------------------
+
 
 class TestRemoveOAuthTokens:
     def test_removes_files(self, tmp_path, monkeypatch):
@@ -340,6 +361,7 @@ class TestRemoveOAuthTokens:
 # ---------------------------------------------------------------------------
 # Non-interactive / startup-safety tests
 # ---------------------------------------------------------------------------
+
 
 class TestIsInteractive:
     """_is_interactive() detects headless/daemon/container environments."""
@@ -377,15 +399,22 @@ class TestWaitForCallbackNoBlocking:
             pass
 
         with patch.object(mod.asyncio, "sleep", instant_sleep):
-            with patch("builtins.input", side_effect=AssertionError("input() must not be called")):
-                with pytest.raises(OAuthNonInteractiveError, match="callback timed out"):
+            with patch(
+                "builtins.input",
+                side_effect=AssertionError("input() must not be called"),
+            ):
+                with pytest.raises(
+                    OAuthNonInteractiveError, match="callback timed out"
+                ):
                     asyncio.run(_wait_for_callback())
 
 
 class TestBuildOAuthAuthNonInteractive:
     """build_oauth_auth() in non-interactive mode."""
 
-    def test_noninteractive_without_cached_tokens_warns(self, tmp_path, monkeypatch, caplog):
+    def test_noninteractive_without_cached_tokens_warns(
+        self, tmp_path, monkeypatch, caplog
+    ):
         """Without cached tokens, non-interactive mode logs a clear warning."""
         try:
             from mcp.client.auth import OAuthClientProvider
@@ -398,6 +427,7 @@ class TestBuildOAuthAuthNonInteractive:
         monkeypatch.setattr("tools.mcp_oauth.sys.stdin", mock_stdin)
 
         import logging
+
         with caplog.at_level(logging.WARNING, logger="tools.mcp_oauth"):
             auth = build_oauth_auth("atlassian", "https://mcp.atlassian.com/v1/mcp")
 
@@ -405,7 +435,9 @@ class TestBuildOAuthAuthNonInteractive:
         assert "no cached tokens found" in caplog.text.lower()
         assert "non-interactive" in caplog.text.lower()
 
-    def test_noninteractive_with_cached_tokens_no_warning(self, tmp_path, monkeypatch, caplog):
+    def test_noninteractive_with_cached_tokens_no_warning(
+        self, tmp_path, monkeypatch, caplog
+    ):
         """With cached tokens, non-interactive mode logs no 'no cached tokens' warning."""
         try:
             from mcp.client.auth import OAuthClientProvider
@@ -420,12 +452,17 @@ class TestBuildOAuthAuthNonInteractive:
         # Pre-populate cached tokens
         d = tmp_path / "mcp-tokens"
         d.mkdir(parents=True)
-        (d / "atlassian.json").write_text(json.dumps({
-            "access_token": "cached",
-            "token_type": "Bearer",
-        }))
+        (d / "atlassian.json").write_text(
+            json.dumps(
+                {
+                    "access_token": "cached",
+                    "token_type": "Bearer",
+                }
+            )
+        )
 
         import logging
+
         with caplog.at_level(logging.WARNING, logger="tools.mcp_oauth"):
             auth = build_oauth_auth("atlassian", "https://mcp.atlassian.com/v1/mcp")
 

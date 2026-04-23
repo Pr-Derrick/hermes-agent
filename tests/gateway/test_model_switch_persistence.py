@@ -98,7 +98,12 @@ class TestApplySessionModelOverride:
         model, rt = runner._apply_session_model_override(
             sk,
             "anthropic/claude-sonnet-4",
-            {"provider": "anthropic", "api_key": "ant-key", "base_url": "https://api.anthropic.com", "api_mode": "anthropic_messages"},
+            {
+                "provider": "anthropic",
+                "api_key": "ant-key",
+                "base_url": "https://api.anthropic.com",
+                "api_mode": "anthropic_messages",
+            },
         )
 
         assert model == "gpt-5.4-turbo"
@@ -112,7 +117,12 @@ class TestApplySessionModelOverride:
         sk = build_session_key(_make_source())
 
         orig_model = "anthropic/claude-sonnet-4"
-        orig_rt = {"provider": "anthropic", "api_key": "key", "base_url": "https://api.anthropic.com", "api_mode": "anthropic_messages"}
+        orig_rt = {
+            "provider": "anthropic",
+            "api_key": "key",
+            "base_url": "https://api.anthropic.com",
+            "api_mode": "anthropic_messages",
+        }
 
         model, rt = runner._apply_session_model_override(sk, orig_model, dict(orig_rt))
 
@@ -135,7 +145,12 @@ class TestApplySessionModelOverride:
         model, rt = runner._apply_session_model_override(
             sk,
             "anthropic/claude-sonnet-4",
-            {"provider": "anthropic", "api_key": "ant-key", "base_url": "https://api.anthropic.com", "api_mode": "anthropic_messages"},
+            {
+                "provider": "anthropic",
+                "api_key": "ant-key",
+                "base_url": "https://api.anthropic.com",
+                "api_mode": "anthropic_messages",
+            },
         )
 
         assert model == "gpt-5.4"
@@ -160,7 +175,12 @@ class TestApplySessionModelOverride:
         _, rt = runner._apply_session_model_override(
             sk,
             "anthropic/claude-sonnet-4",
-            {"provider": "anthropic", "api_key": "ant-key", "base_url": "https://api.anthropic.com", "api_mode": "anthropic_messages"},
+            {
+                "provider": "anthropic",
+                "api_key": "ant-key",
+                "base_url": "https://api.anthropic.com",
+                "api_mode": "anthropic_messages",
+            },
         )
 
         assert rt["base_url"] == ""  # empty string overwrites
@@ -181,7 +201,12 @@ class TestApplySessionModelOverride:
         model, rt = runner._apply_session_model_override(
             sk,
             "anthropic/claude-sonnet-4",
-            {"provider": "anthropic", "api_key": "ant-key", "base_url": "url", "api_mode": "anthropic_messages"},
+            {
+                "provider": "anthropic",
+                "api_key": "ant-key",
+                "base_url": "url",
+                "api_mode": "anthropic_messages",
+            },
         )
 
         assert model == "anthropic/claude-sonnet-4"  # unchanged — wrong session key

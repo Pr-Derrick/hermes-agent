@@ -107,14 +107,16 @@ def _make_cli(env_overrides=None, config_overrides=None, **kwargs):
         "prompt_toolkit.formatted_text": MagicMock(),
         "prompt_toolkit.auto_suggest": MagicMock(),
     }
-    with patch.dict(sys.modules, prompt_toolkit_stubs), patch.dict(
-        "os.environ", clean_env, clear=False
+    with (
+        patch.dict(sys.modules, prompt_toolkit_stubs),
+        patch.dict("os.environ", clean_env, clear=False),
     ):
         import cli as _cli_mod
 
         _cli_mod = importlib.reload(_cli_mod)
-        with patch.object(_cli_mod, "get_tool_definitions", return_value=[]), patch.dict(
-            _cli_mod.__dict__, {"CLI_CONFIG": _clean_config}
+        with (
+            patch.object(_cli_mod, "get_tool_definitions", return_value=[]),
+            patch.dict(_cli_mod.__dict__, {"CLI_CONFIG": _clean_config}),
         ):
             return _cli_mod.HermesCLI(**kwargs)
 
@@ -122,7 +124,9 @@ def _make_cli(env_overrides=None, config_overrides=None, **kwargs):
 def _prepare_cli_with_active_session(tmp_path):
     cli = _make_cli()
     cli._session_db = SessionDB(db_path=tmp_path / "state.db")
-    cli._session_db.create_session(session_id=cli.session_id, source="cli", model=cli.model)
+    cli._session_db.create_session(
+        session_id=cli.session_id, source="cli", model=cli.model
+    )
 
     cli.agent = _FakeAgent(cli.session_id, cli.session_start)
     cli.conversation_history = [{"role": "user", "content": "hello"}]
@@ -156,7 +160,9 @@ def test_new_command_creates_real_fresh_session_and_resets_agent_state(tmp_path)
     assert cli.agent._todo_store.read() == []
     assert cli.session_start > old_session_start
     assert cli.agent.session_start == cli.session_start
-    cli.agent.flush_memories.assert_called_once_with([{"role": "user", "content": "hello"}])
+    cli.agent.flush_memories.assert_called_once_with(
+        [{"role": "user", "content": "hello"}]
+    )
     cli.agent._invalidate_system_prompt.assert_called_once()
 
 

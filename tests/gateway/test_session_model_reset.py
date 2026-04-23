@@ -1,4 +1,5 @@
 """Tests that /new (and its /reset alias) clears the session-scoped model override."""
+
 from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock

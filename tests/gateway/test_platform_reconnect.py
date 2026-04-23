@@ -22,7 +22,9 @@ class StubAdapter(BasePlatformAdapter):
 
     async def connect(self):
         if self._fatal_error:
-            self._set_fatal_error("test_error", self._fatal_error, retryable=self._fatal_retryable)
+            self._set_fatal_error(
+                "test_error", self._fatal_error, retryable=self._fatal_retryable
+            )
             return False
         return self._succeed
 
@@ -65,6 +67,7 @@ def _make_runner():
 
 # --- Startup queueing ---
 
+
 class TestStartupFailureQueuing:
     """Verify that failed platforms are queued during startup."""
 
@@ -88,6 +91,7 @@ class TestStartupFailureQueuing:
 
 
 # --- Reconnect watcher ---
+
 
 class TestPlatformReconnectWatcher:
     """Test the _platform_reconnect_watcher background task."""
@@ -150,6 +154,7 @@ class TestPlatformReconnectWatcher:
         real_sleep = asyncio.sleep
 
         with patch.object(runner, "_create_adapter", return_value=fail_adapter):
+
             async def run_one_iteration():
                 runner._running = True
                 call_count = 0
@@ -188,6 +193,7 @@ class TestPlatformReconnectWatcher:
         real_sleep = asyncio.sleep
 
         with patch.object(runner, "_create_adapter", return_value=fail_adapter):
+
             async def run_one_iteration():
                 runner._running = True
                 call_count = 0
@@ -222,6 +228,7 @@ class TestPlatformReconnectWatcher:
         real_sleep = asyncio.sleep
 
         with patch.object(runner, "_create_adapter") as mock_create:
+
             async def run_one_iteration():
                 runner._running = True
                 call_count = 0
@@ -256,6 +263,7 @@ class TestPlatformReconnectWatcher:
         real_sleep = asyncio.sleep
 
         with patch.object(runner, "_create_adapter") as mock_create:
+
             async def run_one_iteration():
                 runner._running = True
                 call_count = 0
@@ -284,6 +292,7 @@ class TestPlatformReconnectWatcher:
         real_sleep = asyncio.sleep
 
         with patch.object(runner, "_create_adapter") as mock_create:
+
             async def run_briefly():
                 runner._running = True
                 call_count = 0
@@ -317,6 +326,7 @@ class TestPlatformReconnectWatcher:
         real_sleep = asyncio.sleep
 
         with patch.object(runner, "_create_adapter", return_value=None):
+
             async def run_one_iteration():
                 runner._running = True
                 call_count = 0
@@ -337,6 +347,7 @@ class TestPlatformReconnectWatcher:
 
 
 # --- Runtime disconnection queueing ---
+
 
 class TestRuntimeDisconnectQueuing:
     """Test that _handle_adapter_fatal_error queues retryable disconnections."""

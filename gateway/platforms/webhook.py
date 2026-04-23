@@ -129,11 +129,15 @@ class WebhookAdapter(BasePlatformAdapter):
 
         # Port conflict detection — fail fast if port is already in use
         import socket as _socket
+
         try:
             with _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM) as _s:
                 _s.settimeout(1)
-                _s.connect(('127.0.0.1', self._port))
-            logger.error('[webhook] Port %d already in use. Set a different port in config.yaml: platforms.webhook.port', self._port)
+                _s.connect(("127.0.0.1", self._port))
+            logger.error(
+                "[webhook] Port %d already in use. Set a different port in config.yaml: platforms.webhook.port",
+                self._port,
+            )
             return False
         except (ConnectionRefusedError, OSError):
             pass  # port is free
@@ -205,14 +209,10 @@ class WebhookAdapter(BasePlatformAdapter):
             "weixin",
             "bluebubbles",
         ):
-            return await self._deliver_cross_platform(
-                deliver_type, content, delivery
-            )
+            return await self._deliver_cross_platform(deliver_type, content, delivery)
 
         logger.warning("[webhook] Unknown deliver type: %s", deliver_type)
-        return SendResult(
-            success=False, error=f"Unknown deliver type: {deliver_type}"
-        )
+        return SendResult(success=False, error=f"Unknown deliver type: {deliver_type}")
 
     def _prune_delivery_info(self, now: float) -> None:
         """Drop delivery_info entries older than the idempotency TTL.
@@ -222,11 +222,7 @@ class WebhookAdapter(BasePlatformAdapter):
         even if many webhooks fire and never receive a final response.
         """
         cutoff = now - self._idempotency_ttl
-        stale = [
-            k
-            for k, t in self._delivery_info_created.items()
-            if t < cutoff
-        ]
+        stale = [k for k, t in self._delivery_info_created.items() if t < cutoff]
         for k in stale:
             self._delivery_info.pop(k, None)
             self._delivery_info_created.pop(k, None)
@@ -245,13 +241,16 @@ class WebhookAdapter(BasePlatformAdapter):
     def _reload_dynamic_routes(self) -> None:
         """Reload agent-created subscriptions from disk if the file changed."""
         from hermes_constants import get_hermes_home
+
         hermes_home = get_hermes_home()
         subs_path = hermes_home / _DYNAMIC_ROUTES_FILENAME
         if not subs_path.exists():
             if self._dynamic_routes:
                 self._dynamic_routes = {}
                 self._routes = dict(self._static_routes)
-                logger.debug("[webhook] Dynamic subscriptions file removed, cleared dynamic routes")
+                logger.debug(
+                    "[webhook] Dynamic subscriptions file removed, cleared dynamic routes"
+                )
             return
         try:
             mtime = subs_path.stat().st_mtime
@@ -262,8 +261,7 @@ class WebhookAdapter(BasePlatformAdapter):
                 return
             # Merge: static routes take precedence over dynamic ones
             self._dynamic_routes = {
-                k: v for k, v in data.items()
-                if k not in self._static_routes
+                k: v for k, v in data.items() if k not in self._static_routes
             }
             self._routes = {**self._dynamic_routes, **self._static_routes}
             self._dynamic_routes_mtime = mtime
@@ -292,18 +290,14 @@ class WebhookAdapter(BasePlatformAdapter):
         # Check Content-Length before reading the full payload.
         content_length = request.content_length or 0
         if content_length > self._max_body_bytes:
-            return web.json_response(
-                {"error": "Payload too large"}, status=413
-            )
+            return web.json_response({"error": "Payload too large"}, status=413)
 
         # ── Rate limiting ────────────────────────────────────────
         now = time.time()
         window = self._rate_counts.setdefault(route_name, [])
         window[:] = [t for t in window if now - t < 60]
         if len(window) >= self._rate_limit:
-            return web.json_response(
-                {"error": "Rate limit exceeded"}, status=429
-            )
+            return web.json_response({"error": "Rate limit exceeded"}, status=429)
         window.append(now)
 
         # Read body
@@ -317,12 +311,8 @@ class WebhookAdapter(BasePlatformAdapter):
         secret = route_config.get("secret", self._global_secret)
         if secret and secret != _INSECURE_NO_AUTH:
             if not self._validate_signature(request, raw_body, secret):
-                logger.warning(
-                    "[webhook] Invalid signature for route %s", route_name
-                )
-                return web.json_response(
-                    {"error": "Invalid signature"}, status=401
-                )
+                logger.warning("[webhook] Invalid signature for route %s", route_name)
+                return web.json_response({"error": "Invalid signature"}, status=401)
 
         # Parse payload
         try:
@@ -332,13 +322,9 @@ class WebhookAdapter(BasePlatformAdapter):
             try:
                 import urllib.parse
 
-                payload = dict(
-                    urllib.parse.parse_qsl(raw_body.decode("utf-8"))
-                )
+                payload = dict(urllib.parse.parse_qsl(raw_body.decode("utf-8")))
             except Exception:
-                return web.json_response(
-                    {"error": "Cannot parse body"}, status=400
-                )
+                return web.json_response({"error": "Cannot parse body"}, status=400)
 
         # Check event type filter
         event_type = (
@@ -355,15 +341,11 @@ class WebhookAdapter(BasePlatformAdapter):
                 route_name,
                 allowed_events,
             )
-            return web.json_response(
-                {"status": "ignored", "event": event_type}
-            )
+            return web.json_response({"status": "ignored", "event": event_type})
 
         # Format prompt from template
         prompt_template = route_config.get("prompt", "")
-        prompt = self._render_prompt(
-            prompt_template, payload, event_type, route_name
-        )
+        prompt = self._render_prompt(prompt_template, payload, event_type, route_name)
 
         # Inject skill content if configured.
         # We call build_skill_invocation_message() directly rather than
@@ -388,9 +370,7 @@ class WebhookAdapter(BasePlatformAdapter):
                             prompt = skill_content
                             break  # Load the first matching skill
                     else:
-                        logger.warning(
-                            "[webhook] Skill '%s' not found", skill_name
-                        )
+                        logger.warning("[webhook] Skill '%s' not found", skill_name)
             except Exception as e:
                 logger.warning("[webhook] Skill loading failed: %s", e)
 
@@ -410,9 +390,7 @@ class WebhookAdapter(BasePlatformAdapter):
             if now - v < self._idempotency_ttl
         }
         if delivery_id in self._seen_deliveries:
-            logger.info(
-                "[webhook] Skipping duplicate delivery %s", delivery_id
-            )
+            logger.info("[webhook] Skipping duplicate delivery %s", delivery_id)
             return web.json_response(
                 {"status": "duplicate", "delivery_id": delivery_id},
                 status=200,
@@ -488,9 +466,9 @@ class WebhookAdapter(BasePlatformAdapter):
         # GitHub: X-Hub-Signature-256 = sha256=<hex>
         gh_sig = request.headers.get("X-Hub-Signature-256", "")
         if gh_sig:
-            expected = "sha256=" + hmac.new(
-                secret.encode(), body, hashlib.sha256
-            ).hexdigest()
+            expected = (
+                "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+            )
             return hmac.compare_digest(gh_sig, expected)
 
         # GitLab: X-Gitlab-Token = <plain secret>
@@ -501,15 +479,11 @@ class WebhookAdapter(BasePlatformAdapter):
         # Generic: X-Webhook-Signature = <hex HMAC-SHA256>
         generic_sig = request.headers.get("X-Webhook-Signature", "")
         if generic_sig:
-            expected = hmac.new(
-                secret.encode(), body, hashlib.sha256
-            ).hexdigest()
+            expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
             return hmac.compare_digest(generic_sig, expected)
 
         # No recognised signature header but secret is configured → reject
-        logger.debug(
-            "[webhook] Secret configured but no signature header found"
-        )
+        logger.debug("[webhook] Secret configured but no signature header found")
         return False
 
     # ------------------------------------------------------------------
@@ -556,9 +530,7 @@ class WebhookAdapter(BasePlatformAdapter):
 
         return re.sub(r"\{([a-zA-Z0-9_.]+)\}", _resolve, template)
 
-    def _render_delivery_extra(
-        self, extra: dict, payload: dict
-    ) -> dict:
+    def _render_delivery_extra(self, extra: dict, payload: dict) -> dict:
         """Render delivery_extra template values with payload data."""
         rendered: Dict[str, Any] = {}
         for key, value in extra.items():
@@ -572,21 +544,15 @@ class WebhookAdapter(BasePlatformAdapter):
     # Response delivery
     # ------------------------------------------------------------------
 
-    async def _deliver_github_comment(
-        self, content: str, delivery: dict
-    ) -> SendResult:
+    async def _deliver_github_comment(self, content: str, delivery: dict) -> SendResult:
         """Post agent response as a GitHub PR/issue comment via ``gh`` CLI."""
         extra = delivery.get("deliver_extra", {})
         repo = extra.get("repo", "")
         pr_number = extra.get("pr_number", "")
 
         if not repo or not pr_number:
-            logger.error(
-                "[webhook] github_comment delivery missing repo or pr_number"
-            )
-            return SendResult(
-                success=False, error="Missing repo or pr_number"
-            )
+            logger.error("[webhook] github_comment delivery missing repo or pr_number")
+            return SendResult(success=False, error="Missing repo or pr_number")
 
         try:
             result = subprocess.run(
@@ -605,23 +571,17 @@ class WebhookAdapter(BasePlatformAdapter):
                 timeout=30,
             )
             if result.returncode == 0:
-                logger.info(
-                    "[webhook] Posted comment on %s#%s", repo, pr_number
-                )
+                logger.info("[webhook] Posted comment on %s#%s", repo, pr_number)
                 return SendResult(success=True)
             else:
-                logger.error(
-                    "[webhook] gh pr comment failed: %s", result.stderr
-                )
+                logger.error("[webhook] gh pr comment failed: %s", result.stderr)
                 return SendResult(success=False, error=result.stderr)
         except FileNotFoundError:
             logger.error(
                 "[webhook] 'gh' CLI not found — install GitHub CLI for "
                 "github_comment delivery"
             )
-            return SendResult(
-                success=False, error="gh CLI not installed"
-            )
+            return SendResult(success=False, error="gh CLI not installed")
         except Exception as e:
             logger.error("[webhook] github_comment delivery error: %s", e)
             return SendResult(success=False, error=str(e))
@@ -639,9 +599,7 @@ class WebhookAdapter(BasePlatformAdapter):
         try:
             target_platform = Platform(platform_name)
         except ValueError:
-            return SendResult(
-                success=False, error=f"Unknown platform: {platform_name}"
-            )
+            return SendResult(success=False, error=f"Unknown platform: {platform_name}")
 
         adapter = self.gateway_runner.adapters.get(target_platform)
         if not adapter:

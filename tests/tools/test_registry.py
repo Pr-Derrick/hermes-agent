@@ -265,23 +265,31 @@ class TestEmojiMetadata:
     def test_emoji_stored_on_entry(self):
         reg = ToolRegistry()
         reg.register(
-            name="t", toolset="s", schema=_make_schema(),
-            handler=_dummy_handler, emoji="🔥",
+            name="t",
+            toolset="s",
+            schema=_make_schema(),
+            handler=_dummy_handler,
+            emoji="🔥",
         )
         assert reg._tools["t"].emoji == "🔥"
 
     def test_get_emoji_returns_registered(self):
         reg = ToolRegistry()
         reg.register(
-            name="t", toolset="s", schema=_make_schema(),
-            handler=_dummy_handler, emoji="🎯",
+            name="t",
+            toolset="s",
+            schema=_make_schema(),
+            handler=_dummy_handler,
+            emoji="🎯",
         )
         assert reg.get_emoji("t") == "🎯"
 
     def test_get_emoji_returns_default_when_unset(self):
         reg = ToolRegistry()
         reg.register(
-            name="t", toolset="s", schema=_make_schema(),
+            name="t",
+            toolset="s",
+            schema=_make_schema(),
             handler=_dummy_handler,
         )
         assert reg.get_emoji("t") == "⚡"
@@ -295,8 +303,11 @@ class TestEmojiMetadata:
     def test_emoji_empty_string_treated_as_unset(self):
         reg = ToolRegistry()
         reg.register(
-            name="t", toolset="s", schema=_make_schema(),
-            handler=_dummy_handler, emoji="",
+            name="t",
+            toolset="s",
+            schema=_make_schema(),
+            handler=_dummy_handler,
+            emoji="",
         )
         assert reg.get_emoji("t") == "⚡"
 

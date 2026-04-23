@@ -73,10 +73,15 @@ async def test_compress_command_reports_noop_without_success_banner():
         return 100
 
     with (
-        patch("gateway.run._resolve_runtime_agent_kwargs", return_value={"api_key": "test-key"}),
+        patch(
+            "gateway.run._resolve_runtime_agent_kwargs",
+            return_value={"api_key": "test-key"},
+        ),
         patch("gateway.run._resolve_gateway_model", return_value="test-model"),
         patch("run_agent.AIAgent", return_value=agent_instance),
-        patch("agent.model_metadata.estimate_messages_tokens_rough", side_effect=_estimate),
+        patch(
+            "agent.model_metadata.estimate_messages_tokens_rough", side_effect=_estimate
+        ),
     ):
         result = await runner._handle_compress_command(_make_event())
 
@@ -90,7 +95,10 @@ async def test_compress_command_explains_when_token_estimate_rises():
     history = _make_history()
     compressed = [
         history[0],
-        {"role": "assistant", "content": "Dense summary that still counts as more tokens."},
+        {
+            "role": "assistant",
+            "content": "Dense summary that still counts as more tokens.",
+        },
         history[-1],
     ]
     runner = _make_runner(history)
@@ -109,10 +117,15 @@ async def test_compress_command_explains_when_token_estimate_rises():
         raise AssertionError(f"unexpected transcript: {messages!r}")
 
     with (
-        patch("gateway.run._resolve_runtime_agent_kwargs", return_value={"api_key": "test-key"}),
+        patch(
+            "gateway.run._resolve_runtime_agent_kwargs",
+            return_value={"api_key": "test-key"},
+        ),
         patch("gateway.run._resolve_gateway_model", return_value="test-model"),
         patch("run_agent.AIAgent", return_value=agent_instance),
-        patch("agent.model_metadata.estimate_messages_tokens_rough", side_effect=_estimate),
+        patch(
+            "agent.model_metadata.estimate_messages_tokens_rough", side_effect=_estimate
+        ),
     ):
         result = await runner._handle_compress_command(_make_event())
 

@@ -62,7 +62,14 @@ def test_chat_subcommand_accepts_image_flag(monkeypatch):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["hermes", "chat", "-q", "hello", "--image", "~/storage/shared/Pictures/cat.png"],
+        [
+            "hermes",
+            "chat",
+            "-q",
+            "hello",
+            "--image",
+            "~/storage/shared/Pictures/cat.png",
+        ],
     )
 
     main_mod.main()

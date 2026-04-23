@@ -13,6 +13,7 @@ import pytest
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_hermes_tree(root: Path) -> None:
     """Create a realistic ~/.hermes directory structure for testing."""
     (root / "config.yaml").write_text("model:\n  provider: openrouter\n")
@@ -44,7 +45,9 @@ def _make_hermes_tree(root: Path) -> None:
     # Profiles
     (root / "profiles").mkdir(exist_ok=True)
     (root / "profiles" / "coder").mkdir()
-    (root / "profiles" / "coder" / "config.yaml").write_text("model:\n  provider: anthropic\n")
+    (root / "profiles" / "coder" / "config.yaml").write_text(
+        "model:\n  provider: anthropic\n"
+    )
     (root / "profiles" / "coder" / ".env").write_text("ANTHROPIC_API_KEY=sk-ant-123\n")
 
     # hermes-agent repo (should be EXCLUDED)
@@ -70,53 +73,65 @@ def _make_hermes_tree(root: Path) -> None:
 # _should_exclude tests
 # ---------------------------------------------------------------------------
 
+
 class TestShouldExclude:
     def test_excludes_hermes_agent(self):
         from hermes_cli.backup import _should_exclude
+
         assert _should_exclude(Path("hermes-agent/run_agent.py"))
         assert _should_exclude(Path("hermes-agent/.git/HEAD"))
 
     def test_excludes_pycache(self):
         from hermes_cli.backup import _should_exclude
+
         assert _should_exclude(Path("plugins/__pycache__/mod.cpython-312.pyc"))
 
     def test_excludes_pyc_files(self):
         from hermes_cli.backup import _should_exclude
+
         assert _should_exclude(Path("some/module.pyc"))
 
     def test_excludes_pid_files(self):
         from hermes_cli.backup import _should_exclude
+
         assert _should_exclude(Path("gateway.pid"))
         assert _should_exclude(Path("cron.pid"))
 
     def test_includes_config(self):
         from hermes_cli.backup import _should_exclude
+
         assert not _should_exclude(Path("config.yaml"))
 
     def test_includes_env(self):
         from hermes_cli.backup import _should_exclude
+
         assert not _should_exclude(Path(".env"))
 
     def test_includes_skills(self):
         from hermes_cli.backup import _should_exclude
+
         assert not _should_exclude(Path("skills/my-skill/SKILL.md"))
 
     def test_includes_profiles(self):
         from hermes_cli.backup import _should_exclude
+
         assert not _should_exclude(Path("profiles/coder/config.yaml"))
 
     def test_includes_sessions(self):
         from hermes_cli.backup import _should_exclude
+
         assert not _should_exclude(Path("sessions/abc.json"))
 
     def test_includes_logs(self):
         from hermes_cli.backup import _should_exclude
+
         assert not _should_exclude(Path("logs/agent.log"))
 
 
 # ---------------------------------------------------------------------------
 # Backup tests
 # ---------------------------------------------------------------------------
+
 
 class TestBackup:
     def test_creates_zip(self, tmp_path, monkeypatch):
@@ -133,6 +148,7 @@ class TestBackup:
         args = Namespace(output=str(out_zip))
 
         from hermes_cli.backup import run_backup
+
         run_backup(args)
 
         assert out_zip.exists()
@@ -166,12 +182,15 @@ class TestBackup:
         args = Namespace(output=str(out_zip))
 
         from hermes_cli.backup import run_backup
+
         run_backup(args)
 
         with zipfile.ZipFile(out_zip, "r") as zf:
             names = zf.namelist()
             agent_files = [n for n in names if "hermes-agent" in n]
-            assert agent_files == [], f"hermes-agent files leaked into backup: {agent_files}"
+            assert agent_files == [], (
+                f"hermes-agent files leaked into backup: {agent_files}"
+            )
 
     def test_excludes_pycache(self, tmp_path, monkeypatch):
         """Backup does NOT include __pycache__ dirs."""
@@ -186,6 +205,7 @@ class TestBackup:
         args = Namespace(output=str(out_zip))
 
         from hermes_cli.backup import run_backup
+
         run_backup(args)
 
         with zipfile.ZipFile(out_zip, "r") as zf:
@@ -206,6 +226,7 @@ class TestBackup:
         args = Namespace(output=str(out_zip))
 
         from hermes_cli.backup import run_backup
+
         run_backup(args)
 
         with zipfile.ZipFile(out_zip, "r") as zf:
@@ -225,6 +246,7 @@ class TestBackup:
         args = Namespace(output=None)
 
         from hermes_cli.backup import run_backup
+
         run_backup(args)
 
         # Should exist in home dir
@@ -235,6 +257,7 @@ class TestBackup:
 # ---------------------------------------------------------------------------
 # Import tests
 # ---------------------------------------------------------------------------
+
 
 class TestImport:
     def _make_backup_zip(self, zip_path: Path, files: dict[str, str | bytes]) -> None:
@@ -254,21 +277,29 @@ class TestImport:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
         zip_path = tmp_path / "backup.zip"
-        self._make_backup_zip(zip_path, {
-            "config.yaml": "model:\n  provider: openrouter\n",
-            ".env": "OPENROUTER_API_KEY=sk-test\n",
-            "skills/my-skill/SKILL.md": "# My Skill\n",
-            "profiles/coder/config.yaml": "model:\n  provider: anthropic\n",
-        })
+        self._make_backup_zip(
+            zip_path,
+            {
+                "config.yaml": "model:\n  provider: openrouter\n",
+                ".env": "OPENROUTER_API_KEY=sk-test\n",
+                "skills/my-skill/SKILL.md": "# My Skill\n",
+                "profiles/coder/config.yaml": "model:\n  provider: anthropic\n",
+            },
+        )
 
         args = Namespace(zipfile=str(zip_path), force=True)
 
         from hermes_cli.backup import run_import
+
         run_import(args)
 
-        assert (hermes_home / "config.yaml").read_text() == "model:\n  provider: openrouter\n"
+        assert (
+            hermes_home / "config.yaml"
+        ).read_text() == "model:\n  provider: openrouter\n"
         assert (hermes_home / ".env").read_text() == "OPENROUTER_API_KEY=sk-test\n"
-        assert (hermes_home / "skills" / "my-skill" / "SKILL.md").read_text() == "# My Skill\n"
+        assert (
+            hermes_home / "skills" / "my-skill" / "SKILL.md"
+        ).read_text() == "# My Skill\n"
         assert (hermes_home / "profiles" / "coder" / "config.yaml").exists()
 
     def test_strips_hermes_prefix(self, tmp_path, monkeypatch):
@@ -279,14 +310,18 @@ class TestImport:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
         zip_path = tmp_path / "backup.zip"
-        self._make_backup_zip(zip_path, {
-            ".hermes/config.yaml": "model: test\n",
-            ".hermes/skills/a/SKILL.md": "# A\n",
-        })
+        self._make_backup_zip(
+            zip_path,
+            {
+                ".hermes/config.yaml": "model: test\n",
+                ".hermes/skills/a/SKILL.md": "# A\n",
+            },
+        )
 
         args = Namespace(zipfile=str(zip_path), force=True)
 
         from hermes_cli.backup import run_import
+
         run_import(args)
 
         assert (hermes_home / "config.yaml").read_text() == "model: test\n"
@@ -306,6 +341,7 @@ class TestImport:
         args = Namespace(zipfile=str(zip_path), force=True)
 
         from hermes_cli.backup import run_import
+
         with pytest.raises(SystemExit):
             run_import(args)
 
@@ -317,14 +353,18 @@ class TestImport:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
         zip_path = tmp_path / "random.zip"
-        self._make_backup_zip(zip_path, {
-            "some/random/file.txt": "hello",
-            "another/thing.json": "{}",
-        })
+        self._make_backup_zip(
+            zip_path,
+            {
+                "some/random/file.txt": "hello",
+                "another/thing.json": "{}",
+            },
+        )
 
         args = Namespace(zipfile=str(zip_path), force=True)
 
         from hermes_cli.backup import run_import
+
         with pytest.raises(SystemExit):
             run_import(args)
 
@@ -337,14 +377,18 @@ class TestImport:
 
         zip_path = tmp_path / "evil.zip"
         # Include a marker file so validation passes
-        self._make_backup_zip(zip_path, {
-            "config.yaml": "model: test\n",
-            "../../etc/passwd": "root:x:0:0\n",
-        })
+        self._make_backup_zip(
+            zip_path,
+            {
+                "config.yaml": "model: test\n",
+                "../../etc/passwd": "root:x:0:0\n",
+            },
+        )
 
         args = Namespace(zipfile=str(zip_path), force=True)
 
         from hermes_cli.backup import run_import
+
         run_import(args)
 
         # config.yaml should be restored
@@ -362,13 +406,17 @@ class TestImport:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
         zip_path = tmp_path / "backup.zip"
-        self._make_backup_zip(zip_path, {
-            "config.yaml": "model: restored\n",
-        })
+        self._make_backup_zip(
+            zip_path,
+            {
+                "config.yaml": "model: restored\n",
+            },
+        )
 
         args = Namespace(zipfile=str(zip_path), force=False)
 
         from hermes_cli.backup import run_import
+
         with patch("builtins.input", return_value="n"):
             run_import(args)
 
@@ -384,13 +432,17 @@ class TestImport:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
         zip_path = tmp_path / "backup.zip"
-        self._make_backup_zip(zip_path, {
-            "config.yaml": "model: restored\n",
-        })
+        self._make_backup_zip(
+            zip_path,
+            {
+                "config.yaml": "model: restored\n",
+            },
+        )
 
         args = Namespace(zipfile=str(zip_path), force=True)
 
         from hermes_cli.backup import run_import
+
         run_import(args)
 
         assert (hermes_home / "config.yaml").read_text() == "model: restored\n"
@@ -404,6 +456,7 @@ class TestImport:
         args = Namespace(zipfile=str(tmp_path / "nonexistent.zip"), force=True)
 
         from hermes_cli.backup import run_import
+
         with pytest.raises(SystemExit):
             run_import(args)
 
@@ -411,6 +464,7 @@ class TestImport:
 # ---------------------------------------------------------------------------
 # Round-trip test
 # ---------------------------------------------------------------------------
+
 
 class TestRoundTrip:
     def test_backup_then_import(self, tmp_path, monkeypatch):
@@ -439,7 +493,9 @@ class TestRoundTrip:
         run_import(Namespace(zipfile=str(out_zip), force=True))
 
         # Verify key files
-        assert (dst_home / "config.yaml").read_text() == "model:\n  provider: openrouter\n"
+        assert (
+            dst_home / "config.yaml"
+        ).read_text() == "model:\n  provider: openrouter\n"
         assert (dst_home / ".env").read_text() == "OPENROUTER_API_KEY=sk-test-123\n"
         assert (dst_home / "skills" / "my-skill" / "SKILL.md").exists()
         assert (dst_home / "profiles" / "coder" / "config.yaml").exists()
@@ -458,26 +514,32 @@ class TestRoundTrip:
 # Validate / detect-prefix unit tests
 # ---------------------------------------------------------------------------
 
+
 class TestFormatSize:
     def test_bytes(self):
         from hermes_cli.backup import _format_size
+
         assert _format_size(512) == "512 B"
 
     def test_kilobytes(self):
         from hermes_cli.backup import _format_size
+
         assert "KB" in _format_size(2048)
 
     def test_megabytes(self):
         from hermes_cli.backup import _format_size
+
         assert "MB" in _format_size(5 * 1024 * 1024)
 
     def test_gigabytes(self):
         from hermes_cli.backup import _format_size
-        assert "GB" in _format_size(3 * 1024 ** 3)
+
+        assert "GB" in _format_size(3 * 1024**3)
 
     def test_terabytes(self):
         from hermes_cli.backup import _format_size
-        assert "TB" in _format_size(2 * 1024 ** 4)
+
+        assert "TB" in _format_size(2 * 1024**4)
 
 
 class TestValidation:
@@ -565,6 +627,7 @@ class TestValidation:
 # Edge case tests for uncovered paths
 # ---------------------------------------------------------------------------
 
+
 class TestBackupEdgeCases:
     def test_nonexistent_hermes_home(self, tmp_path, monkeypatch):
         """Backup exits when hermes home doesn't exist."""
@@ -575,6 +638,7 @@ class TestBackupEdgeCases:
         args = Namespace(output=str(tmp_path / "out.zip"))
 
         from hermes_cli.backup import run_backup
+
         with pytest.raises(SystemExit):
             run_backup(args)
 
@@ -593,6 +657,7 @@ class TestBackupEdgeCases:
         args = Namespace(output=str(out_dir))
 
         from hermes_cli.backup import run_backup
+
         run_backup(args)
 
         zips = list(out_dir.glob("hermes-backup-*.zip"))
@@ -611,6 +676,7 @@ class TestBackupEdgeCases:
         args = Namespace(output=str(out_path))
 
         from hermes_cli.backup import run_backup
+
         run_backup(args)
 
         # Should have .tar.zip suffix
@@ -630,6 +696,7 @@ class TestBackupEdgeCases:
         args = Namespace(output=str(tmp_path / "out.zip"))
 
         from hermes_cli.backup import run_backup
+
         run_backup(args)
 
         # No zip should be created
@@ -653,6 +720,7 @@ class TestBackupEdgeCases:
         args = Namespace(output=str(out_zip))
 
         from hermes_cli.backup import run_backup
+
         try:
             run_backup(args)
         finally:
@@ -676,6 +744,7 @@ class TestBackupEdgeCases:
         args = Namespace(output=str(out_zip))
 
         from hermes_cli.backup import run_backup
+
         run_backup(args)
 
         # The zip should exist but not contain itself
@@ -702,6 +771,7 @@ class TestImportEdgeCases:
         args = Namespace(zipfile=str(not_zip), force=True)
 
         from hermes_cli.backup import run_import
+
         with pytest.raises(SystemExit):
             run_import(args)
 
@@ -719,6 +789,7 @@ class TestImportEdgeCases:
         args = Namespace(zipfile=str(zip_path), force=False)
 
         from hermes_cli.backup import run_import
+
         with patch("builtins.input", side_effect=EOFError):
             with pytest.raises(SystemExit):
                 run_import(args)
@@ -737,6 +808,7 @@ class TestImportEdgeCases:
         args = Namespace(zipfile=str(zip_path), force=False)
 
         from hermes_cli.backup import run_import
+
         with patch("builtins.input", side_effect=KeyboardInterrupt):
             with pytest.raises(SystemExit):
                 run_import(args)
@@ -754,14 +826,18 @@ class TestImportEdgeCases:
         locked_dir.chmod(0o555)
 
         zip_path = tmp_path / "backup.zip"
-        self._make_backup_zip(zip_path, {
-            "config.yaml": "model: test\n",
-            "locked/secret.txt": "data",
-        })
+        self._make_backup_zip(
+            zip_path,
+            {
+                "config.yaml": "model: test\n",
+                "locked/secret.txt": "data",
+            },
+        )
 
         args = Namespace(zipfile=str(zip_path), force=True)
 
         from hermes_cli.backup import run_import
+
         try:
             run_import(args)
         finally:
@@ -787,6 +863,7 @@ class TestImportEdgeCases:
         args = Namespace(zipfile=str(zip_path), force=True)
 
         from hermes_cli.backup import run_import
+
         run_import(args)
 
         assert (hermes_home / "config.yaml").exists()
@@ -796,6 +873,7 @@ class TestImportEdgeCases:
 # ---------------------------------------------------------------------------
 # Profile restoration tests
 # ---------------------------------------------------------------------------
+
 
 class TestProfileRestoration:
     def _make_backup_zip(self, zip_path: Path, files: dict[str, str | bytes]) -> None:
@@ -815,16 +893,20 @@ class TestProfileRestoration:
         wrapper_dir.mkdir(parents=True)
 
         zip_path = tmp_path / "backup.zip"
-        self._make_backup_zip(zip_path, {
-            "config.yaml": "model:\n  provider: openrouter\n",
-            "profiles/coder/config.yaml": "model:\n  provider: anthropic\n",
-            "profiles/coder/.env": "ANTHROPIC_API_KEY=sk-test\n",
-            "profiles/researcher/config.yaml": "model:\n  provider: deepseek\n",
-        })
+        self._make_backup_zip(
+            zip_path,
+            {
+                "config.yaml": "model:\n  provider: openrouter\n",
+                "profiles/coder/config.yaml": "model:\n  provider: anthropic\n",
+                "profiles/coder/.env": "ANTHROPIC_API_KEY=sk-test\n",
+                "profiles/researcher/config.yaml": "model:\n  provider: deepseek\n",
+            },
+        )
 
         args = Namespace(zipfile=str(zip_path), force=True)
 
         from hermes_cli.backup import run_import
+
         run_import(args)
 
         # Profile directories should exist
@@ -850,15 +932,19 @@ class TestProfileRestoration:
         wrapper_dir.mkdir(parents=True)
 
         zip_path = tmp_path / "backup.zip"
-        self._make_backup_zip(zip_path, {
-            "config.yaml": "model: test\n",
-            "profiles/valid/config.yaml": "model: test\n",
-            "profiles/empty/readme.txt": "nothing here\n",
-        })
+        self._make_backup_zip(
+            zip_path,
+            {
+                "config.yaml": "model: test\n",
+                "profiles/valid/config.yaml": "model: test\n",
+                "profiles/empty/readme.txt": "nothing here\n",
+            },
+        )
 
         args = Namespace(zipfile=str(zip_path), force=True)
 
         from hermes_cli.backup import run_import
+
         run_import(args)
 
         # Only valid profile should get a wrapper
@@ -873,16 +959,24 @@ class TestProfileRestoration:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
         zip_path = tmp_path / "backup.zip"
-        self._make_backup_zip(zip_path, {
-            "config.yaml": "model: test\n",
-            "profiles/coder/config.yaml": "model: test\n",
-        })
+        self._make_backup_zip(
+            zip_path,
+            {
+                "config.yaml": "model: test\n",
+                "profiles/coder/config.yaml": "model: test\n",
+            },
+        )
 
         args = Namespace(zipfile=str(zip_path), force=True)
 
         # Simulate profiles module not being available
         import hermes_cli.backup as backup_mod
-        original_import = __builtins__.__import__ if hasattr(__builtins__, '__import__') else __import__
+
+        original_import = (
+            __builtins__.__import__
+            if hasattr(__builtins__, "__import__")
+            else __import__
+        )
 
         def fake_import(name, *a, **kw):
             if name == "hermes_cli.profiles":
@@ -890,6 +984,7 @@ class TestProfileRestoration:
             return original_import(name, *a, **kw)
 
         from hermes_cli.backup import run_import
+
         with patch("builtins.__import__", side_effect=fake_import):
             run_import(args)
 

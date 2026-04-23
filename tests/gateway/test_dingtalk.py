@@ -1,4 +1,5 @@
 """Tests for DingTalk platform adapter."""
+
 import asyncio
 import json
 from datetime import datetime, timezone
@@ -15,13 +16,13 @@ from gateway.config import Platform, PlatformConfig
 
 
 class TestDingTalkRequirements:
-
     def test_returns_false_when_sdk_missing(self, monkeypatch):
         with patch.dict("sys.modules", {"dingtalk_stream": None}):
             monkeypatch.setattr(
                 "gateway.platforms.dingtalk.DINGTALK_STREAM_AVAILABLE", False
             )
             from gateway.platforms.dingtalk import check_dingtalk_requirements
+
             assert check_dingtalk_requirements() is False
 
     def test_returns_false_when_env_vars_missing(self, monkeypatch):
@@ -32,6 +33,7 @@ class TestDingTalkRequirements:
         monkeypatch.delenv("DINGTALK_CLIENT_ID", raising=False)
         monkeypatch.delenv("DINGTALK_CLIENT_SECRET", raising=False)
         from gateway.platforms.dingtalk import check_dingtalk_requirements
+
         assert check_dingtalk_requirements() is False
 
     def test_returns_true_when_all_available(self, monkeypatch):
@@ -42,6 +44,7 @@ class TestDingTalkRequirements:
         monkeypatch.setenv("DINGTALK_CLIENT_ID", "test-id")
         monkeypatch.setenv("DINGTALK_CLIENT_SECRET", "test-secret")
         from gateway.platforms.dingtalk import check_dingtalk_requirements
+
         assert check_dingtalk_requirements() is True
 
 
@@ -51,9 +54,9 @@ class TestDingTalkRequirements:
 
 
 class TestDingTalkAdapterInit:
-
     def test_reads_config_from_extra(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         config = PlatformConfig(
             enabled=True,
             extra={"client_id": "cfg-id", "client_secret": "cfg-secret"},
@@ -67,6 +70,7 @@ class TestDingTalkAdapterInit:
         monkeypatch.setenv("DINGTALK_CLIENT_ID", "env-id")
         monkeypatch.setenv("DINGTALK_CLIENT_SECRET", "env-secret")
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         config = PlatformConfig(enabled=True)
         adapter = DingTalkAdapter(config)
         assert adapter._client_id == "env-id"
@@ -79,9 +83,9 @@ class TestDingTalkAdapterInit:
 
 
 class TestExtractText:
-
     def test_extracts_dict_text(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         msg = MagicMock()
         msg.text = {"content": "  hello world  "}
         msg.rich_text = None
@@ -89,6 +93,7 @@ class TestExtractText:
 
     def test_extracts_string_text(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         msg = MagicMock()
         msg.text = "plain text"
         msg.rich_text = None
@@ -96,6 +101,7 @@ class TestExtractText:
 
     def test_falls_back_to_rich_text(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         msg = MagicMock()
         msg.text = ""
         msg.rich_text = [{"text": "part1"}, {"text": "part2"}, {"image": "url"}]
@@ -103,6 +109,7 @@ class TestExtractText:
 
     def test_returns_empty_for_no_content(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         msg = MagicMock()
         msg.text = ""
         msg.rich_text = None
@@ -115,26 +122,29 @@ class TestExtractText:
 
 
 class TestDeduplication:
-
     def test_first_message_not_duplicate(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
         assert adapter._dedup.is_duplicate("msg-1") is False
 
     def test_second_same_message_is_duplicate(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
         adapter._dedup.is_duplicate("msg-1")
         assert adapter._dedup.is_duplicate("msg-1") is True
 
     def test_different_messages_not_duplicate(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
         adapter._dedup.is_duplicate("msg-1")
         assert adapter._dedup.is_duplicate("msg-2") is False
 
     def test_cache_cleanup_on_overflow(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
         max_size = adapter._dedup._max_size
         # Fill beyond max
@@ -150,10 +160,10 @@ class TestDeduplication:
 
 
 class TestSend:
-
     @pytest.mark.asyncio
     async def test_send_posts_to_webhook(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
 
         mock_response = MagicMock()
@@ -165,8 +175,9 @@ class TestSend:
         adapter._http_client = mock_client
 
         result = await adapter.send(
-            "chat-123", "Hello!",
-            metadata={"session_webhook": "https://dingtalk.example/webhook"}
+            "chat-123",
+            "Hello!",
+            metadata={"session_webhook": "https://dingtalk.example/webhook"},
         )
         assert result.success is True
         mock_client.post.assert_called_once()
@@ -180,6 +191,7 @@ class TestSend:
     @pytest.mark.asyncio
     async def test_send_fails_without_webhook(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
         adapter._http_client = AsyncMock()
 
@@ -190,6 +202,7 @@ class TestSend:
     @pytest.mark.asyncio
     async def test_send_uses_cached_webhook(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
 
         mock_response = MagicMock()
@@ -206,6 +219,7 @@ class TestSend:
     @pytest.mark.asyncio
     async def test_send_handles_http_error(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
 
         mock_response = MagicMock()
@@ -216,8 +230,9 @@ class TestSend:
         adapter._http_client = mock_client
 
         result = await adapter.send(
-            "chat-123", "Hello!",
-            metadata={"session_webhook": "https://example/webhook"}
+            "chat-123",
+            "Hello!",
+            metadata={"session_webhook": "https://example/webhook"},
         )
         assert result.success is False
         assert "400" in result.error
@@ -229,13 +244,13 @@ class TestSend:
 
 
 class TestConnect:
-
     @pytest.mark.asyncio
     async def test_connect_fails_without_sdk(self, monkeypatch):
         monkeypatch.setattr(
             "gateway.platforms.dingtalk.DINGTALK_STREAM_AVAILABLE", False
         )
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
         result = await adapter.connect()
         assert result is False
@@ -243,6 +258,7 @@ class TestConnect:
     @pytest.mark.asyncio
     async def test_connect_fails_without_credentials(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
         adapter._client_id = ""
         adapter._client_secret = ""
@@ -252,6 +268,7 @@ class TestConnect:
     @pytest.mark.asyncio
     async def test_disconnect_cleans_up(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
+
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
         adapter._session_webhooks["a"] = "http://x"
         adapter._dedup._seen["b"] = 1.0
@@ -270,6 +287,5 @@ class TestConnect:
 
 
 class TestPlatformEnum:
-
     def test_dingtalk_in_platform_enum(self):
         assert Platform.DINGTALK.value == "dingtalk"

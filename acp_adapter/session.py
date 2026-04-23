@@ -6,6 +6,7 @@ reconnects after idle/restart, the ``load_session`` / ``resume_session`` calls
 find the persisted session in the database and restore the full conversation
 history.
 """
+
 from __future__ import annotations
 
 from hermes_constants import get_hermes_home
@@ -39,6 +40,7 @@ def _register_task_cwd(task_id: str, cwd: str) -> None:
         return
     try:
         from tools.terminal_tool import register_task_env_overrides
+
         register_task_env_overrides(task_id, {"cwd": cwd})
     except Exception:
         logger.debug("Failed to register ACP task cwd override", exc_info=True)
@@ -50,6 +52,7 @@ def _clear_task_cwd(task_id: str) -> None:
         return
     try:
         from tools.terminal_tool import clear_task_env_overrides
+
         clear_task_env_overrides(task_id)
     except Exception:
         logger.debug("Failed to clear ACP task cwd override", exc_info=True)
@@ -194,12 +197,14 @@ class SessionManager:
                             cwd = json.loads(mc).get("cwd", ".")
                         except (json.JSONDecodeError, TypeError):
                             pass
-                    results.append({
-                        "session_id": sid,
-                        "cwd": cwd,
-                        "model": row.get("model") or "",
-                        "history_len": row.get("message_count") or 0,
-                    })
+                    results.append(
+                        {
+                            "session_id": sid,
+                            "cwd": cwd,
+                            "model": row.get("model") or "",
+                            "history_len": row.get("message_count") or 0,
+                        }
+                    )
             except Exception:
                 logger.debug("Failed to list ACP sessions from DB", exc_info=True)
 
@@ -263,6 +268,7 @@ class SessionManager:
             return self._db_instance
         try:
             from hermes_state import SessionDB
+
             hermes_home = get_hermes_home()
             self._db_instance = SessionDB(db_path=hermes_home / "state.db")
             return self._db_instance
@@ -328,7 +334,9 @@ class SessionManager:
                     tool_call_id=msg.get("tool_call_id"),
                 )
         except Exception:
-            logger.warning("Failed to persist ACP session %s", state.session_id, exc_info=True)
+            logger.warning(
+                "Failed to persist ACP session %s", state.session_id, exc_info=True
+            )
 
     def _restore(self, session_id: str) -> Optional[SessionState]:
         """Load a session from the database into memory, recreating the AIAgent."""
@@ -341,7 +349,9 @@ class SessionManager:
         try:
             row = db.get_session(session_id)
         except Exception:
-            logger.debug("Failed to query DB for ACP session %s", session_id, exc_info=True)
+            logger.debug(
+                "Failed to query DB for ACP session %s", session_id, exc_info=True
+            )
             return None
 
         if row is None:
@@ -374,7 +384,9 @@ class SessionManager:
         try:
             history = db.get_messages_as_conversation(session_id)
         except Exception:
-            logger.warning("Failed to load messages for ACP session %s", session_id, exc_info=True)
+            logger.warning(
+                "Failed to load messages for ACP session %s", session_id, exc_info=True
+            )
             history = []
 
         try:
@@ -387,7 +399,9 @@ class SessionManager:
                 api_mode=restored_api_mode,
             )
         except Exception:
-            logger.warning("Failed to recreate agent for ACP session %s", session_id, exc_info=True)
+            logger.warning(
+                "Failed to recreate agent for ACP session %s", session_id, exc_info=True
+            )
             return None
 
         state = SessionState(
@@ -401,7 +415,9 @@ class SessionManager:
         with self._lock:
             self._sessions[session_id] = state
         _register_task_cwd(session_id, cwd)
-        logger.info("Restored ACP session %s from DB (%d messages)", session_id, len(history))
+        logger.info(
+            "Restored ACP session %s from DB (%d messages)", session_id, len(history)
+        )
         return state
 
     def _delete_persisted(self, session_id: str) -> bool:
@@ -412,7 +428,9 @@ class SessionManager:
         try:
             return db.delete_session(session_id)
         except Exception:
-            logger.debug("Failed to delete ACP session %s from DB", session_id, exc_info=True)
+            logger.debug(
+                "Failed to delete ACP session %s from DB", session_id, exc_info=True
+            )
             return False
 
     # ---- internal -----------------------------------------------------------
@@ -453,7 +471,9 @@ class SessionManager:
         }
 
         try:
-            runtime = resolve_runtime_provider(requested=requested_provider or config_provider)
+            runtime = resolve_runtime_provider(
+                requested=requested_provider or config_provider
+            )
             kwargs.update(
                 {
                     "provider": runtime.get("provider"),
@@ -465,7 +485,9 @@ class SessionManager:
                 }
             )
         except Exception:
-            logger.debug("ACP session falling back to default provider resolution", exc_info=True)
+            logger.debug(
+                "ACP session falling back to default provider resolution", exc_info=True
+            )
 
         _register_task_cwd(session_id, cwd)
         agent = AIAgent(**kwargs)

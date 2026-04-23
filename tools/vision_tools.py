@@ -20,7 +20,7 @@ Features:
 Usage:
     from vision_tools import vision_analyze_tool
     import asyncio
-    
+
     # Analyze an image
     result = await vision_analyze_tool(
         image_url="https://example.com/image.jpg",
@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 
 _debug = DebugSession("vision_tools", env_var="VISION_TOOLS_DEBUG")
 
+
 # Configurable HTTP download timeout for _download_image().
 # Separate from auxiliary.vision.timeout which governs the LLM API call.
 # Resolution: config.yaml auxiliary.vision.download_timeout → env var → 30s default.
@@ -57,6 +58,7 @@ def _resolve_download_timeout() -> float:
             pass
     try:
         from hermes_cli.config import load_config
+
         cfg = load_config()
         val = cfg.get("auxiliary", {}).get("vision", {}).get("download_timeout")
         if val is not None:
@@ -64,6 +66,7 @@ def _resolve_download_timeout() -> float:
     except Exception:
         pass
     return 30.0
+
 
 _VISION_DOWNLOAD_TIMEOUT = _resolve_download_timeout()
 
@@ -75,10 +78,10 @@ _VISION_MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024
 def _validate_image_url(url: str) -> bool:
     """
     Basic validation of image URL format.
-    
+
     Args:
         url (str): The URL to validate
-        
+
     Returns:
         bool: True if URL appears to be valid, False otherwise
     """
@@ -97,6 +100,7 @@ def _validate_image_url(url: str) -> bool:
 
     # Block private/internal addresses to prevent SSRF
     from tools.url_safety import is_safe_url
+
     if not is_safe_url(url):
         return False
 
@@ -125,26 +129,28 @@ def _detect_image_mime_type(image_path: Path) -> Optional[str]:
     return None
 
 
-async def _download_image(image_url: str, destination: Path, max_retries: int = 3) -> Path:
+async def _download_image(
+    image_url: str, destination: Path, max_retries: int = 3
+) -> Path:
     """
     Download an image from a URL to a local destination (async) with retry logic.
-    
+
     Args:
         image_url (str): The URL of the image to download
         destination (Path): The path where the image should be saved
         max_retries (int): Maximum number of retry attempts (default: 3)
-        
+
     Returns:
         Path: The path to the downloaded image
-        
+
     Raises:
         Exception: If download fails after all retries
     """
     import asyncio
-    
+
     # Create parent directories if they don't exist
     destination.parent.mkdir(parents=True, exist_ok=True)
-    
+
     async def _ssrf_redirect_guard(response):
         """Re-validate each redirect target to prevent redirect-based SSRF.
 
@@ -156,6 +162,7 @@ async def _download_image(image_url: str, destination: Path, max_retries: int = 
         if response.is_redirect and response.next_request:
             redirect_url = str(response.next_request.url)
             from tools.url_safety import is_safe_url
+
             if not is_safe_url(redirect_url):
                 raise ValueError(
                     f"Blocked redirect to private/internal address: {redirect_url}"
@@ -196,7 +203,7 @@ async def _download_image(image_url: str, destination: Path, max_retries: int = 
                 blocked = check_website_access(final_url)
                 if blocked:
                     raise PermissionError(blocked["message"])
-                
+
                 # Save the image content (double-check actual size)
                 body = response.content
                 if len(body) > _VISION_MAX_DOWNLOAD_BYTES:
@@ -204,13 +211,18 @@ async def _download_image(image_url: str, destination: Path, max_retries: int = 
                         f"Image too large ({len(body)} bytes, max {_VISION_MAX_DOWNLOAD_BYTES})"
                     )
                 destination.write_bytes(body)
-            
+
             return destination
         except Exception as e:
             last_error = e
             if attempt < max_retries - 1:
                 wait_time = 2 ** (attempt + 1)  # 2s, 4s, 8s
-                logger.warning("Image download failed (attempt %s/%s): %s", attempt + 1, max_retries, str(e)[:50])
+                logger.warning(
+                    "Image download failed (attempt %s/%s): %s",
+                    attempt + 1,
+                    max_retries,
+                    str(e)[:50],
+                )
                 logger.warning("Retrying in %ss...", wait_time)
                 await asyncio.sleep(wait_time)
             else:
@@ -220,7 +232,7 @@ async def _download_image(image_url: str, destination: Path, max_retries: int = 
                     str(e)[:100],
                     exc_info=True,
                 )
-    
+
     if last_error is None:
         raise RuntimeError(
             f"_download_image exited retry loop without attempting (max_retries={max_retries})"
@@ -231,49 +243,49 @@ async def _download_image(image_url: str, destination: Path, max_retries: int = 
 def _determine_mime_type(image_path: Path) -> str:
     """
     Determine the MIME type of an image based on its file extension.
-    
+
     Args:
         image_path (Path): Path to the image file
-        
+
     Returns:
         str: The MIME type (defaults to image/jpeg if unknown)
     """
     extension = image_path.suffix.lower()
     mime_types = {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.gif': 'image/gif',
-        '.bmp': 'image/bmp',
-        '.webp': 'image/webp',
-        '.svg': 'image/svg+xml'
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".gif": "image/gif",
+        ".bmp": "image/bmp",
+        ".webp": "image/webp",
+        ".svg": "image/svg+xml",
     }
-    return mime_types.get(extension, 'image/jpeg')
+    return mime_types.get(extension, "image/jpeg")
 
 
 def _image_to_base64_data_url(image_path: Path, mime_type: Optional[str] = None) -> str:
     """
     Convert an image file to a base64-encoded data URL.
-    
+
     Args:
         image_path (Path): Path to the image file
         mime_type (Optional[str]): MIME type of the image (auto-detected if None)
-        
+
     Returns:
         str: Base64-encoded data URL (e.g., "data:image/jpeg;base64,...")
     """
     # Read the image as bytes
     data = image_path.read_bytes()
-    
+
     # Encode to base64
     encoded = base64.b64encode(data).decode("ascii")
-    
+
     # Determine MIME type
     mime = mime_type or _determine_mime_type(image_path)
-    
+
     # Create data URL
     data_url = f"data:{mime};base64,{encoded}"
-    
+
     return data_url
 
 
@@ -289,15 +301,27 @@ _RESIZE_TARGET_BYTES = 5 * 1024 * 1024
 def _is_image_size_error(error: Exception) -> bool:
     """Detect if an API error is related to image or payload size."""
     err_str = str(error).lower()
-    return any(hint in err_str for hint in (
-        "too large", "payload", "413", "content_too_large",
-        "request_too_large", "image_url", "invalid_request",
-        "exceeds", "size limit",
-    ))
+    return any(
+        hint in err_str
+        for hint in (
+            "too large",
+            "payload",
+            "413",
+            "content_too_large",
+            "request_too_large",
+            "image_url",
+            "invalid_request",
+            "exceeds",
+            "size limit",
+        )
+    )
 
 
-def _resize_image_for_vision(image_path: Path, mime_type: Optional[str] = None,
-                              max_base64_bytes: int = _RESIZE_TARGET_BYTES) -> str:
+def _resize_image_for_vision(
+    image_path: Path,
+    mime_type: Optional[str] = None,
+    max_base64_bytes: int = _RESIZE_TARGET_BYTES,
+) -> str:
     """Convert an image to a base64 data URL, auto-resizing if too large.
 
     Tries Pillow first to progressively downscale oversized images.  If Pillow
@@ -328,9 +352,12 @@ def _resize_image_for_vision(image_path: Path, mime_type: Optional[str] = None,
             data_url = _image_to_base64_data_url(image_path, mime_type=mime_type)
         return data_url  # caller will raise the size error
 
-    logger.info("Image file is %.1f MB (estimated base64 %.1f MB, limit %.1f MB), auto-resizing...",
-                file_size / (1024 * 1024), estimated_b64 / (1024 * 1024),
-                max_base64_bytes / (1024 * 1024))
+    logger.info(
+        "Image file is %.1f MB (estimated base64 %.1f MB, limit %.1f MB), auto-resizing...",
+        file_size / (1024 * 1024),
+        estimated_b64 / (1024 * 1024),
+        max_base64_bytes / (1024 * 1024),
+    )
 
     mime = mime_type or _determine_mime_type(image_path)
     # Choose output format: JPEG for photos (smaller), PNG for transparency
@@ -386,16 +413,23 @@ def _resize_image_for_vision(image_path: Path, mime_type: Optional[str] = None,
             encoded = base64.b64encode(buf.getvalue()).decode("ascii")
             candidate = f"data:{out_mime};base64,{encoded}"
             if len(candidate) <= max_base64_bytes:
-                logger.info("Auto-resized image fits: %.1f MB (quality=%s, %dx%d)",
-                            len(candidate) / (1024 * 1024), q,
-                            img.width, img.height)
+                logger.info(
+                    "Auto-resized image fits: %.1f MB (quality=%s, %dx%d)",
+                    len(candidate) / (1024 * 1024),
+                    q,
+                    img.width,
+                    img.height,
+                )
                 return candidate
 
     # If we still can't get it small enough, return the best attempt
     # and let the caller decide
     if candidate is not None:
-        logger.warning("Auto-resize could not fit image under %.1f MB (best: %.1f MB)",
-                       max_base64_bytes / (1024 * 1024), len(candidate) / (1024 * 1024))
+        logger.warning(
+            "Auto-resize could not fit image under %.1f MB (best: %.1f MB)",
+            max_base64_bytes / (1024 * 1024),
+            len(candidate) / (1024 * 1024),
+        )
         return candidate
 
     # Shouldn't reach here, but fall back to full encode
@@ -409,31 +443,31 @@ async def vision_analyze_tool(
 ) -> str:
     """
     Analyze an image from a URL or local file path using vision AI.
-    
+
     This tool accepts either an HTTP/HTTPS URL or a local file path. For URLs,
     it downloads the image first. In both cases, the image is converted to base64
     and processed using Gemini 3 Flash Preview via OpenRouter API.
-    
+
     The user_prompt parameter is expected to be pre-formatted by the calling
     function (typically model_tools.py) to include both full description
     requests and specific questions.
-    
+
     Args:
         image_url (str): The URL or local file path of the image to analyze.
                          Accepts http://, https:// URLs or absolute/relative file paths.
         user_prompt (str): The pre-formatted prompt for the vision model
         model (str): The vision model to use (default: google/gemini-3-flash-preview)
-    
+
     Returns:
         str: JSON string containing the analysis results with the following structure:
              {
                  "success": bool,
                  "analysis": str (defaults to error message if None)
              }
-    
+
     Raises:
         Exception: If download fails, analysis fails, or API key is not set
-        
+
     Note:
         - For URLs, temporary images are stored in ./temp_vision_images/ and cleaned up
         - For local file paths, the file is used directly and NOT deleted
@@ -442,35 +476,38 @@ async def vision_analyze_tool(
     debug_call_data = {
         "parameters": {
             "image_url": image_url,
-            "user_prompt": user_prompt[:200] + "..." if len(user_prompt) > 200 else user_prompt,
-            "model": model
+            "user_prompt": user_prompt[:200] + "..."
+            if len(user_prompt) > 200
+            else user_prompt,
+            "model": model,
         },
         "error": None,
         "success": False,
         "analysis_length": 0,
         "model_used": model,
-        "image_size_bytes": 0
+        "image_size_bytes": 0,
     }
-    
+
     temp_image_path = None
     # Track whether we should clean up the file after processing.
     # Local files (e.g. from the image cache) should NOT be deleted.
     should_cleanup = True
     detected_mime_type = None
-    
+
     try:
         from tools.interrupt import is_interrupted
+
         if is_interrupted():
             return tool_error("Interrupted", success=False)
 
         logger.info("Analyzing image: %s", image_url[:60])
         logger.info("User prompt: %s", user_prompt[:100])
-        
+
         # Determine if this is a local file path or a remote URL
         # Strip file:// scheme so file URIs resolve as local paths.
         resolved_url = image_url
         if resolved_url.startswith("file://"):
-            resolved_url = resolved_url[len("file://"):]
+            resolved_url = resolved_url[len("file://") :]
         local_path = Path(os.path.expanduser(resolved_url))
         if local_path.is_file():
             # Local file path (e.g. from platform image cache) -- skip download
@@ -491,7 +528,7 @@ async def vision_analyze_tool(
             raise ValueError(
                 "Invalid image source. Provide an HTTP/HTTPS URL or a valid local file path."
             )
-        
+
         # Get image file size for logging
         image_size_bytes = temp_image_path.stat().st_size
         image_size_kb = image_size_bytes / 1024
@@ -500,11 +537,13 @@ async def vision_analyze_tool(
         detected_mime_type = _detect_image_mime_type(temp_image_path)
         if not detected_mime_type:
             raise ValueError("Only real image files are supported for vision analysis.")
-        
+
         # Convert image to base64 — send at full resolution first.
         # If the provider rejects it as too large, we auto-resize and retry.
         logger.info("Converting image to base64...")
-        image_data_url = _image_to_base64_data_url(temp_image_path, mime_type=detected_mime_type)
+        image_data_url = _image_to_base64_data_url(
+            temp_image_path, mime_type=detected_mime_type
+        )
         data_size_kb = len(image_data_url) / 1024
         logger.info("Image converted to base64 (%.1f KB)", data_size_kb)
 
@@ -512,7 +551,8 @@ async def vision_analyze_tool(
         if len(image_data_url) > _MAX_BASE64_BYTES:
             # Try to resize down to 5 MB before giving up.
             image_data_url = _resize_image_for_vision(
-                temp_image_path, mime_type=detected_mime_type)
+                temp_image_path, mime_type=detected_mime_type
+            )
             if len(image_data_url) > _MAX_BASE64_BYTES:
                 raise ValueError(
                     f"Image too large for vision API: base64 payload is "
@@ -524,37 +564,30 @@ async def vision_analyze_tool(
                 )
 
         debug_call_data["image_size_bytes"] = image_size_bytes
-        
+
         # Use the prompt as provided (model_tools.py now handles full description formatting)
         comprehensive_prompt = user_prompt
-        
+
         # Prepare the message with base64-encoded image
         messages = [
             {
                 "role": "user",
                 "content": [
-                    {
-                        "type": "text",
-                        "text": comprehensive_prompt
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": image_data_url
-                        }
-                    }
-                ]
+                    {"type": "text", "text": comprehensive_prompt},
+                    {"type": "image_url", "image_url": {"url": image_data_url}},
+                ],
             }
         ]
-        
+
         logger.info("Processing image with vision model...")
-        
+
         # Call the vision API via centralized router.
         # Read timeout from config.yaml (auxiliary.vision.timeout), default 120s.
         # Local vision models (llama.cpp, ollama) can take well over 30s.
         vision_timeout = 120.0
         try:
             from hermes_cli.config import load_config
+
             _cfg = load_config()
             _vt = _cfg.get("auxiliary", {}).get("vision", {}).get("timeout")
             if _vt is not None:
@@ -574,8 +607,10 @@ async def vision_analyze_tool(
         try:
             response = await async_call_llm(**call_kwargs)
         except Exception as _api_err:
-            if (_is_image_size_error(_api_err)
-                    and len(image_data_url) > _RESIZE_TARGET_BYTES):
+            if (
+                _is_image_size_error(_api_err)
+                and len(image_data_url) > _RESIZE_TARGET_BYTES
+            ):
                 logger.info(
                     "API rejected image (%.1f MB, likely too large); "
                     "auto-resizing to ~%.0f MB and retrying...",
@@ -583,12 +618,13 @@ async def vision_analyze_tool(
                     _RESIZE_TARGET_BYTES / (1024 * 1024),
                 )
                 image_data_url = _resize_image_for_vision(
-                    temp_image_path, mime_type=detected_mime_type)
+                    temp_image_path, mime_type=detected_mime_type
+                )
                 messages[0]["content"][1]["image_url"]["url"] = image_data_url
                 response = await async_call_llm(**call_kwargs)
             else:
                 raise
-        
+
         # Extract the analysis — fall back to reasoning if content is empty
         analysis = extract_content_or_reasoning(response)
 
@@ -599,43 +635,57 @@ async def vision_analyze_tool(
             analysis = extract_content_or_reasoning(response)
 
         analysis_length = len(analysis)
-        
+
         logger.info("Image analysis completed (%s characters)", analysis_length)
-        
+
         # Prepare successful response
         result = {
             "success": True,
-            "analysis": analysis or "There was a problem with the request and the image could not be analyzed."
+            "analysis": analysis
+            or "There was a problem with the request and the image could not be analyzed.",
         }
-        
+
         debug_call_data["success"] = True
         debug_call_data["analysis_length"] = analysis_length
-        
+
         # Log debug information
         _debug.log_call("vision_analyze_tool", debug_call_data)
         _debug.save()
-        
+
         return json.dumps(result, indent=2, ensure_ascii=False)
-        
+
     except Exception as e:
         error_msg = f"Error analyzing image: {str(e)}"
         logger.error("%s", error_msg, exc_info=True)
-        
+
         # Detect vision capability errors — give the model a clear message
         # so it can inform the user instead of a cryptic API error.
         err_str = str(e).lower()
-        if any(hint in err_str for hint in (
-            "402", "insufficient", "payment required", "credits", "billing",
-        )):
+        if any(
+            hint in err_str
+            for hint in (
+                "402",
+                "insufficient",
+                "payment required",
+                "credits",
+                "billing",
+            )
+        ):
             analysis = (
                 "Insufficient credits or payment required. Please top up your "
                 f"API provider account and try again. Error: {e}"
             )
-        elif any(hint in err_str for hint in (
-            "does not support", "not support image",
-            "content_policy", "multimodal",
-            "unrecognized request argument", "image input",
-        )):
+        elif any(
+            hint in err_str
+            for hint in (
+                "does not support",
+                "not support image",
+                "content_policy",
+                "multimodal",
+                "unrecognized request argument",
+                "image input",
+            )
+        ):
             analysis = (
                 f"{model} does not support vision or our request was not "
                 f"accepted by the server. Error: {e}"
@@ -652,20 +702,20 @@ async def vision_analyze_tool(
                 "There was a problem with the request and the image could not "
                 f"be analyzed. Error: {e}"
             )
-        
+
         # Prepare error response
         result = {
             "success": False,
             "error": error_msg,
             "analysis": analysis,
         }
-        
+
         debug_call_data["error"] = error_msg
         _debug.log_call("vision_analyze_tool", debug_call_data)
         _debug.save()
-        
+
         return json.dumps(result, indent=2, ensure_ascii=False)
-    
+
     finally:
         # Clean up temporary image file (but NOT local/cached files)
         if should_cleanup and temp_image_path and temp_image_path.exists():
@@ -692,7 +742,7 @@ def check_vision_requirements() -> bool:
 def get_debug_session_info() -> Dict[str, Any]:
     """
     Get information about the current debug session.
-    
+
     Returns:
         Dict[str, Any]: Dictionary containing debug session information
     """
@@ -705,26 +755,30 @@ if __name__ == "__main__":
     """
     print("👁️ Vision Tools Module")
     print("=" * 40)
-    
+
     # Check if vision model is available
     api_available = check_vision_requirements()
-    
+
     if not api_available:
         print("❌ No auxiliary vision model available")
-        print("Configure a supported multimodal backend (OpenRouter, Nous, Codex, Anthropic, or a custom OpenAI-compatible endpoint).")
+        print(
+            "Configure a supported multimodal backend (OpenRouter, Nous, Codex, Anthropic, or a custom OpenAI-compatible endpoint)."
+        )
         exit(1)
     else:
         print("✅ Vision model available")
-    
+
     print("🛠️ Vision tools ready for use!")
-    
+
     # Show debug mode status
     if _debug.active:
         print(f"🐛 Debug mode ENABLED - Session ID: {_debug.session_id}")
-        print(f"   Debug logs will be saved to: ./logs/vision_tools_debug_{_debug.session_id}.json")
+        print(
+            f"   Debug logs will be saved to: ./logs/vision_tools_debug_{_debug.session_id}.json"
+        )
     else:
         print("🐛 Debug mode disabled (set VISION_TOOLS_DEBUG=true to enable)")
-    
+
     print("\nBasic usage:")
     print("  from vision_tools import vision_analyze_tool")
     print("  import asyncio")
@@ -736,14 +790,14 @@ if __name__ == "__main__":
     print("      )")
     print("      print(result)")
     print("  asyncio.run(main())")
-    
+
     print("\nExample prompts:")
     print("  - 'What architectural style is this building?'")
     print("  - 'Describe the emotions and mood in this image'")
     print("  - 'What text can you read in this image?'")
     print("  - 'Identify any safety hazards visible'")
     print("  - 'What products or brands are shown?'")
-    
+
     print("\nDebug mode:")
     print("  # Enable debug logging")
     print("  export VISION_TOOLS_DEBUG=true")
@@ -764,15 +818,15 @@ VISION_ANALYZE_SCHEMA = {
         "properties": {
             "image_url": {
                 "type": "string",
-                "description": "Image URL (http/https) or local file path to analyze."
+                "description": "Image URL (http/https) or local file path to analyze.",
             },
             "question": {
                 "type": "string",
-                "description": "Your specific question or request about the image to resolve. The AI will automatically provide a complete image description AND answer your specific question."
-            }
+                "description": "Your specific question or request about the image to resolve. The AI will automatically provide a complete image description AND answer your specific question.",
+            },
         },
-        "required": ["image_url", "question"]
-    }
+        "required": ["image_url", "question"],
+    },
 }
 
 

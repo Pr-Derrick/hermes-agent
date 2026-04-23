@@ -110,15 +110,24 @@ def setup_module(monkeypatch, tmp_path):
     monkeypatch.setitem(sys.modules, "google_auth_oauthlib", google_auth_module)
     monkeypatch.setitem(sys.modules, "google_auth_oauthlib.flow", flow_module)
 
-    spec = importlib.util.spec_from_file_location("google_workspace_setup_test", SCRIPT_PATH)
+    spec = importlib.util.spec_from_file_location(
+        "google_workspace_setup_test", SCRIPT_PATH
+    )
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
 
     monkeypatch.setattr(module, "_ensure_deps", lambda: None)
-    monkeypatch.setattr(module, "CLIENT_SECRET_PATH", tmp_path / "google_client_secret.json")
+    monkeypatch.setattr(
+        module, "CLIENT_SECRET_PATH", tmp_path / "google_client_secret.json"
+    )
     monkeypatch.setattr(module, "TOKEN_PATH", tmp_path / "google_token.json")
-    monkeypatch.setattr(module, "PENDING_AUTH_PATH", tmp_path / "google_oauth_pending.json", raising=False)
+    monkeypatch.setattr(
+        module,
+        "PENDING_AUTH_PATH",
+        tmp_path / "google_oauth_pending.json",
+        raising=False,
+    )
 
     client_secret = {
         "installed": {
@@ -133,7 +142,9 @@ def setup_module(monkeypatch, tmp_path):
 
 
 class TestGetAuthUrl:
-    def test_persists_state_and_code_verifier_for_later_exchange(self, setup_module, capsys):
+    def test_persists_state_and_code_verifier_for_later_exchange(
+        self, setup_module, capsys
+    ):
         setup_module.get_auth_url()
 
         out = capsys.readouterr().out.strip()
@@ -145,7 +156,10 @@ class TestGetAuthUrl:
 
         flow = FakeFlow.created[-1]
         assert flow.autogenerate_code_verifier is True
-        assert flow.authorization_kwargs == {"access_type": "offline", "prompt": "consent"}
+        assert flow.authorization_kwargs == {
+            "access_type": "offline",
+            "prompt": "consent",
+        }
 
 
 class TestExchangeAuthCode:
@@ -160,7 +174,9 @@ class TestExchangeAuthCode:
         assert flow.state == "saved-state"
         assert flow.code_verifier == "saved-verifier"
         assert flow.fetch_token_calls == [{"code": "4/test-auth-code"}]
-        assert json.loads(setup_module.TOKEN_PATH.read_text())["token"] == "access-token"
+        assert (
+            json.loads(setup_module.TOKEN_PATH.read_text())["token"] == "access-token"
+        )
         assert not setup_module.PENDING_AUTH_PATH.exists()
 
     def test_extracts_code_from_redirect_url_and_checks_state(self, setup_module):
@@ -216,7 +232,9 @@ class TestExchangeAuthCode:
         setup_module.PENDING_AUTH_PATH.write_text(
             json.dumps({"state": "saved-state", "code_verifier": "saved-verifier"})
         )
-        setup_module.TOKEN_PATH.write_text(json.dumps({"token": "***", "scopes": setup_module.SCOPES}))
+        setup_module.TOKEN_PATH.write_text(
+            json.dumps({"token": "***", "scopes": setup_module.SCOPES})
+        )
         FakeFlow.credentials_payload = {
             "token": "***",
             "refresh_token": "***",

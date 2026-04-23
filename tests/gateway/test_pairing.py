@@ -133,7 +133,10 @@ class TestMaxPending:
                 codes.append(code)
 
         # First MAX_PENDING_PER_PLATFORM should succeed
-        assert all(isinstance(c, str) and len(c) == CODE_LENGTH for c in codes[:MAX_PENDING_PER_PLATFORM])
+        assert all(
+            isinstance(c, str) and len(c) == CODE_LENGTH
+            for c in codes[:MAX_PENDING_PER_PLATFORM]
+        )
         # Next one should be blocked
         assert codes[MAX_PENDING_PER_PLATFORM] is None
 

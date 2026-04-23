@@ -25,7 +25,11 @@ class TestRegisterServerTools:
     def mock_toolsets(self):
         return {
             "hermes-cli": {"tools": ["terminal"], "description": "CLI", "includes": []},
-            "hermes-telegram": {"tools": ["terminal"], "description": "TG", "includes": []},
+            "hermes-telegram": {
+                "tools": ["terminal"],
+                "description": "TG",
+                "includes": [],
+            },
             "custom-toolset": {"tools": [], "description": "Other", "includes": []},
         }
 
@@ -35,10 +39,11 @@ class TestRegisterServerTools:
         server._tools = [_make_mcp_tool("my_tool", "desc")]
         server.session = MagicMock()
 
-        with patch("tools.registry.registry", mock_registry), \
-            patch("toolsets.create_custom_toolset"), \
-            patch.dict("toolsets.TOOLSETS", mock_toolsets, clear=True):
-
+        with (
+            patch("tools.registry.registry", mock_registry),
+            patch("toolsets.create_custom_toolset"),
+            patch.dict("toolsets.TOOLSETS", mock_toolsets, clear=True),
+        ):
             registered = _register_server_tools("my_srv", server, {})
 
         assert "mcp_my_srv_my_tool" in registered
@@ -62,7 +67,11 @@ class TestRefreshTools:
     def mock_toolsets(self):
         return {
             "hermes-cli": {"tools": ["terminal"], "description": "CLI", "includes": []},
-            "hermes-telegram": {"tools": ["terminal"], "description": "TG", "includes": []},
+            "hermes-telegram": {
+                "tools": ["terminal"],
+                "description": "TG",
+                "includes": [],
+            },
         }
 
     @pytest.mark.asyncio
@@ -74,9 +83,14 @@ class TestRefreshTools:
 
         # Seed initial state: one old tool registered
         mock_registry.register(
-            name="mcp_live_srv_old_tool", toolset="mcp-live_srv", schema={},
-            handler=lambda x: x, check_fn=lambda: True, is_async=False,
-            description="", emoji="",
+            name="mcp_live_srv_old_tool",
+            toolset="mcp-live_srv",
+            schema={},
+            handler=lambda x: x,
+            check_fn=lambda: True,
+            is_async=False,
+            description="",
+            emoji="",
         )
         server._registered_tool_names = ["mcp_live_srv_old_tool"]
         mock_toolsets["hermes-cli"]["tools"].append("mcp_live_srv_old_tool")
@@ -84,15 +98,14 @@ class TestRefreshTools:
         # New tool list from server
         new_tool = _make_mcp_tool("new_tool", "new behavior")
         server.session = SimpleNamespace(
-            list_tools=AsyncMock(
-                return_value=SimpleNamespace(tools=[new_tool])
-            )
+            list_tools=AsyncMock(return_value=SimpleNamespace(tools=[new_tool]))
         )
 
-        with patch("tools.registry.registry", mock_registry), \
-            patch("toolsets.create_custom_toolset"), \
-            patch.dict("toolsets.TOOLSETS", mock_toolsets, clear=True):
-
+        with (
+            patch("tools.registry.registry", mock_registry),
+            patch("toolsets.create_custom_toolset"),
+            patch.dict("toolsets.TOOLSETS", mock_toolsets, clear=True),
+        ):
             await server._refresh_tools()
 
         # Old tool completely gone
@@ -111,16 +124,21 @@ class TestMessageHandler:
     @pytest.mark.asyncio
     async def test_dispatches_tool_list_changed(self):
         from tools.mcp_tool import _MCP_NOTIFICATION_TYPES
+
         if not _MCP_NOTIFICATION_TYPES:
             pytest.skip("MCP SDK ToolListChangedNotification not available")
 
         from mcp.types import ServerNotification, ToolListChangedNotification
 
         server = MCPServerTask("notif_srv")
-        with patch.object(MCPServerTask, "_refresh_tools", new_callable=AsyncMock) as mock_refresh:
+        with patch.object(
+            MCPServerTask, "_refresh_tools", new_callable=AsyncMock
+        ) as mock_refresh:
             handler = server._make_message_handler()
             notification = ServerNotification(
-                root=ToolListChangedNotification(method="notifications/tools/list_changed")
+                root=ToolListChangedNotification(
+                    method="notifications/tools/list_changed"
+                )
             )
             await handler(notification)
             mock_refresh.assert_awaited_once()
@@ -128,7 +146,9 @@ class TestMessageHandler:
     @pytest.mark.asyncio
     async def test_ignores_exceptions_and_other_messages(self):
         server = MCPServerTask("notif_srv")
-        with patch.object(MCPServerTask, "_refresh_tools", new_callable=AsyncMock) as mock_refresh:
+        with patch.object(
+            MCPServerTask, "_refresh_tools", new_callable=AsyncMock
+        ) as mock_refresh:
             handler = server._make_message_handler()
             # Exceptions should not trigger refresh
             await handler(RuntimeError("connection dead"))
@@ -150,7 +170,9 @@ class TestDeregister:
     def test_cleans_up_toolset_check(self):
         reg = ToolRegistry()
         check = lambda: True  # noqa: E731
-        reg.register(name="foo", toolset="ts1", schema={}, handler=lambda x: x, check_fn=check)
+        reg.register(
+            name="foo", toolset="ts1", schema={}, handler=lambda x: x, check_fn=check
+        )
         assert reg.is_toolset_available("ts1")
         reg.deregister("foo")
         # Toolset check should be gone since no tools remain
@@ -159,7 +181,9 @@ class TestDeregister:
     def test_preserves_toolset_check_if_other_tools_remain(self):
         reg = ToolRegistry()
         check = lambda: True  # noqa: E731
-        reg.register(name="foo", toolset="ts1", schema={}, handler=lambda x: x, check_fn=check)
+        reg.register(
+            name="foo", toolset="ts1", schema={}, handler=lambda x: x, check_fn=check
+        )
         reg.register(name="bar", toolset="ts1", schema={}, handler=lambda x: x)
         reg.deregister("foo")
         # bar still in ts1, so check should remain

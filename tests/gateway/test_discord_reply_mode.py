@@ -5,6 +5,7 @@ Covers the threading behavior control for multi-chunk replies:
 - "first": Only first chunk uses reply reference (default)
 - "all": All chunks reply-reference the original message
 """
+
 import os
 import sys
 from types import SimpleNamespace
@@ -27,14 +28,24 @@ def _ensure_discord_mock():
     discord_mod.DMChannel = type("DMChannel", (), {})
     discord_mod.Thread = type("Thread", (), {})
     discord_mod.ForumChannel = type("ForumChannel", (), {})
-    discord_mod.ui = SimpleNamespace(View=object, button=lambda *a, **k: (lambda fn: fn), Button=object)
-    discord_mod.ButtonStyle = SimpleNamespace(success=1, primary=2, secondary=2, danger=3, green=1, grey=2, blurple=2, red=3)
-    discord_mod.Color = SimpleNamespace(orange=lambda: 1, green=lambda: 2, blue=lambda: 3, red=lambda: 4, purple=lambda: 5)
+    discord_mod.ui = SimpleNamespace(
+        View=object, button=lambda *a, **k: lambda fn: fn, Button=object
+    )
+    discord_mod.ButtonStyle = SimpleNamespace(
+        success=1, primary=2, secondary=2, danger=3, green=1, grey=2, blurple=2, red=3
+    )
+    discord_mod.Color = SimpleNamespace(
+        orange=lambda: 1,
+        green=lambda: 2,
+        blue=lambda: 3,
+        red=lambda: 4,
+        purple=lambda: 5,
+    )
     discord_mod.Interaction = object
     discord_mod.Embed = MagicMock
     discord_mod.app_commands = SimpleNamespace(
-        describe=lambda **kwargs: (lambda fn: fn),
-        choices=lambda **kwargs: (lambda fn: fn),
+        describe=lambda **kwargs: lambda fn: fn,
+        choices=lambda **kwargs: lambda fn: fn,
         Choice=lambda **kwargs: SimpleNamespace(**kwargs),
     )
 
@@ -56,9 +67,13 @@ from gateway.platforms.discord import DiscordAdapter  # noqa: E402
 @pytest.fixture()
 def adapter_factory():
     """Factory to create DiscordAdapter with custom reply_to_mode."""
+
     def create(reply_to_mode: str = "first"):
-        config = PlatformConfig(enabled=True, token="test-token", reply_to_mode=reply_to_mode)
+        config = PlatformConfig(
+            enabled=True, token="test-token", reply_to_mode=reply_to_mode
+        )
         return DiscordAdapter(config)
+
     return create
 
 
@@ -99,7 +114,9 @@ class TestReplyToModeConfig:
 
 def _make_discord_adapter(reply_to_mode: str = "first"):
     """Create a DiscordAdapter with mocked client and channel for send() tests."""
-    config = PlatformConfig(enabled=True, token="test-token", reply_to_mode=reply_to_mode)
+    config = PlatformConfig(
+        enabled=True, token="test-token", reply_to_mode=reply_to_mode
+    )
     adapter = DiscordAdapter(config)
 
     # Mock the Discord client and channel
@@ -124,7 +141,11 @@ class TestSendWithReplyToMode:
     @pytest.mark.asyncio
     async def test_off_mode_no_reply_reference(self):
         adapter, channel, ref_msg = _make_discord_adapter("off")
-        adapter.truncate_message = lambda content, max_len: ["chunk1", "chunk2", "chunk3"]
+        adapter.truncate_message = lambda content, max_len: [
+            "chunk1",
+            "chunk2",
+            "chunk3",
+        ]
 
         await adapter.send("12345", "test content", reply_to="999")
 
@@ -137,7 +158,11 @@ class TestSendWithReplyToMode:
     @pytest.mark.asyncio
     async def test_first_mode_only_first_chunk_references(self):
         adapter, channel, ref_msg = _make_discord_adapter("first")
-        adapter.truncate_message = lambda content, max_len: ["chunk1", "chunk2", "chunk3"]
+        adapter.truncate_message = lambda content, max_len: [
+            "chunk1",
+            "chunk2",
+            "chunk3",
+        ]
 
         await adapter.send("12345", "test content", reply_to="999")
 
@@ -152,7 +177,11 @@ class TestSendWithReplyToMode:
     @pytest.mark.asyncio
     async def test_all_mode_all_chunks_reference(self):
         adapter, channel, ref_msg = _make_discord_adapter("all")
-        adapter.truncate_message = lambda content, max_len: ["chunk1", "chunk2", "chunk3"]
+        adapter.truncate_message = lambda content, max_len: [
+            "chunk1",
+            "chunk2",
+            "chunk3",
+        ]
 
         await adapter.send("12345", "test content", reply_to="999")
 

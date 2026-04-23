@@ -18,6 +18,7 @@ from gateway.config import PlatformConfig
 # Mock the telegram package if it's not installed
 # ---------------------------------------------------------------------------
 
+
 def _ensure_telegram_mock():
     if "telegram" in sys.modules and hasattr(sys.modules["telegram"], "__file__"):
         return
@@ -41,6 +42,7 @@ from gateway.platforms.telegram import TelegramAdapter, _escape_mdv2, _strip_mdv
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture()
 def adapter():
     config = PlatformConfig(enabled=True, token="fake-token")
@@ -54,13 +56,13 @@ def adapter():
 
 class TestEscapeMdv2:
     def test_escapes_all_special_characters(self):
-        special = r'_*[]()~`>#+-=|{}.!\ '
+        special = r"_*[]()~`>#+-=|{}.!\ "
         escaped = _escape_mdv2(special)
         # Every special char should be preceded by backslash
-        for ch in r'_*[]()~`>#+-=|{}.!\  ':
-            if ch == ' ':
+        for ch in r"_*[]()~`>#+-=|{}.!\  ":
+            if ch == " ":
                 continue
-            assert f'\\{ch}' in escaped
+            assert f"\\{ch}" in escaped
 
     def test_empty_string(self):
         assert _escape_mdv2("") == ""
@@ -292,7 +294,11 @@ class TestItalicNewlineBug:
         assert "Item two" in result
         assert "Item three" in result
         # Should NOT contain _ (italic markers) wrapping list items
-        assert "_" not in result or "Item" not in result.split("_")[1] if "_" in result else True
+        assert (
+            "_" not in result or "Item" not in result.split("_")[1]
+            if "_" in result
+            else True
+        )
 
     def test_asterisk_list_items_preserved(self, adapter):
         """Each * list item should remain as a separate line, not become italic."""

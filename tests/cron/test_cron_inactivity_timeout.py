@@ -25,8 +25,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 class FakeAgent:
     """Mock agent with controllable activity summary for timeout tests."""
 
-    def __init__(self, idle_seconds=0.0, activity_desc="tool_call",
-                 current_tool=None, api_call_count=5, max_iterations=90):
+    def __init__(
+        self,
+        idle_seconds=0.0,
+        activity_desc="tool_call",
+        current_tool=None,
+        api_call_count=5,
+        max_iterations=90,
+    ):
         self._idle_seconds = idle_seconds
         self._activity_desc = activity_desc
         self._current_tool = current_tool
@@ -120,7 +126,7 @@ class TestInactivityTimeout:
         # Agent will run for 0.3s, then become idle after 0.1s of that
         agent = SlowFakeAgent(
             run_duration=5.0,  # would run forever without timeout
-            idle_after=0.1,    # goes idle almost immediately
+            idle_after=0.1,  # goes idle almost immediately
             activity_desc="api_call_streaming",
             current_tool="web_search",
             api_call_count=3,
@@ -236,10 +242,11 @@ class TestInactivityTimeout:
 
     def test_agent_without_activity_summary_uses_wallclock_fallback(self):
         """If agent lacks get_activity_summary, idle_secs stays 0 (never times out).
-        
+
         This ensures backward compat if somehow an old agent is used.
         The polling loop will eventually complete when the task finishes.
         """
+
         class BareAgent:
             def run_conversation(self, prompt):
                 return {"final_response": "no activity tracker", "messages": []}
@@ -281,9 +288,11 @@ class TestSysPathOrdering:
         """hermes_time should be importable when cron.scheduler loads."""
         # This import would fail if sys.path.insert comes after the import
         from cron.scheduler import _hermes_now
+
         assert callable(_hermes_now)
 
     def test_hermes_constants_importable(self):
         """hermes_constants should be importable from cron context."""
         from hermes_constants import get_hermes_home
+
         assert callable(get_hermes_home)

@@ -13,7 +13,10 @@ import pytest
 def test_version_string_no_v_prefix():
     """__version__ should be bare semver without a 'v' prefix."""
     from hermes_cli import __version__
-    assert not __version__.startswith("v"), f"__version__ should not start with 'v', got {__version__!r}"
+
+    assert not __version__.startswith("v"), (
+        f"__version__ should not start with 'v', got {__version__!r}"
+    )
 
 
 def test_check_for_updates_uses_cache(tmp_path, monkeypatch):
@@ -51,7 +54,9 @@ def test_check_for_updates_expired_cache(tmp_path, monkeypatch):
     mock_result = MagicMock(returncode=0, stdout="5\n")
 
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    with patch("hermes_cli.banner.subprocess.run", return_value=mock_result) as mock_run:
+    with patch(
+        "hermes_cli.banner.subprocess.run", return_value=mock_result
+    ) as mock_run:
         result = check_for_updates()
 
     assert result == 5
@@ -145,14 +150,22 @@ def test_invalidate_update_cache_clears_all_profiles(tmp_path):
         p.mkdir(parents=True)
         (p / ".update_check").write_text('{"ts":1,"behind":50}')
 
-    with patch.object(Path, "home", return_value=tmp_path), \
-         patch.dict(os.environ, {"HERMES_HOME": str(default_home)}):
+    with (
+        patch.object(Path, "home", return_value=tmp_path),
+        patch.dict(os.environ, {"HERMES_HOME": str(default_home)}),
+    ):
         _invalidate_update_cache()
 
     # All three caches should be gone
-    assert not (default_home / ".update_check").exists(), "default profile cache not cleared"
-    assert not (profiles_root / "ops" / ".update_check").exists(), "ops profile cache not cleared"
-    assert not (profiles_root / "dev" / ".update_check").exists(), "dev profile cache not cleared"
+    assert not (default_home / ".update_check").exists(), (
+        "default profile cache not cleared"
+    )
+    assert not (profiles_root / "ops" / ".update_check").exists(), (
+        "ops profile cache not cleared"
+    )
+    assert not (profiles_root / "dev" / ".update_check").exists(), (
+        "dev profile cache not cleared"
+    )
 
 
 def test_invalidate_update_cache_no_profiles_dir(tmp_path):
@@ -163,8 +176,10 @@ def test_invalidate_update_cache_no_profiles_dir(tmp_path):
     default_home.mkdir()
     (default_home / ".update_check").write_text('{"ts":1,"behind":5}')
 
-    with patch.object(Path, "home", return_value=tmp_path), \
-         patch.dict(os.environ, {"HERMES_HOME": str(default_home)}):
+    with (
+        patch.object(Path, "home", return_value=tmp_path),
+        patch.dict(os.environ, {"HERMES_HOME": str(default_home)}),
+    ):
         _invalidate_update_cache()
 
     assert not (default_home / ".update_check").exists()

@@ -44,7 +44,9 @@ def _session_entry_id(origin: Dict[str, Any]) -> Optional[str]:
 
 
 def _session_entry_name(origin: Dict[str, Any]) -> str:
-    base_name = origin.get("chat_name") or origin.get("user_name") or str(origin.get("chat_id"))
+    base_name = (
+        origin.get("chat_name") or origin.get("user_name") or str(origin.get("chat_id"))
+    )
     thread_id = origin.get("thread_id")
     if not thread_id:
         return base_name
@@ -56,6 +58,7 @@ def _session_entry_name(origin: Dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 # Build / refresh
 # ---------------------------------------------------------------------------
+
 
 def build_channel_directory(adapters: Dict[Any, Any]) -> Dict[str, Any]:
     """
@@ -74,7 +77,9 @@ def build_channel_directory(adapters: Dict[Any, Any]) -> Dict[str, Any]:
             elif platform == Platform.SLACK:
                 platforms["slack"] = _build_slack(adapter)
         except Exception as e:
-            logger.warning("Channel directory: failed to build %s: %s", platform.value, e)
+            logger.warning(
+                "Channel directory: failed to build %s: %s", platform.value, e
+            )
 
     # Platforms that don't support direct channel enumeration get session-based
     # discovery automatically.  Skip infrastructure entries that aren't messaging
@@ -113,12 +118,14 @@ def _build_discord(adapter) -> List[Dict[str, str]]:
 
     for guild in client.guilds:
         for ch in guild.text_channels:
-            channels.append({
-                "id": str(ch.id),
-                "name": ch.name,
-                "guild": guild.name,
-                "type": "channel",
-            })
+            channels.append(
+                {
+                    "id": str(ch.id),
+                    "name": ch.name,
+                    "guild": guild.name,
+                    "type": "channel",
+                }
+            )
         # Also include DM-capable users we've interacted with is not
         # feasible via guild enumeration; those come from sessions.
 
@@ -164,14 +171,18 @@ def _build_from_sessions(platform_name: str) -> List[Dict[str, str]]:
             if not entry_id or entry_id in seen_ids:
                 continue
             seen_ids.add(entry_id)
-            entries.append({
-                "id": entry_id,
-                "name": _session_entry_name(origin),
-                "type": session.get("chat_type", "dm"),
-                "thread_id": origin.get("thread_id"),
-            })
+            entries.append(
+                {
+                    "id": entry_id,
+                    "name": _session_entry_name(origin),
+                    "type": session.get("chat_type", "dm"),
+                    "thread_id": origin.get("thread_id"),
+                }
+            )
     except Exception as e:
-        logger.debug("Channel directory: failed to read sessions for %s: %s", platform_name, e)
+        logger.debug(
+            "Channel directory: failed to read sessions for %s: %s", platform_name, e
+        )
 
     return entries
 
@@ -179,6 +190,7 @@ def _build_from_sessions(platform_name: str) -> List[Dict[str, str]]:
 # ---------------------------------------------------------------------------
 # Read / resolve
 # ---------------------------------------------------------------------------
+
 
 def load_directory() -> Dict[str, Any]:
     """Load the cached channel directory from disk."""
@@ -223,7 +235,9 @@ def resolve_channel_name(platform_name: str, name: str) -> Optional[str]:
                 return ch["id"]
 
     # 3. Partial prefix match (only if unambiguous)
-    matches = [ch for ch in channels if _normalize_channel_query(ch["name"]).startswith(query)]
+    matches = [
+        ch for ch in channels if _normalize_channel_query(ch["name"]).startswith(query)
+    ]
     if len(matches) == 1:
         return matches[0]["id"]
 

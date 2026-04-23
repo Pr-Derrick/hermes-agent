@@ -235,38 +235,52 @@ async def test_on_processing_complete_cancelled_keeps_existing_reaction(monkeypa
 def test_config_bridges_telegram_reactions(monkeypatch, tmp_path):
     """gateway/config.py bridges telegram.reactions to TELEGRAM_REACTIONS env var."""
     import yaml
+
     config_file = tmp_path / "config.yaml"
-    config_file.write_text(yaml.dump({
-        "telegram": {
-            "reactions": True,
-        },
-    }))
+    config_file.write_text(
+        yaml.dump(
+            {
+                "telegram": {
+                    "reactions": True,
+                },
+            }
+        )
+    )
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     # Use setenv (not delenv) so monkeypatch registers cleanup even when
     # the var doesn't exist yet — load_gateway_config will overwrite it.
     monkeypatch.setenv("TELEGRAM_REACTIONS", "")
 
     from gateway.config import load_gateway_config
+
     load_gateway_config()
 
     import os
+
     assert os.getenv("TELEGRAM_REACTIONS") == "true"
 
 
 def test_config_reactions_env_takes_precedence(monkeypatch, tmp_path):
     """Env var should take precedence over config.yaml for reactions."""
     import yaml
+
     config_file = tmp_path / "config.yaml"
-    config_file.write_text(yaml.dump({
-        "telegram": {
-            "reactions": True,
-        },
-    }))
+    config_file.write_text(
+        yaml.dump(
+            {
+                "telegram": {
+                    "reactions": True,
+                },
+            }
+        )
+    )
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     monkeypatch.setenv("TELEGRAM_REACTIONS", "false")
 
     from gateway.config import load_gateway_config
+
     load_gateway_config()
 
     import os
+
     assert os.getenv("TELEGRAM_REACTIONS") == "false"

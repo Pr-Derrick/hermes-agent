@@ -79,6 +79,7 @@ def _get_disabled_plugins() -> set:
     """Read the disabled plugins list from config.yaml."""
     try:
         from hermes_cli.config import load_config
+
         config = load_config()
         disabled = config.get("plugins", {}).get("disabled", [])
         return set(disabled) if isinstance(disabled, list) else set()
@@ -89,6 +90,7 @@ def _get_disabled_plugins() -> set:
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class PluginManifest:
@@ -101,7 +103,7 @@ class PluginManifest:
     requires_env: List[Union[str, Dict[str, Any]]] = field(default_factory=list)
     provides_tools: List[str] = field(default_factory=list)
     provides_hooks: List[str] = field(default_factory=list)
-    source: str = ""        # "user", "project", or "entrypoint"
+    source: str = ""  # "user", "project", or "entrypoint"
     path: Optional[str] = None
 
 
@@ -120,6 +122,7 @@ class LoadedPlugin:
 # ---------------------------------------------------------------------------
 # PluginContext  – handed to each plugin's ``register()`` function
 # ---------------------------------------------------------------------------
+
 
 class PluginContext:
     """Facade given to plugins so they can register tools and hooks."""
@@ -174,7 +177,9 @@ class PluginContext:
         """
         cli = self._manager._cli_ref
         if cli is None:
-            logger.warning("inject_message: no CLI reference (not available in gateway mode)")
+            logger.warning(
+                "inject_message: no CLI reference (not available in gateway mode)"
+            )
             return False
 
         msg = content if role == "user" else f"[{role}] {content}"
@@ -231,6 +236,7 @@ class PluginContext:
             return
         # Defer the import to avoid circular deps at module level
         from agent.context_engine import ContextEngine
+
         if not isinstance(engine, ContextEngine):
             logger.warning(
                 "Plugin '%s' tried to register a context engine that does not "
@@ -241,7 +247,8 @@ class PluginContext:
         self._manager._context_engine = engine
         logger.info(
             "Plugin '%s' registered context engine: %s",
-            self.manifest.name, engine.name,
+            self.manifest.name,
+            engine.name,
         )
 
     # -- hook registration --------------------------------------------------
@@ -254,8 +261,7 @@ class PluginContext:
         """
         if hook_name not in VALID_HOOKS:
             logger.warning(
-                "Plugin '%s' registered unknown hook '%s' "
-                "(valid: %s)",
+                "Plugin '%s' registered unknown hook '%s' (valid: %s)",
                 self.manifest.name,
                 hook_name,
                 ", ".join(sorted(VALID_HOOKS)),
@@ -267,6 +273,7 @@ class PluginContext:
 # ---------------------------------------------------------------------------
 # PluginManager
 # ---------------------------------------------------------------------------
+
 
 class PluginManager:
     """Central manager that discovers, loads, and invokes plugins."""
@@ -344,7 +351,9 @@ class PluginManager:
 
             try:
                 if yaml is None:
-                    logger.warning("PyYAML not installed – cannot load %s", manifest_file)
+                    logger.warning(
+                        "PyYAML not installed – cannot load %s", manifest_file
+                    )
                     continue
                 data = yaml.safe_load(manifest_file.read_text()) or {}
                 manifest = PluginManifest(
@@ -418,8 +427,10 @@ class PluginManager:
                 ctx = PluginContext(manifest, self)
                 register_fn(ctx)
                 loaded.tools_registered = [
-                    t for t in self._plugin_tool_names
-                    if t not in {
+                    t
+                    for t in self._plugin_tool_names
+                    if t
+                    not in {
                         n
                         for name, p in self._plugins.items()
                         for n in p.tools_registered

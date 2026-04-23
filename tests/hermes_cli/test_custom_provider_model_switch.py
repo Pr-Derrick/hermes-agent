@@ -45,14 +45,21 @@ class TestCustomProviderModelSwitch:
             "model": "model-A",  # already saved
         }
 
-        with patch("hermes_cli.models.fetch_api_models", return_value=["model-A", "model-B"]) as mock_fetch, \
-             patch.dict("sys.modules", {"simple_term_menu": None}), \
-             patch("builtins.input", return_value="2"), \
-             patch("builtins.print"):
+        with (
+            patch(
+                "hermes_cli.models.fetch_api_models",
+                return_value=["model-A", "model-B"],
+            ) as mock_fetch,
+            patch.dict("sys.modules", {"simple_term_menu": None}),
+            patch("builtins.input", return_value="2"),
+            patch("builtins.print"),
+        ):
             _model_flow_named_custom({}, provider_info)
 
         # fetch_api_models MUST be called even though model was saved
-        mock_fetch.assert_called_once_with("sk-test", "https://vllm.example.com/v1", timeout=8.0)
+        mock_fetch.assert_called_once_with(
+            "sk-test", "https://vllm.example.com/v1", timeout=8.0
+        )
 
     def test_can_switch_to_different_model(self, config_home):
         """User selects a different model than the saved one."""
@@ -66,10 +73,15 @@ class TestCustomProviderModelSwitch:
             "model": "model-A",
         }
 
-        with patch("hermes_cli.models.fetch_api_models", return_value=["model-A", "model-B"]), \
-             patch.dict("sys.modules", {"simple_term_menu": None}), \
-             patch("builtins.input", return_value="2"), \
-             patch("builtins.print"):
+        with (
+            patch(
+                "hermes_cli.models.fetch_api_models",
+                return_value=["model-A", "model-B"],
+            ),
+            patch.dict("sys.modules", {"simple_term_menu": None}),
+            patch("builtins.input", return_value="2"),
+            patch("builtins.print"),
+        ):
             _model_flow_named_custom({}, provider_info)
 
         config = yaml.safe_load((config_home / "config.yaml").read_text()) or {}
@@ -90,9 +102,11 @@ class TestCustomProviderModelSwitch:
         }
 
         # fetch returns empty list (probe failed), user presses Enter (empty input)
-        with patch("hermes_cli.models.fetch_api_models", return_value=[]), \
-             patch("builtins.input", return_value=""), \
-             patch("builtins.print"):
+        with (
+            patch("hermes_cli.models.fetch_api_models", return_value=[]),
+            patch("builtins.input", return_value=""),
+            patch("builtins.print"),
+        ):
             _model_flow_named_custom({}, provider_info)
 
         config = yaml.safe_load((config_home / "config.yaml").read_text()) or {}
@@ -112,10 +126,12 @@ class TestCustomProviderModelSwitch:
             # no "model" key
         }
 
-        with patch("hermes_cli.models.fetch_api_models", return_value=["model-X"]), \
-             patch.dict("sys.modules", {"simple_term_menu": None}), \
-             patch("builtins.input", return_value="1"), \
-             patch("builtins.print"):
+        with (
+            patch("hermes_cli.models.fetch_api_models", return_value=["model-X"]),
+            patch.dict("sys.modules", {"simple_term_menu": None}),
+            patch("builtins.input", return_value="1"),
+            patch("builtins.print"),
+        ):
             _model_flow_named_custom({}, provider_info)
 
         config = yaml.safe_load((config_home / "config.yaml").read_text()) or {}
@@ -136,10 +152,12 @@ class TestCustomProviderModelSwitch:
             "api_mode": "anthropic_messages",
         }
 
-        with patch("hermes_cli.models.fetch_api_models", return_value=["claude-3"]), \
-             patch.dict("sys.modules", {"simple_term_menu": None}), \
-             patch("builtins.input", return_value="1"), \
-             patch("builtins.print"):
+        with (
+            patch("hermes_cli.models.fetch_api_models", return_value=["claude-3"]),
+            patch.dict("sys.modules", {"simple_term_menu": None}),
+            patch("builtins.input", return_value="1"),
+            patch("builtins.print"),
+        ):
             _model_flow_named_custom({}, provider_info)
 
         config = yaml.safe_load((config_home / "config.yaml").read_text()) or {}
@@ -163,10 +181,12 @@ class TestCustomProviderModelSwitch:
             "model": "llama-3",
         }
 
-        with patch("hermes_cli.models.fetch_api_models", return_value=["llama-3"]), \
-             patch.dict("sys.modules", {"simple_term_menu": None}), \
-             patch("builtins.input", return_value="1"), \
-             patch("builtins.print"):
+        with (
+            patch("hermes_cli.models.fetch_api_models", return_value=["llama-3"]),
+            patch.dict("sys.modules", {"simple_term_menu": None}),
+            patch("builtins.input", return_value="1"),
+            patch("builtins.print"),
+        ):
             _model_flow_named_custom({}, provider_info)
 
         config = yaml.safe_load((config_home / "config.yaml").read_text()) or {}

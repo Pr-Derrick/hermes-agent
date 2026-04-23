@@ -1,4 +1,5 @@
 """Tests for the Alter AI Chrome Extension WebSocket gateway adapter."""
+
 import asyncio
 import json
 import pytest
@@ -7,6 +8,7 @@ from gateway.config import Platform, PlatformConfig
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _make_adapter(**extra):
     from gateway.platforms.alter_chrome import AlterChromeAdapter
@@ -24,6 +26,7 @@ def _make_adapter(**extra):
 
 # ── Platform Enum ─────────────────────────────────────────────────────────────
 
+
 class TestAlterChromePlatformEnum:
     def test_enum_exists(self):
         assert Platform.ALTER_CHROME.value == "alter_chrome"
@@ -36,11 +39,13 @@ class TestAlterChromePlatformEnum:
 class TestAlterChromePlatformRegistry:
     def test_platform_registry_includes_alter_chrome(self):
         from hermes_cli.platforms import PLATFORMS
+
         assert "alter_chrome" in PLATFORMS
         assert PLATFORMS["alter_chrome"].default_toolset == "hermes-cli"
 
 
 # ── Config Loading ────────────────────────────────────────────────────────────
+
 
 class TestAlterChromeConfigLoading:
     def test_apply_env_overrides_enabled_flag(self, monkeypatch):
@@ -109,6 +114,7 @@ class TestAlterChromeConfigLoading:
 
 # ── Adapter Initialisation ────────────────────────────────────────────────────
 
+
 class TestAlterChromeAdapterInit:
     def test_default_host_and_port(self):
         adapter = _make_adapter()
@@ -134,20 +140,26 @@ class TestAlterChromeAdapterInit:
 
 # ── Requirements Check ────────────────────────────────────────────────────────
 
+
 class TestAlterChromeRequirements:
     def test_check_requirements_true_when_aiohttp_available(self):
-        from gateway.platforms.alter_chrome import check_alter_chrome_requirements, AIOHTTP_AVAILABLE
+        from gateway.platforms.alter_chrome import (
+            check_alter_chrome_requirements,
+            AIOHTTP_AVAILABLE,
+        )
 
         if AIOHTTP_AVAILABLE:
             assert check_alter_chrome_requirements() is True
 
     def test_check_requirements_false_when_aiohttp_missing(self, monkeypatch):
         import gateway.platforms.alter_chrome as mod
+
         monkeypatch.setattr(mod, "AIOHTTP_AVAILABLE", False)
         assert mod.check_alter_chrome_requirements() is False
 
 
 # ── Socratic Card Parsing ─────────────────────────────────────────────────────
+
 
 class TestParseAgentResponse:
     def setup_method(self):
@@ -159,10 +171,10 @@ class TestParseAgentResponse:
 
     def test_valid_card_json_returns_socratic_card(self):
         text = (
-            'Some preamble\n'
-            '```json\n'
+            "Some preamble\n"
+            "```json\n"
             '{"title": "破冰计划", "steps": ["第一步", "第二步"], "citations": []}\n'
-            '```\n'
+            "```\n"
         )
         result = self.adapter._parse_agent_response(text)
         assert result["type"] == "socratic_card"
@@ -175,7 +187,7 @@ class TestParseAgentResponse:
         assert result["type"] == "text"
 
     def test_malformed_json_falls_back_to_text(self):
-        text = '```json\n{broken json\n```'
+        text = "```json\n{broken json\n```"
         result = self.adapter._parse_agent_response(text)
         assert result["type"] == "text"
 
@@ -185,6 +197,7 @@ class TestParseAgentResponse:
 
 
 # ── Session ID Extraction ─────────────────────────────────────────────────────
+
 
 class TestSessionIdExtraction:
     def test_session_id_extracted_from_chat_id(self):
@@ -240,6 +253,7 @@ class TestSend:
 
 # ── get_chat_info ─────────────────────────────────────────────────────────────
 
+
 class TestGetChatInfo:
     def test_returns_expected_shape(self):
         adapter = _make_adapter()
@@ -252,6 +266,7 @@ class TestGetChatInfo:
 
 
 # ── build_source call compatibility ───────────────────────────────────────────
+
 
 class TestAlterChromeBuildSourceCallCompatibility:
     def test_handle_chat_build_source_called_without_platform_kwarg(self, monkeypatch):
@@ -311,6 +326,7 @@ class TestAlterChromeBuildSourceCallCompatibility:
 
 # ── Authorization ─────────────────────────────────────────────────────────────
 
+
 class TestAlterChromeAuthorization:
     def test_platform_in_authorization_bypass(self):
         """ALTER_CHROME should bypass the user allowlist check.
@@ -319,6 +335,7 @@ class TestAlterChromeAuthorization:
         by reading the source file directly (avoids heavy gateway.run import).
         """
         import os
+
         run_path = os.path.join(
             os.path.dirname(__file__), "..", "..", "gateway", "run.py"
         )
@@ -329,32 +346,40 @@ class TestAlterChromeAuthorization:
 
 # ── Toolset Registration ──────────────────────────────────────────────────────
 
+
 class TestAlterChromeToolset:
     def test_toolset_exists(self):
         from toolsets import TOOLSETS
+
         assert "hermes-alter-chrome" in TOOLSETS
 
     def test_toolset_has_tools(self):
         from toolsets import TOOLSETS
+
         ts = TOOLSETS["hermes-alter-chrome"]
         assert len(ts["tools"]) > 0
 
     def test_gateway_toolset_includes_alter_chrome(self):
         from toolsets import TOOLSETS
+
         assert "hermes-alter-chrome" in TOOLSETS["hermes-gateway"]["includes"]
 
 
 # ── Platform Hint ─────────────────────────────────────────────────────────────
 
+
 class TestAlterChromePlatformHint:
     def test_hint_exists(self):
         from agent.prompt_builder import PLATFORM_HINTS
+
         assert "alter_chrome" in PLATFORM_HINTS
 
     def test_hint_mentions_adhd(self):
         from agent.prompt_builder import PLATFORM_HINTS
+
         assert "ADHD" in PLATFORM_HINTS["alter_chrome"]
 
     def test_hint_mentions_socratic_card(self):
         from agent.prompt_builder import PLATFORM_HINTS
+
         assert "Socratic Draft Card" in PLATFORM_HINTS["alter_chrome"]

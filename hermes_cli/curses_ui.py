@@ -4,6 +4,7 @@ Used by `hermes tools` and `hermes skills` for interactive checklists.
 Provides a curses multi-select with keyboard navigation, plus a
 text-based numbered fallback for terminals without curses support.
 """
+
 import sys
 from typing import Callable, List, Optional, Set
 
@@ -27,6 +28,7 @@ def flush_stdin() -> None:
         if not sys.stdin.isatty():
             return
         import termios
+
         termios.tcflush(sys.stdin, termios.TCIFLUSH)
     except Exception:
         pass
@@ -61,6 +63,7 @@ def curses_checklist(
 
     try:
         import curses
+
         chosen = set(selected)
         result_holder: list = [None]
 
@@ -89,9 +92,11 @@ def curses_checklist(
                         hattr |= curses.color_pair(2)
                     stdscr.addnstr(0, 0, title, max_x - 1, hattr)
                     stdscr.addnstr(
-                        1, 0,
+                        1,
+                        0,
                         "  ↑↓ navigate  SPACE toggle  ENTER confirm  ESC cancel",
-                        max_x - 1, curses.A_DIM,
+                        max_x - 1,
+                        curses.A_DIM,
                     )
                 except curses.error:
                     pass
@@ -132,7 +137,9 @@ def curses_checklist(
                             sattr = curses.A_DIM
                             if curses.has_colors():
                                 sattr |= curses.color_pair(3)
-                            stdscr.addnstr(max_y - 1, sx, status_text, max_x - sx - 1, sattr)
+                            stdscr.addnstr(
+                                max_y - 1, sx, status_text, max_x - sx - 1, sattr
+                            )
                     except curses.error:
                         pass
 
@@ -183,6 +190,7 @@ def curses_radiolist(
 
     try:
         import curses
+
         result_holder: list = [None]
 
         def _draw(stdscr):
@@ -206,9 +214,11 @@ def curses_radiolist(
                         hattr |= curses.color_pair(2)
                     stdscr.addnstr(0, 0, title, max_x - 1, hattr)
                     stdscr.addnstr(
-                        1, 0,
+                        1,
+                        0,
                         "  \u2191\u2193 navigate  ENTER/SPACE select  ESC cancel",
-                        max_x - 1, curses.A_DIM,
+                        max_x - 1,
+                        curses.A_DIM,
                     )
                 except curses.error:
                     pass
@@ -304,6 +314,7 @@ def curses_single_select(
 
     try:
         import curses
+
         result_holder: list = [None]
 
         all_items = list(items) + [cancel_label]
@@ -329,9 +340,11 @@ def curses_single_select(
                         hattr |= curses.color_pair(2)
                     stdscr.addnstr(0, 0, title, max_x - 1, hattr)
                     stdscr.addnstr(
-                        1, 0,
+                        1,
+                        0,
                         "  ↑↓ navigate  ENTER confirm  ESC/q cancel",
-                        max_x - 1, curses.A_DIM,
+                        max_x - 1,
+                        curses.A_DIM,
                     )
                 except curses.error:
                     pass
@@ -343,7 +356,9 @@ def curses_single_select(
                     scroll_offset = cursor - visible_rows + 1
 
                 for draw_i, i in enumerate(
-                    range(scroll_offset, min(len(all_items), scroll_offset + visible_rows))
+                    range(
+                        scroll_offset, min(len(all_items), scroll_offset + visible_rows)
+                    )
                 ):
                     y = draw_i + 3
                     if y >= max_y - 1:

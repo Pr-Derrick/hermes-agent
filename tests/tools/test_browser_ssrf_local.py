@@ -64,7 +64,9 @@ class TestPreNavigationSsrf:
         assert result["success"] is False
         assert "private or internal address" in result["error"]
 
-    def test_cloud_allows_private_url_when_setting_true(self, monkeypatch, _common_patches):
+    def test_cloud_allows_private_url_when_setting_true(
+        self, monkeypatch, _common_patches
+    ):
         """Private URLs pass in cloud mode when allow_private_urls is True."""
         monkeypatch.setattr(browser_tool, "_is_local_backend", lambda: False)
         monkeypatch.setattr(browser_tool, "_allow_private_urls", lambda: True)
@@ -168,7 +170,9 @@ class TestPostRedirectSsrf:
         monkeypatch.setattr(browser_tool, "_is_local_backend", lambda: False)
         monkeypatch.setattr(browser_tool, "_allow_private_urls", lambda: False)
         monkeypatch.setattr(
-            browser_tool, "_is_safe_url", lambda url: "192.168" not in url,
+            browser_tool,
+            "_is_safe_url",
+            lambda url: "192.168" not in url,
         )
         monkeypatch.setattr(
             browser_tool,
@@ -181,12 +185,16 @@ class TestPostRedirectSsrf:
         assert result["success"] is False
         assert "redirect landed on a private/internal address" in result["error"]
 
-    def test_cloud_allows_redirect_to_private_when_setting_true(self, monkeypatch, _common_patches):
+    def test_cloud_allows_redirect_to_private_when_setting_true(
+        self, monkeypatch, _common_patches
+    ):
         """Redirects to private addresses pass in cloud mode with allow_private_urls."""
         monkeypatch.setattr(browser_tool, "_is_local_backend", lambda: False)
         monkeypatch.setattr(browser_tool, "_allow_private_urls", lambda: True)
         monkeypatch.setattr(
-            browser_tool, "_is_safe_url", lambda url: "192.168" not in url,
+            browser_tool,
+            "_is_safe_url",
+            lambda url: "192.168" not in url,
         )
         monkeypatch.setattr(
             browser_tool,
@@ -206,7 +214,9 @@ class TestPostRedirectSsrf:
         monkeypatch.setattr(browser_tool, "_is_local_backend", lambda: True)
         monkeypatch.setattr(browser_tool, "_allow_private_urls", lambda: False)
         monkeypatch.setattr(
-            browser_tool, "_is_safe_url", lambda url: "192.168" not in url,
+            browser_tool,
+            "_is_safe_url",
+            lambda url: "192.168" not in url,
         )
         monkeypatch.setattr(
             browser_tool,

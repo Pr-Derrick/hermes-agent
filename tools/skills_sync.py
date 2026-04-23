@@ -85,7 +85,10 @@ def _write_manifest(entries: Dict[str, str]):
     import tempfile
 
     MANIFEST_FILE.parent.mkdir(parents=True, exist_ok=True)
-    data = "\n".join(f"{name}:{hash_val}" for name, hash_val in sorted(entries.items())) + "\n"
+    data = (
+        "\n".join(f"{name}:{hash_val}" for name, hash_val in sorted(entries.items()))
+        + "\n"
+    )
 
     try:
         fd, tmp_path = tempfile.mkstemp(
@@ -106,7 +109,9 @@ def _write_manifest(entries: Dict[str, str]):
                 pass
             raise
     except Exception as e:
-        logger.debug("Failed to write skills manifest %s: %s", MANIFEST_FILE, e, exc_info=True)
+        logger.debug(
+            "Failed to write skills manifest %s: %s", MANIFEST_FILE, e, exc_info=True
+        )
 
 
 def _read_skill_name(skill_md: Path, fallback: str) -> str:
@@ -184,8 +189,12 @@ def sync_skills(quiet: bool = False) -> dict:
     bundled_dir = _get_bundled_dir()
     if not bundled_dir.exists():
         return {
-            "copied": [], "updated": [], "skipped": 0,
-            "user_modified": [], "cleaned": [], "total_bundled": 0,
+            "copied": [],
+            "updated": [],
+            "skipped": 0,
+            "user_modified": [],
+            "cleaned": [],
+            "total_bundled": 0,
         }
 
     SKILLS_DIR.mkdir(parents=True, exist_ok=True)

@@ -31,6 +31,7 @@ from tools.file_tools import (
 
 class _FakeReadResult:
     """Minimal stand-in for FileOperations.read_file return value."""
+
     def __init__(self, content="line1\nline2\n", total_lines=2):
         self.content = content
         self._total_lines = total_lines
@@ -45,6 +46,7 @@ def _fake_read_file(path, offset=1, limit=500):
 
 class _FakeSearchResult:
     """Minimal stand-in for FileOperations.search return value."""
+
     def __init__(self):
         self.matches = []
 
@@ -138,9 +140,7 @@ class TestReadLoopDetection(unittest.TestCase):
     def test_different_tasks_isolated(self, _mock_ops):
         """Different task_ids have separate consecutive counters."""
         read_file_tool("/tmp/test.py", task_id="task_a")
-        result = json.loads(
-            read_file_tool("/tmp/test.py", task_id="task_b")
-        )
+        result = json.loads(read_file_tool("/tmp/test.py", task_id="task_b"))
         self.assertNotIn("_warning", result)
 
     @patch("tools.file_tools._get_file_ops", return_value=_make_fake_file_ops())
@@ -372,7 +372,9 @@ class TestSearchLoopDetection(unittest.TestCase):
     def test_pagination_offset_does_not_count_as_repeat(self, _mock_ops):
         """Paginating truncated results should not be blocked as a repeat search."""
         for offset in (0, 50, 100, 150):
-            result = json.loads(search_tool("def main", task_id="t1", offset=offset, limit=50))
+            result = json.loads(
+                search_tool("def main", task_id="t1", offset=offset, limit=50)
+            )
             self.assertNotIn("_warning", result)
             self.assertNotIn("error", result)
 
@@ -393,13 +395,16 @@ class TestTodoInjectionFiltering(unittest.TestCase):
 
     def test_filters_completed_and_cancelled(self):
         from tools.todo_tool import TodoStore
+
         store = TodoStore()
-        store.write([
-            {"id": "1", "content": "Read codebase", "status": "completed"},
-            {"id": "2", "content": "Write fix", "status": "in_progress"},
-            {"id": "3", "content": "Run tests", "status": "pending"},
-            {"id": "4", "content": "Abandoned", "status": "cancelled"},
-        ])
+        store.write(
+            [
+                {"id": "1", "content": "Read codebase", "status": "completed"},
+                {"id": "2", "content": "Write fix", "status": "in_progress"},
+                {"id": "3", "content": "Run tests", "status": "pending"},
+                {"id": "4", "content": "Abandoned", "status": "cancelled"},
+            ]
+        )
         injection = store.format_for_injection()
         self.assertNotIn("Read codebase", injection)
         self.assertNotIn("Abandoned", injection)
@@ -408,25 +413,32 @@ class TestTodoInjectionFiltering(unittest.TestCase):
 
     def test_all_completed_returns_none(self):
         from tools.todo_tool import TodoStore
+
         store = TodoStore()
-        store.write([
-            {"id": "1", "content": "Done", "status": "completed"},
-            {"id": "2", "content": "Also done", "status": "cancelled"},
-        ])
+        store.write(
+            [
+                {"id": "1", "content": "Done", "status": "completed"},
+                {"id": "2", "content": "Also done", "status": "cancelled"},
+            ]
+        )
         self.assertIsNone(store.format_for_injection())
 
     def test_empty_store_returns_none(self):
         from tools.todo_tool import TodoStore
+
         store = TodoStore()
         self.assertIsNone(store.format_for_injection())
 
     def test_all_active_included(self):
         from tools.todo_tool import TodoStore
+
         store = TodoStore()
-        store.write([
-            {"id": "1", "content": "Task A", "status": "pending"},
-            {"id": "2", "content": "Task B", "status": "in_progress"},
-        ])
+        store.write(
+            [
+                {"id": "1", "content": "Task A", "status": "pending"},
+                {"id": "2", "content": "Task B", "status": "in_progress"},
+            ]
+        )
         injection = store.format_for_injection()
         self.assertIn("Task A", injection)
         self.assertIn("Task B", injection)

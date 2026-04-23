@@ -8,7 +8,11 @@ from pathlib import Path
 import httpx
 import pytest
 
-from hermes_cli.auth import AuthError, get_provider_auth_state, resolve_nous_runtime_credentials
+from hermes_cli.auth import (
+    AuthError,
+    get_provider_auth_state,
+    resolve_nous_runtime_credentials,
+)
 
 
 # =============================================================================
@@ -22,9 +26,11 @@ class TestResolveVerifyFallback:
     def test_missing_ca_bundle_in_auth_state_falls_back(self):
         from hermes_cli.auth import _resolve_verify
 
-        result = _resolve_verify(auth_state={
-            "tls": {"insecure": False, "ca_bundle": "/nonexistent/ca-bundle.pem"},
-        })
+        result = _resolve_verify(
+            auth_state={
+                "tls": {"insecure": False, "ca_bundle": "/nonexistent/ca-bundle.pem"},
+            }
+        )
         assert result is True
 
     def test_valid_ca_bundle_in_auth_state_is_returned(self, tmp_path):
@@ -32,9 +38,11 @@ class TestResolveVerifyFallback:
 
         ca_file = tmp_path / "ca-bundle.pem"
         ca_file.write_text("fake cert")
-        result = _resolve_verify(auth_state={
-            "tls": {"insecure": False, "ca_bundle": str(ca_file)},
-        })
+        result = _resolve_verify(
+            auth_state={
+                "tls": {"insecure": False, "ca_bundle": str(ca_file)},
+            }
+        )
         assert result == str(ca_file)
 
     def test_missing_ssl_cert_file_env_falls_back(self, monkeypatch):
@@ -129,7 +137,9 @@ def _mint_payload(api_key: str = "agent-key") -> dict:
     }
 
 
-def test_refresh_token_persisted_when_mint_returns_insufficient_credits(tmp_path, monkeypatch):
+def test_refresh_token_persisted_when_mint_returns_insufficient_credits(
+    tmp_path, monkeypatch
+):
     hermes_home = tmp_path / "hermes"
     _setup_nous_auth(hermes_home, refresh_token="refresh-old")
     monkeypatch.setenv("HERMES_HOME", str(hermes_home))
@@ -137,7 +147,9 @@ def test_refresh_token_persisted_when_mint_returns_insufficient_credits(tmp_path
     refresh_calls = []
     mint_calls = {"count": 0}
 
-    def _fake_refresh_access_token(*, client, portal_base_url, client_id, refresh_token):
+    def _fake_refresh_access_token(
+        *, client, portal_base_url, client_id, refresh_token
+    ):
         refresh_calls.append(refresh_token)
         idx = len(refresh_calls)
         return {
@@ -150,10 +162,14 @@ def test_refresh_token_persisted_when_mint_returns_insufficient_credits(tmp_path
     def _fake_mint_agent_key(*, client, portal_base_url, access_token, min_ttl_seconds):
         mint_calls["count"] += 1
         if mint_calls["count"] == 1:
-            raise AuthError("credits exhausted", provider="nous", code="insufficient_credits")
+            raise AuthError(
+                "credits exhausted", provider="nous", code="insufficient_credits"
+            )
         return _mint_payload(api_key="agent-key-2")
 
-    monkeypatch.setattr("hermes_cli.auth._refresh_access_token", _fake_refresh_access_token)
+    monkeypatch.setattr(
+        "hermes_cli.auth._refresh_access_token", _fake_refresh_access_token
+    )
     monkeypatch.setattr("hermes_cli.auth._mint_agent_key", _fake_mint_agent_key)
 
     with pytest.raises(AuthError) as exc:
@@ -175,7 +191,9 @@ def test_refresh_token_persisted_when_mint_times_out(tmp_path, monkeypatch):
     _setup_nous_auth(hermes_home, refresh_token="refresh-old")
     monkeypatch.setenv("HERMES_HOME", str(hermes_home))
 
-    def _fake_refresh_access_token(*, client, portal_base_url, client_id, refresh_token):
+    def _fake_refresh_access_token(
+        *, client, portal_base_url, client_id, refresh_token
+    ):
         return {
             "access_token": "access-1",
             "refresh_token": "refresh-1",
@@ -186,7 +204,9 @@ def test_refresh_token_persisted_when_mint_times_out(tmp_path, monkeypatch):
     def _fake_mint_agent_key(*, client, portal_base_url, access_token, min_ttl_seconds):
         raise httpx.ReadTimeout("mint timeout")
 
-    monkeypatch.setattr("hermes_cli.auth._refresh_access_token", _fake_refresh_access_token)
+    monkeypatch.setattr(
+        "hermes_cli.auth._refresh_access_token", _fake_refresh_access_token
+    )
     monkeypatch.setattr("hermes_cli.auth._mint_agent_key", _fake_mint_agent_key)
 
     with pytest.raises(httpx.ReadTimeout):
@@ -206,7 +226,9 @@ def test_mint_retry_uses_latest_rotated_refresh_token(tmp_path, monkeypatch):
     refresh_calls = []
     mint_calls = {"count": 0}
 
-    def _fake_refresh_access_token(*, client, portal_base_url, client_id, refresh_token):
+    def _fake_refresh_access_token(
+        *, client, portal_base_url, client_id, refresh_token
+    ):
         refresh_calls.append(refresh_token)
         idx = len(refresh_calls)
         return {
@@ -222,10 +244,11 @@ def test_mint_retry_uses_latest_rotated_refresh_token(tmp_path, monkeypatch):
             raise AuthError("stale access token", provider="nous", code="invalid_token")
         return _mint_payload(api_key="agent-key")
 
-    monkeypatch.setattr("hermes_cli.auth._refresh_access_token", _fake_refresh_access_token)
+    monkeypatch.setattr(
+        "hermes_cli.auth._refresh_access_token", _fake_refresh_access_token
+    )
     monkeypatch.setattr("hermes_cli.auth._mint_agent_key", _fake_mint_agent_key)
 
     creds = resolve_nous_runtime_credentials(min_key_ttl_seconds=300)
     assert creds["api_key"] == "agent-key"
     assert refresh_calls == ["refresh-old", "refresh-1"]
-

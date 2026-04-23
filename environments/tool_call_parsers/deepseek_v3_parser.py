@@ -27,6 +27,7 @@ from environments.tool_call_parsers import ParseResult, ToolCallParser, register
 
 logger = logging.getLogger(__name__)
 
+
 @register_parser("deepseek_v3")
 class DeepSeekV3ToolCallParser(ToolCallParser):
     """
@@ -60,11 +61,11 @@ class DeepSeekV3ToolCallParser(ToolCallParser):
                 return text, None
 
             tool_calls: List[ChatCompletionMessageToolCall] = []
-            
+
             for match in matches:
                 func_name = match.group("function_name").strip()
                 func_args = match.group("function_arguments").strip()
-                
+
                 tool_calls.append(
                     ChatCompletionMessageToolCall(
                         id=f"call_{uuid.uuid4().hex[:8]}",

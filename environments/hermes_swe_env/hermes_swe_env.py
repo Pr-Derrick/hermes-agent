@@ -184,7 +184,9 @@ class HermesSweEnv(HermesAgentBaseEnv):
                 return 1.0
 
         # Partial credit: check if the model created any Python files
-        file_check = ctx.terminal("find /workspace -name '*.py' -newer /tmp/.start_marker 2>/dev/null | head -5")
+        file_check = ctx.terminal(
+            "find /workspace -name '*.py' -newer /tmp/.start_marker 2>/dev/null | head -5"
+        )
         if file_check["exit_code"] == 0 and file_check.get("output", "").strip():
             self.reward_buffer.append(0.1)
             return 0.1

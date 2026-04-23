@@ -156,14 +156,16 @@ def _build_pid_record() -> dict:
 
 def _build_runtime_status_record() -> dict[str, Any]:
     payload = _build_pid_record()
-    payload.update({
-        "gateway_state": "starting",
-        "exit_reason": None,
-        "restart_requested": False,
-        "active_agents": 0,
-        "platforms": {},
-        "updated_at": _utc_now_iso(),
-    })
+    payload.update(
+        {
+            "gateway_state": "starting",
+            "exit_reason": None,
+            "restart_requested": False,
+            "active_agents": 0,
+            "platforms": {},
+            "updated_at": _utc_now_iso(),
+        }
+    )
     return payload
 
 
@@ -273,7 +275,9 @@ def remove_pid_file() -> None:
         pass
 
 
-def acquire_scoped_lock(scope: str, identity: str, metadata: Optional[dict[str, Any]] = None) -> tuple[bool, Optional[dict[str, Any]]]:
+def acquire_scoped_lock(
+    scope: str, identity: str, metadata: Optional[dict[str, Any]] = None
+) -> tuple[bool, Optional[dict[str, Any]]]:
     """Acquire a machine-local lock keyed by scope + identity.
 
     Used to prevent multiple local gateways from using the same external identity
@@ -296,7 +300,9 @@ def acquire_scoped_lock(scope: str, identity: str, metadata: Optional[dict[str, 
         except (KeyError, TypeError, ValueError):
             existing_pid = None
 
-        if existing_pid == os.getpid() and existing.get("start_time") == record.get("start_time"):
+        if existing_pid == os.getpid() and existing.get("start_time") == record.get(
+            "start_time"
+        ):
             _write_json_file(lock_path, record)
             return True, existing
 
@@ -413,7 +419,11 @@ def get_running_pid() -> Optional[int]:
 
     recorded_start = record.get("start_time")
     current_start = _get_process_start_time(pid)
-    if recorded_start is not None and current_start is not None and current_start != recorded_start:
+    if (
+        recorded_start is not None
+        and current_start is not None
+        and current_start != recorded_start
+    ):
         remove_pid_file()
         return None
 

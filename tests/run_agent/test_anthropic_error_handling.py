@@ -62,13 +62,17 @@ def _anthropic_response(text: str):
 
 class _RateLimitError(Exception):
     """Simulates Anthropic 429 rate limit error."""
+
     def __init__(self):
-        super().__init__("Error code: 429 - Rate limit exceeded. Please retry after 30s.")
+        super().__init__(
+            "Error code: 429 - Rate limit exceeded. Please retry after 30s."
+        )
         self.status_code = 429
 
 
 class _OverloadedError(Exception):
     """Simulates Anthropic 529 overloaded error."""
+
     def __init__(self):
         super().__init__("Error code: 529 - API is temporarily overloaded.")
         self.status_code = 529
@@ -76,6 +80,7 @@ class _OverloadedError(Exception):
 
 class _BadRequestError(Exception):
     """Simulates Anthropic 400 bad request error (non-retryable)."""
+
     def __init__(self):
         super().__init__("Error code: 400 - Invalid model specified.")
         self.status_code = 400
@@ -83,6 +88,7 @@ class _BadRequestError(Exception):
 
 class _UnauthorizedError(Exception):
     """Simulates Anthropic 401 unauthorized error."""
+
     def __init__(self):
         super().__init__("Error code: 401 - Unauthorized. Invalid API key.")
         self.status_code = 401
@@ -90,6 +96,7 @@ class _UnauthorizedError(Exception):
 
 class _ServerError(Exception):
     """Simulates Anthropic 500 internal server error."""
+
     def __init__(self):
         super().__init__("Error code: 500 - Internal server error.")
         self.status_code = 500
@@ -97,6 +104,7 @@ class _ServerError(Exception):
 
 class _PromptTooLongError(Exception):
     """Simulates Anthropic prompt-too-long error (triggers context compression)."""
+
     def __init__(self):
         super().__init__("prompt is too long: 250000 tokens > 200000 maximum")
         self.status_code = 400
@@ -128,7 +136,9 @@ def _make_agent_cls(error_cls, recover_after=None):
             self._save_trajectory = lambda messages, user_message, completed: None
             self._save_session_log = lambda messages: None
 
-        def run_conversation(self, user_message, conversation_history=None, task_id=None):
+        def run_conversation(
+            self, user_message, conversation_history=None, task_id=None
+        ):
             calls = {"n": 0}
 
             def _fake_api_call(api_kwargs):
@@ -270,7 +280,9 @@ def test_401_credential_refresh_recovers(monkeypatch):
             refresh_count["n"] += 1
             return True  # Simulate successful credential refresh
 
-        def run_conversation(self, user_message, conversation_history=None, task_id=None):
+        def run_conversation(
+            self, user_message, conversation_history=None, task_id=None
+        ):
             calls = {"n": 0}
 
             def _fake_api_call(api_kwargs):
@@ -282,7 +294,9 @@ def test_401_credential_refresh_recovers(monkeypatch):
             self._interruptible_api_call = _fake_api_call
             # Also patch streaming path — run_conversation now prefers
             # streaming for health checking even without stream consumers.
-            self._interruptible_streaming_api_call = lambda api_kwargs, **kw: _fake_api_call(api_kwargs)
+            self._interruptible_streaming_api_call = lambda api_kwargs, **kw: (
+                _fake_api_call(api_kwargs)
+            )
             return super().run_conversation(
                 user_message, conversation_history=conversation_history, task_id=task_id
             )
@@ -313,14 +327,20 @@ def test_401_credential_refresh_recovers(monkeypatch):
     runner._session_db = None
 
     source = SessionSource(
-        platform=Platform.LOCAL, chat_id="cli", chat_name="CLI",
-        chat_type="dm", user_id="test-user-1",
+        platform=Platform.LOCAL,
+        chat_id="cli",
+        chat_name="CLI",
+        chat_type="dm",
+        user_id="test-user-1",
     )
 
     result = asyncio.run(
         runner._run_agent(
-            message="hello", context_prompt="", history=[],
-            source=source, session_id="session-401",
+            message="hello",
+            context_prompt="",
+            history=[],
+            source=source,
+            session_id="session-401",
             session_key="agent:main:local:dm",
         )
     )
@@ -351,7 +371,9 @@ def test_401_refresh_fails_is_non_retryable(monkeypatch):
         def _try_refresh_anthropic_client_credentials(self) -> bool:
             return False  # Simulate failed credential refresh
 
-        def run_conversation(self, user_message, conversation_history=None, task_id=None):
+        def run_conversation(
+            self, user_message, conversation_history=None, task_id=None
+        ):
             def _fake_api_call(api_kwargs):
                 raise _UnauthorizedError()
 
@@ -386,21 +408,30 @@ def test_401_refresh_fails_is_non_retryable(monkeypatch):
     runner._session_db = None
 
     source = SessionSource(
-        platform=Platform.LOCAL, chat_id="cli", chat_name="CLI",
-        chat_type="dm", user_id="test-user-1",
+        platform=Platform.LOCAL,
+        chat_id="cli",
+        chat_name="CLI",
+        chat_type="dm",
+        user_id="test-user-1",
     )
 
     result = asyncio.run(
         runner._run_agent(
-            message="hello", context_prompt="", history=[],
-            source=source, session_id="session-401-fail",
+            message="hello",
+            context_prompt="",
+            history=[],
+            source=source,
+            session_id="session-401-fail",
             session_key="agent:main:local:dm",
         )
     )
 
     # 401 after failed refresh → non-retryable (falls through to is_client_error)
     assert result["api_calls"] == 1
-    assert "401" in str(result.get("final_response", "")) or "unauthorized" in str(result.get("final_response", "")).lower()
+    assert (
+        "401" in str(result.get("final_response", ""))
+        or "unauthorized" in str(result.get("final_response", "")).lower()
+    )
 
 
 def test_prompt_too_long_triggers_compression(monkeypatch):
@@ -424,7 +455,9 @@ def test_prompt_too_long_triggers_compression(monkeypatch):
             self._save_trajectory = lambda messages, user_message, completed: None
             self._save_session_log = lambda messages: None
 
-        def _compress_context(self, messages, system_message, approx_tokens=0, task_id=None):
+        def _compress_context(
+            self, messages, system_message, approx_tokens=0, task_id=None
+        ):
             type(self).compress_called += 1
             # Simulate compression by dropping oldest non-system message
             if len(messages) > 2:
@@ -433,7 +466,9 @@ def test_prompt_too_long_triggers_compression(monkeypatch):
                 compressed = messages
             return compressed, system_message
 
-        def run_conversation(self, user_message, conversation_history=None, task_id=None):
+        def run_conversation(
+            self, user_message, conversation_history=None, task_id=None
+        ):
             calls = {"n": 0}
 
             def _fake_api_call(api_kwargs):
@@ -474,14 +509,20 @@ def test_prompt_too_long_triggers_compression(monkeypatch):
     runner._session_db = None
 
     source = SessionSource(
-        platform=Platform.LOCAL, chat_id="cli", chat_name="CLI",
-        chat_type="dm", user_id="test-user-1",
+        platform=Platform.LOCAL,
+        chat_id="cli",
+        chat_name="CLI",
+        chat_type="dm",
+        user_id="test-user-1",
     )
 
     result = asyncio.run(
         runner._run_agent(
-            message="hello", context_prompt="", history=[],
-            source=source, session_id="session-prompt-long",
+            message="hello",
+            context_prompt="",
+            history=[],
+            source=source,
+            session_id="session-prompt-long",
             session_key="agent:main:local:dm",
         )
     )

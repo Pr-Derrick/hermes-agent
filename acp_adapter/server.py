@@ -187,7 +187,9 @@ class HermesACPAgent(acp.Agent):
         try:
             from model_tools import get_tool_definitions
 
-            enabled_toolsets = getattr(state.agent, "enabled_toolsets", None) or ["hermes-acp"]
+            enabled_toolsets = getattr(state.agent, "enabled_toolsets", None) or [
+                "hermes-acp"
+            ]
             disabled_toolsets = getattr(state.agent, "disabled_toolsets", None)
             state.agent.tools = get_tool_definitions(
                 enabled_toolsets=enabled_toolsets,
@@ -222,7 +224,9 @@ class HermesACPAgent(acp.Agent):
         **kwargs: Any,
     ) -> InitializeResponse:
         resolved_protocol_version = (
-            protocol_version if isinstance(protocol_version, int) else acp.PROTOCOL_VERSION
+            protocol_version
+            if isinstance(protocol_version, int)
+            else acp.PROTOCOL_VERSION
         )
         provider = detect_provider()
         auth_methods = None
@@ -256,7 +260,9 @@ class HermesACPAgent(acp.Agent):
             auth_methods=auth_methods,
         )
 
-    async def authenticate(self, method_id: str, **kwargs: Any) -> AuthenticateResponse | None:
+    async def authenticate(
+        self, method_id: str, **kwargs: Any
+    ) -> AuthenticateResponse | None:
         if has_provider():
             return AuthenticateResponse()
         return None
@@ -300,7 +306,9 @@ class HermesACPAgent(acp.Agent):
     ) -> ResumeSessionResponse:
         state = self.session_manager.update_cwd(session_id, cwd)
         if state is None:
-            logger.warning("resume_session: session %s not found, creating new", session_id)
+            logger.warning(
+                "resume_session: session %s not found, creating new", session_id
+            )
             state = self.session_manager.create_session(cwd=cwd)
         await self._register_session_mcp_servers(state, mcp_servers)
         logger.info("Resumed session %s", state.session_id)
@@ -315,7 +323,9 @@ class HermesACPAgent(acp.Agent):
                 if getattr(state, "agent", None) and hasattr(state.agent, "interrupt"):
                     state.agent.interrupt()
             except Exception:
-                logger.debug("Failed to interrupt ACP session %s", session_id, exc_info=True)
+                logger.debug(
+                    "Failed to interrupt ACP session %s", session_id, exc_info=True
+                )
             logger.info("Cancelled session %s", session_id)
 
     async def fork_session(
@@ -342,8 +352,7 @@ class HermesACPAgent(acp.Agent):
     ) -> ListSessionsResponse:
         infos = self.session_manager.list_sessions()
         sessions = [
-            SessionInfo(session_id=s["session_id"], cwd=s["cwd"])
-            for s in infos
+            SessionInfo(session_id=s["session_id"], cwd=s["cwd"]) for s in infos
         ]
         return ListSessionsResponse(sessions=sessions)
 
@@ -392,11 +401,15 @@ class HermesACPAgent(acp.Agent):
         previous_approval_cb = None
 
         if conn:
-            tool_progress_cb = make_tool_progress_cb(conn, session_id, loop, tool_call_ids)
+            tool_progress_cb = make_tool_progress_cb(
+                conn, session_id, loop, tool_call_ids
+            )
             thinking_cb = make_thinking_cb(conn, session_id, loop)
             step_cb = make_step_cb(conn, session_id, loop, tool_call_ids)
             message_cb = make_message_cb(conn, session_id, loop)
-            approval_cb = make_approval_callback(conn.request_permission, loop, session_id)
+            approval_cb = make_approval_callback(
+                conn.request_permission, loop, session_id
+            )
         else:
             tool_progress_cb = None
             thinking_cb = None
@@ -413,7 +426,10 @@ class HermesACPAgent(acp.Agent):
         if approval_cb:
             try:
                 from tools import terminal_tool as _terminal_tool
-                previous_approval_cb = getattr(_terminal_tool, "_approval_callback", None)
+
+                previous_approval_cb = getattr(
+                    _terminal_tool, "_approval_callback", None
+                )
                 _terminal_tool.set_approval_callback(approval_cb)
             except Exception:
                 logger.debug("Could not set ACP approval callback", exc_info=True)
@@ -433,9 +449,12 @@ class HermesACPAgent(acp.Agent):
                 if approval_cb:
                     try:
                         from tools import terminal_tool as _terminal_tool
+
                         _terminal_tool.set_approval_callback(previous_approval_cb)
                     except Exception:
-                        logger.debug("Could not restore approval callback", exc_info=True)
+                        logger.debug(
+                            "Could not restore approval callback", exc_info=True
+                        )
 
         try:
             result = await loop.run_in_executor(_executor, _run_agent)
@@ -454,7 +473,10 @@ class HermesACPAgent(acp.Agent):
             await conn.session_update(session_id, update)
 
         usage = None
-        if any(result.get(key) is not None for key in ("prompt_tokens", "completion_tokens", "total_tokens")):
+        if any(
+            result.get(key) is not None
+            for key in ("prompt_tokens", "completion_tokens", "total_tokens")
+        ):
             usage = Usage(
                 input_tokens=result.get("prompt_tokens", 0),
                 output_tokens=result.get("completion_tokens", 0),
@@ -463,7 +485,11 @@ class HermesACPAgent(acp.Agent):
                 cached_read_tokens=result.get("cache_read_tokens"),
             )
 
-        stop_reason = "cancelled" if state.cancel_event and state.cancel_event.is_set() else "end_turn"
+        stop_reason = (
+            "cancelled"
+            if state.cancel_event and state.cancel_event.is_set()
+            else "end_turn"
+        )
         return PromptResponse(stop_reason=stop_reason, usage=usage)
 
     # ---- Slash commands (headless) -------------------------------------------
@@ -563,6 +589,7 @@ class HermesACPAgent(acp.Agent):
         # Auto-detect provider for the requested model
         try:
             from hermes_cli.models import parse_model_input, detect_provider_for_model
+
             target_provider, new_model = parse_model_input(new_model, current_provider)
             if target_provider == current_provider:
                 detected = detect_provider_for_model(new_model, current_provider)
@@ -579,13 +606,18 @@ class HermesACPAgent(acp.Agent):
             requested_provider=target_provider or current_provider,
         )
         self.session_manager.save_session(state.session_id)
-        provider_label = getattr(state.agent, "provider", None) or target_provider or current_provider
+        provider_label = (
+            getattr(state.agent, "provider", None)
+            or target_provider
+            or current_provider
+        )
         logger.info("Session %s: model switched to %s", state.session_id, new_model)
         return f"Model switched to: {new_model}\nProvider: {provider_label}"
 
     def _cmd_tools(self, args: str, state: SessionState) -> str:
         try:
             from model_tools import get_tool_definitions
+
             toolsets = getattr(state.agent, "enabled_toolsets", None) or ["hermes-acp"]
             tools = get_tool_definitions(enabled_toolsets=toolsets, quiet_mode=True)
             if not tools:
@@ -693,7 +725,9 @@ class HermesACPAgent(acp.Agent):
             self.session_manager.save_session(session_id)
             logger.info("Session %s: model switched to %s", session_id, model_id)
             return SetSessionModelResponse()
-        logger.warning("Session %s: model switch requested for missing session", session_id)
+        logger.warning(
+            "Session %s: model switch requested for missing session", session_id
+        )
         return None
 
     async def set_session_mode(
@@ -702,7 +736,9 @@ class HermesACPAgent(acp.Agent):
         """Persist the editor-requested mode so ACP clients do not fail on mode switches."""
         state = self.session_manager.get_session(session_id)
         if state is None:
-            logger.warning("Session %s: mode switch requested for missing session", session_id)
+            logger.warning(
+                "Session %s: mode switch requested for missing session", session_id
+            )
             return None
         setattr(state, "mode", mode_id)
         self.session_manager.save_session(session_id)
@@ -715,7 +751,9 @@ class HermesACPAgent(acp.Agent):
         """Accept ACP config option updates even when Hermes has no typed ACP config surface yet."""
         state = self.session_manager.get_session(session_id)
         if state is None:
-            logger.warning("Session %s: config update requested for missing session", session_id)
+            logger.warning(
+                "Session %s: config update requested for missing session", session_id
+            )
             return None
 
         options = getattr(state, "config_options", None)

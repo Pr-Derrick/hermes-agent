@@ -56,6 +56,7 @@ def is_interrupted() -> bool:
 # This shim maps those calls to the per-thread functions above so existing
 # code keeps working while the underlying mechanism is thread-scoped.
 
+
 class _ThreadAwareEventProxy:
     """Drop-in proxy that maps threading.Event methods to per-thread state."""
 

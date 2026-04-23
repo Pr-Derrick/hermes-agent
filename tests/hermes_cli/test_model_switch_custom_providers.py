@@ -75,9 +75,13 @@ def test_switch_model_accepts_explicit_named_custom_provider(monkeypatch):
             "api_mode": "chat_completions",
         },
     )
-    monkeypatch.setattr("hermes_cli.models.validate_requested_model", lambda *a, **k: _MOCK_VALIDATION)
+    monkeypatch.setattr(
+        "hermes_cli.models.validate_requested_model", lambda *a, **k: _MOCK_VALIDATION
+    )
     monkeypatch.setattr("hermes_cli.model_switch.get_model_info", lambda *a, **k: None)
-    monkeypatch.setattr("hermes_cli.model_switch.get_model_capabilities", lambda *a, **k: None)
+    monkeypatch.setattr(
+        "hermes_cli.model_switch.get_model_capabilities", lambda *a, **k: None
+    )
 
     result = switch_model(
         raw_input="rotator-openrouter-coding",

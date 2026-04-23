@@ -28,7 +28,9 @@ class TestDoctorPlatformHints:
         monkeypatch.setattr(sys, "platform", "linux")
         assert doctor._is_termux() is False
         assert doctor._python_install_cmd() == "uv pip install"
-        assert doctor._system_package_install_cmd("ripgrep") == "sudo apt install ripgrep"
+        assert (
+            doctor._system_package_install_cmd("ripgrep") == "sudo apt install ripgrep"
+        )
 
 
 class TestProviderEnvDetection:
@@ -60,7 +62,11 @@ class TestDoctorToolAvailabilityOverrides:
     def test_leaves_honcho_unavailable_when_not_configured(self, monkeypatch):
         monkeypatch.setattr(doctor, "_honcho_is_configured_for_doctor", lambda: False)
 
-        honcho_entry = {"name": "honcho", "env_vars": [], "tools": ["query_user_context"]}
+        honcho_entry = {
+            "name": "honcho",
+            "env_vars": [],
+            "tools": ["query_user_context"],
+        }
         available, unavailable = doctor._apply_doctor_tool_availability_overrides(
             [],
             [honcho_entry],
@@ -121,7 +127,9 @@ def test_run_doctor_sets_interactive_env_for_tool_checks(monkeypatch, tmp_path):
     assert seen["interactive"] == "1"
 
 
-def test_check_gateway_service_linger_warns_when_disabled(monkeypatch, tmp_path, capsys):
+def test_check_gateway_service_linger_warns_when_disabled(
+    monkeypatch, tmp_path, capsys
+):
     unit_path = tmp_path / "hermes-gateway.service"
     unit_path.write_text("[Unit]\n")
 
@@ -141,7 +149,9 @@ def test_check_gateway_service_linger_warns_when_disabled(monkeypatch, tmp_path,
     ]
 
 
-def test_check_gateway_service_linger_skips_when_service_not_installed(monkeypatch, tmp_path, capsys):
+def test_check_gateway_service_linger_skips_when_service_not_installed(
+    monkeypatch, tmp_path, capsys
+):
     unit_path = tmp_path / "missing.service"
 
     monkeypatch.setattr(gateway_cli, "is_linux", lambda: True)
@@ -166,6 +176,7 @@ class TestDoctorMemoryProviderSection:
         home = tmp_path / ".hermes"
         home.mkdir(parents=True, exist_ok=True)
         import yaml
+
         config = {"memory": {"provider": provider}} if provider else {"memory": {}}
         (home / "config.yaml").write_text(yaml.dump(config))
         return home
@@ -188,12 +199,14 @@ class TestDoctorMemoryProviderSection:
         # Stub auth checks to avoid real API calls
         try:
             from hermes_cli import auth as _auth_mod
+
             monkeypatch.setattr(_auth_mod, "get_nous_auth_status", lambda: {})
             monkeypatch.setattr(_auth_mod, "get_codex_auth_status", lambda: {})
         except Exception:
             pass
 
         import io, contextlib
+
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
             doctor_mod.run_doctor(Namespace(fix=False))
@@ -209,9 +222,7 @@ class TestDoctorMemoryProviderSection:
 
     def test_honcho_provider_not_installed_shows_fail(self, monkeypatch, tmp_path):
         # Make honcho import fail
-        monkeypatch.setitem(
-            sys.modules, "plugins.memory.honcho.client", None
-        )
+        monkeypatch.setitem(sys.modules, "plugins.memory.honcho.client", None)
         out = self._run_doctor_and_capture(monkeypatch, tmp_path, provider="honcho")
         assert "Memory Provider" in out
         # Should show failure since honcho is set but not importable
@@ -225,7 +236,9 @@ class TestDoctorMemoryProviderSection:
         assert "Built-in memory active" not in out
 
 
-def test_run_doctor_termux_treats_docker_and_browser_warnings_as_expected(monkeypatch, tmp_path):
+def test_run_doctor_termux_treats_docker_and_browser_warnings_as_expected(
+    monkeypatch, tmp_path
+):
     helper = TestDoctorMemoryProviderSection()
     monkeypatch.setenv("TERMUX_VERSION", "0.118.3")
     monkeypatch.setenv("PREFIX", "/data/data/com.termux/files/usr")
@@ -242,7 +255,10 @@ def test_run_doctor_termux_treats_docker_and_browser_warnings_as_expected(monkey
     out = helper._run_doctor_and_capture(monkeypatch, tmp_path, provider="")
 
     assert "Docker backend is not available inside Termux" in out
-    assert "Node.js not found (browser tools are optional in the tested Termux path)" in out
+    assert (
+        "Node.js not found (browser tools are optional in the tested Termux path)"
+        in out
+    )
     assert "Install Node.js on Termux with: pkg install nodejs" in out
     assert "Termux browser setup:" in out
     assert "1) pkg install nodejs" in out
@@ -251,7 +267,9 @@ def test_run_doctor_termux_treats_docker_and_browser_warnings_as_expected(monkey
     assert "docker not found (optional)" not in out
 
 
-def test_run_doctor_termux_does_not_mark_browser_available_without_agent_browser(monkeypatch, tmp_path):
+def test_run_doctor_termux_does_not_mark_browser_available_without_agent_browser(
+    monkeypatch, tmp_path
+):
     home = tmp_path / ".hermes"
     home.mkdir(parents=True, exist_ok=True)
     (home / "config.yaml").write_text("memory: {}\n", encoding="utf-8")
@@ -263,10 +281,21 @@ def test_run_doctor_termux_does_not_mark_browser_available_without_agent_browser
     monkeypatch.setattr(doctor_mod, "HERMES_HOME", home)
     monkeypatch.setattr(doctor_mod, "PROJECT_ROOT", project)
     monkeypatch.setattr(doctor_mod, "_DHH", str(home))
-    monkeypatch.setattr(doctor_mod.shutil, "which", lambda cmd: "/data/data/com.termux/files/usr/bin/node" if cmd in {"node", "npm"} else None)
+    monkeypatch.setattr(
+        doctor_mod.shutil,
+        "which",
+        lambda cmd: (
+            "/data/data/com.termux/files/usr/bin/node"
+            if cmd in {"node", "npm"}
+            else None
+        ),
+    )
 
     fake_model_tools = types.SimpleNamespace(
-        check_tool_availability=lambda *a, **kw: (["terminal"], [{"name": "browser", "env_vars": [], "tools": ["browser_navigate"]}]),
+        check_tool_availability=lambda *a, **kw: (
+            ["terminal"],
+            [{"name": "browser", "env_vars": [], "tools": ["browser_navigate"]}],
+        ),
         TOOLSET_REQUIREMENTS={
             "terminal": {"name": "terminal"},
             "browser": {"name": "browser"},
@@ -276,12 +305,14 @@ def test_run_doctor_termux_does_not_mark_browser_available_without_agent_browser
 
     try:
         from hermes_cli import auth as _auth_mod
+
         monkeypatch.setattr(_auth_mod, "get_nous_auth_status", lambda: {})
         monkeypatch.setattr(_auth_mod, "get_codex_auth_status", lambda: {})
     except Exception:
         pass
 
     import io, contextlib
+
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
         doctor_mod.run_doctor(Namespace(fix=False))

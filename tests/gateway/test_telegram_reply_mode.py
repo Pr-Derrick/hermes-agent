@@ -5,6 +5,7 @@ Covers the threading behavior control for multi-chunk replies:
 - "first": Only first chunk threads (default)
 - "all": All chunks thread to original message
 """
+
 import os
 import sys
 from unittest.mock import MagicMock, AsyncMock, patch
@@ -37,9 +38,13 @@ from gateway.platforms.telegram import TelegramAdapter  # noqa: E402
 @pytest.fixture()
 def adapter_factory():
     """Factory to create TelegramAdapter with custom reply_to_mode."""
+
     def create(reply_to_mode: str = "first"):
-        config = PlatformConfig(enabled=True, token="test-token", reply_to_mode=reply_to_mode)
+        config = PlatformConfig(
+            enabled=True, token="test-token", reply_to_mode=reply_to_mode
+        )
         return TelegramAdapter(config)
+
     return create
 
 
@@ -121,7 +126,11 @@ class TestSendWithReplyToMode:
         adapter = adapter_factory(reply_to_mode="off")
         adapter._bot = MagicMock()
         adapter._bot.send_message = AsyncMock(return_value=MagicMock(message_id=1))
-        adapter.truncate_message = lambda content, max_len: ["chunk1", "chunk2", "chunk3"]
+        adapter.truncate_message = lambda content, max_len: [
+            "chunk1",
+            "chunk2",
+            "chunk3",
+        ]
 
         await adapter.send("12345", "test content", reply_to="999")
 
@@ -133,7 +142,11 @@ class TestSendWithReplyToMode:
         adapter = adapter_factory(reply_to_mode="first")
         adapter._bot = MagicMock()
         adapter._bot.send_message = AsyncMock(return_value=MagicMock(message_id=1))
-        adapter.truncate_message = lambda content, max_len: ["chunk1", "chunk2", "chunk3"]
+        adapter.truncate_message = lambda content, max_len: [
+            "chunk1",
+            "chunk2",
+            "chunk3",
+        ]
 
         await adapter.send("12345", "test content", reply_to="999")
 
@@ -148,7 +161,11 @@ class TestSendWithReplyToMode:
         adapter = adapter_factory(reply_to_mode="all")
         adapter._bot = MagicMock()
         adapter._bot.send_message = AsyncMock(return_value=MagicMock(message_id=1))
-        adapter.truncate_message = lambda content, max_len: ["chunk1", "chunk2", "chunk3"]
+        adapter.truncate_message = lambda content, max_len: [
+            "chunk1",
+            "chunk2",
+            "chunk3",
+        ]
 
         await adapter.send("12345", "test content", reply_to="999")
 

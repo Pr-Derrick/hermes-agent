@@ -137,7 +137,11 @@ def _format_exhausted_status(entry) -> str:
 
 def auth_add_command(args) -> None:
     provider = _normalize_provider(getattr(args, "provider", ""))
-    if provider not in PROVIDER_REGISTRY and provider != "openrouter" and not provider.startswith(CUSTOM_POOL_PREFIX):
+    if (
+        provider not in PROVIDER_REGISTRY
+        and provider != "openrouter"
+        and not provider.startswith(CUSTOM_POOL_PREFIX)
+    ):
         raise SystemExit(f"Unknown provider: {provider}")
 
     requested_type = str(getattr(args, "auth_type", "") or "").strip().lower()
@@ -147,7 +151,11 @@ def auth_add_command(args) -> None:
         if provider.startswith(CUSTOM_POOL_PREFIX):
             requested_type = AUTH_TYPE_API_KEY
         else:
-            requested_type = AUTH_TYPE_OAUTH if provider in {"anthropic", "nous", "openai-codex", "qwen-oauth"} else AUTH_TYPE_API_KEY
+            requested_type = (
+                AUTH_TYPE_OAUTH
+                if provider in {"anthropic", "nous", "openai-codex", "qwen-oauth"}
+                else AUTH_TYPE_API_KEY
+            )
 
     pool = load_pool(provider)
 
@@ -160,7 +168,10 @@ def auth_add_command(args) -> None:
         default_label = _api_key_default_label(len(pool.entries()) + 1)
         label = (getattr(args, "label", None) or "").strip()
         if not label:
-            label = input(f"Label (optional, default: {default_label}): ").strip() or default_label
+            label = (
+                input(f"Label (optional, default: {default_label}): ").strip()
+                or default_label
+            )
         entry = PooledCredential(
             provider=provider,
             id=uuid.uuid4().hex[:6],
@@ -198,7 +209,9 @@ def auth_add_command(args) -> None:
             base_url=_provider_base_url(provider),
         )
         pool.add_entry(entry)
-        print(f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"')
+        print(
+            f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"'
+        )
         return
 
     if provider == "nous":
@@ -211,21 +224,28 @@ def auth_add_command(args) -> None:
             timeout_seconds=getattr(args, "timeout", None) or 15.0,
             insecure=bool(getattr(args, "insecure", False)),
             ca_bundle=getattr(args, "ca_bundle", None),
-            min_key_ttl_seconds=max(60, int(getattr(args, "min_key_ttl_seconds", 5 * 60))),
+            min_key_ttl_seconds=max(
+                60, int(getattr(args, "min_key_ttl_seconds", 5 * 60))
+            ),
         )
         label = (getattr(args, "label", None) or "").strip() or label_from_token(
             creds.get("access_token", ""),
             _oauth_default_label(provider, len(pool.entries()) + 1),
         )
-        entry = PooledCredential.from_dict(provider, {
-            **creds,
-            "label": label,
-            "auth_type": AUTH_TYPE_OAUTH,
-            "source": f"{SOURCE_MANUAL}:device_code",
-            "base_url": creds.get("inference_base_url"),
-        })
+        entry = PooledCredential.from_dict(
+            provider,
+            {
+                **creds,
+                "label": label,
+                "auth_type": AUTH_TYPE_OAUTH,
+                "source": f"{SOURCE_MANUAL}:device_code",
+                "base_url": creds.get("inference_base_url"),
+            },
+        )
         pool.add_entry(entry)
-        print(f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"')
+        print(
+            f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"'
+        )
         return
 
     if provider == "openai-codex":
@@ -247,7 +267,9 @@ def auth_add_command(args) -> None:
             last_refresh=creds.get("last_refresh"),
         )
         pool.add_entry(entry)
-        print(f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"')
+        print(
+            f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"'
+        )
         return
 
     if provider == "qwen-oauth":
@@ -267,10 +289,14 @@ def auth_add_command(args) -> None:
             base_url=creds.get("base_url"),
         )
         pool.add_entry(entry)
-        print(f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"')
+        print(
+            f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"'
+        )
         return
 
-    raise SystemExit(f"`hermes auth add {provider}` is not implemented for auth type {requested_type} yet.")
+    raise SystemExit(
+        f"`hermes auth add {provider}` is not implemented for auth type {requested_type} yet."
+    )
 
 
 def auth_list_command(args) -> None:
@@ -278,11 +304,13 @@ def auth_list_command(args) -> None:
     if provider_filter:
         providers = [provider_filter]
     else:
-        providers = sorted({
-            *PROVIDER_REGISTRY.keys(),
-            "openrouter",
-            *list_custom_pool_providers(),
-        })
+        providers = sorted(
+            {
+                *PROVIDER_REGISTRY.keys(),
+                "openrouter",
+                *list_custom_pool_providers(),
+            }
+        )
     for provider in providers:
         pool = load_pool(provider)
         entries = pool.entries()
@@ -296,7 +324,9 @@ def auth_list_command(args) -> None:
                 marker = "← "
             status = _format_exhausted_status(entry)
             source = _display_source(entry.source)
-            print(f"  #{idx}  {entry.label:<20} {entry.auth_type:<7} {source}{status} {marker}".rstrip())
+            print(
+                f"  #{idx}  {entry.label:<20} {entry.auth_type:<7} {source}{status} {marker}".rstrip()
+            )
         print()
 
 
@@ -317,9 +347,10 @@ def auth_remove_command(args) -> None:
     # If this was an env-seeded credential, also clear the env var from .env
     # so it doesn't get re-seeded on the next load_pool() call.
     if removed.source.startswith("env:"):
-        env_var = removed.source[len("env:"):]
+        env_var = removed.source[len("env:") :]
         if env_var:
             from hermes_cli.config import remove_env_value
+
             cleared = remove_env_value(env_var)
             if cleared:
                 print(f"Cleared {env_var} from .env")
@@ -329,8 +360,11 @@ def auth_remove_command(args) -> None:
     # re-seeded on the next load_pool() call.
     elif removed.source == "device_code" and provider in ("openai-codex", "nous"):
         from hermes_cli.auth import (
-            _load_auth_store, _save_auth_store, _auth_store_lock,
+            _load_auth_store,
+            _save_auth_store,
+            _auth_store_lock,
         )
+
         with _auth_store_lock():
             auth_store = _load_auth_store()
             providers_dict = auth_store.get("providers")
@@ -341,6 +375,7 @@ def auth_remove_command(args) -> None:
 
     elif removed.source == "hermes_pkce" and provider == "anthropic":
         from hermes_constants import get_hermes_home
+
         oauth_file = get_hermes_home() / ".anthropic_oauth.json"
         if oauth_file.exists():
             oauth_file.unlink()
@@ -348,6 +383,7 @@ def auth_remove_command(args) -> None:
 
     elif removed.source == "claude_code" and provider == "anthropic":
         from hermes_cli.auth import suppress_credential_source
+
         suppress_credential_source(provider, "claude_code")
         print("Suppressed claude_code credential — it will not be re-seeded.")
         print("Note: Claude Code credentials still live in ~/.claude/.credentials.json")
@@ -419,7 +455,11 @@ def _pick_provider(prompt: str = "Provider") -> str:
 
 def _interactive_add() -> None:
     provider = _pick_provider("Provider to add credential for")
-    if provider not in PROVIDER_REGISTRY and provider != "openrouter" and not provider.startswith(CUSTOM_POOL_PREFIX):
+    if (
+        provider not in PROVIDER_REGISTRY
+        and provider != "openrouter"
+        and not provider.startswith(CUSTOM_POOL_PREFIX)
+    ):
         raise SystemExit(f"Unknown provider: {provider}")
 
     # For OAuth-capable providers, ask which type
@@ -446,11 +486,22 @@ def _interactive_add() -> None:
     if typed_label:
         label = typed_label
 
-    auth_add_command(SimpleNamespace(
-        provider=provider, auth_type=auth_type, label=label, api_key=None,
-        portal_url=None, inference_url=None, client_id=None, scope=None,
-        no_browser=False, timeout=None, insecure=False, ca_bundle=None,
-    ))
+    auth_add_command(
+        SimpleNamespace(
+            provider=provider,
+            auth_type=auth_type,
+            label=label,
+            api_key=None,
+            portal_url=None,
+            inference_url=None,
+            client_id=None,
+            scope=None,
+            no_browser=False,
+            timeout=None,
+            insecure=False,
+            ca_bundle=None,
+        )
+    )
 
 
 def _interactive_remove() -> None:
@@ -463,7 +514,9 @@ def _interactive_remove() -> None:
     # Show entries with indices
     for i, e in enumerate(pool.entries(), 1):
         exhausted = _format_exhausted_status(e)
-        print(f"  #{i}  {e.label:25s} {e.auth_type:10s} {e.source}{exhausted} [id:{e.id}]")
+        print(
+            f"  #{i}  {e.label:25s} {e.auth_type:10s} {e.source}{exhausted} [id:{e.id}]"
+        )
 
     try:
         raw = input("Remove #, id, or label (blank to cancel): ").strip()
@@ -484,7 +537,12 @@ def _interactive_reset() -> None:
 def _interactive_strategy() -> None:
     provider = _pick_provider("Provider to set strategy for")
     current = get_pool_strategy(provider)
-    strategies = [STRATEGY_FILL_FIRST, STRATEGY_ROUND_ROBIN, STRATEGY_LEAST_USED, STRATEGY_RANDOM]
+    strategies = [
+        STRATEGY_FILL_FIRST,
+        STRATEGY_ROUND_ROBIN,
+        STRATEGY_LEAST_USED,
+        STRATEGY_RANDOM,
+    ]
 
     print(f"\nCurrent strategy for {provider}: {current}")
     print()
@@ -513,6 +571,7 @@ def _interactive_strategy() -> None:
         return
 
     from hermes_cli.config import load_config, save_config
+
     cfg = load_config()
     pool_strategies = cfg.get("credential_pool_strategies") or {}
     if not isinstance(pool_strategies, dict):

@@ -20,9 +20,13 @@ def _mock_subprocess_run(monkeypatch):
         calls.append((list(cmd) if isinstance(cmd, list) else cmd, kwargs))
         if isinstance(cmd, list) and len(cmd) >= 2:
             if cmd[1] == "version":
-                return subprocess.CompletedProcess(cmd, 0, stdout="Docker version", stderr="")
+                return subprocess.CompletedProcess(
+                    cmd, 0, stdout="Docker version", stderr=""
+                )
             if cmd[1] == "run":
-                return subprocess.CompletedProcess(cmd, 0, stdout="fake-container-id\n", stderr="")
+                return subprocess.CompletedProcess(
+                    cmd, 0, stdout="fake-container-id\n", stderr=""
+                )
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
     monkeypatch.setattr(docker_env.subprocess, "run", _run)
@@ -55,14 +59,18 @@ def test_ensure_docker_available_logs_and_raises_when_not_found(monkeypatch, cap
     monkeypatch.setattr(
         docker_env.subprocess,
         "run",
-        lambda *args, **kwargs: pytest.fail("subprocess.run should not be called when docker is missing"),
+        lambda *args, **kwargs: pytest.fail(
+            "subprocess.run should not be called when docker is missing"
+        ),
     )
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(RuntimeError) as excinfo:
             _make_dummy_env()
 
-    assert "Docker executable not found in PATH or known install locations" in str(excinfo.value)
+    assert "Docker executable not found in PATH or known install locations" in str(
+        excinfo.value
+    )
     assert any(
         "no docker executable was found in PATH or known install locations"
         in record.getMessage()
@@ -105,11 +113,14 @@ def test_ensure_docker_available_uses_resolved_executable(monkeypatch):
     docker_env._ensure_docker_available()
 
     assert calls == [
-        (["/opt/homebrew/bin/docker", "version"], {
-            "capture_output": True,
-            "text": True,
-            "timeout": 5,
-        })
+        (
+            ["/opt/homebrew/bin/docker", "version"],
+            {
+                "capture_output": True,
+                "text": True,
+                "timeout": 5,
+            },
+        )
     ]
 
 
@@ -128,7 +139,11 @@ def test_auto_mount_host_cwd_adds_volume(monkeypatch, tmp_path):
     )
 
     # Find the docker run call and check its args
-    run_calls = [c for c in calls if isinstance(c[0], list) and len(c[0]) >= 2 and c[0][1] == "run"]
+    run_calls = [
+        c
+        for c in calls
+        if isinstance(c[0], list) and len(c[0]) >= 2 and c[0][1] == "run"
+    ]
     assert run_calls, "docker run should have been called"
     run_args_str = " ".join(run_calls[0][0])
     assert f"{project_dir}:/workspace" in run_args_str
@@ -148,7 +163,11 @@ def test_auto_mount_disabled_by_default(monkeypatch, tmp_path):
         auto_mount_cwd=False,
     )
 
-    run_calls = [c for c in calls if isinstance(c[0], list) and len(c[0]) >= 2 and c[0][1] == "run"]
+    run_calls = [
+        c
+        for c in calls
+        if isinstance(c[0], list) and len(c[0]) >= 2 and c[0][1] == "run"
+    ]
     assert run_calls, "docker run should have been called"
     run_args_str = " ".join(run_calls[0][0])
     assert f"{project_dir}:/workspace" not in run_args_str
@@ -171,7 +190,11 @@ def test_auto_mount_skipped_when_workspace_already_mounted(monkeypatch, tmp_path
         volumes=[f"{other_dir}:/workspace"],
     )
 
-    run_calls = [c for c in calls if isinstance(c[0], list) and len(c[0]) >= 2 and c[0][1] == "run"]
+    run_calls = [
+        c
+        for c in calls
+        if isinstance(c[0], list) and len(c[0]) >= 2 and c[0][1] == "run"
+    ]
     assert run_calls, "docker run should have been called"
     run_args_str = " ".join(run_calls[0][0])
     assert f"{other_dir}:/workspace" in run_args_str
@@ -194,11 +217,18 @@ def test_auto_mount_replaces_persistent_workspace_bind(monkeypatch, tmp_path):
         task_id="test-persistent-auto-mount",
     )
 
-    run_calls = [c for c in calls if isinstance(c[0], list) and len(c[0]) >= 2 and c[0][1] == "run"]
+    run_calls = [
+        c
+        for c in calls
+        if isinstance(c[0], list) and len(c[0]) >= 2 and c[0][1] == "run"
+    ]
     assert run_calls, "docker run should have been called"
     run_args_str = " ".join(run_calls[0][0])
     assert f"{project_dir}:/workspace" in run_args_str
-    assert "/sandboxes/docker/test-persistent-auto-mount/workspace:/workspace" not in run_args_str
+    assert (
+        "/sandboxes/docker/test-persistent-auto-mount/workspace:/workspace"
+        not in run_args_str
+    )
 
 
 def test_non_persistent_cleanup_removes_container(monkeypatch):
@@ -208,8 +238,22 @@ def test_non_persistent_cleanup_removes_container(monkeypatch):
 
     popen_cmds = []
     monkeypatch.setattr(
-        docker_env.subprocess, "Popen",
-        lambda cmd, **kw: (popen_cmds.append(cmd), type("P", (), {"poll": lambda s: 0, "wait": lambda s, **k: None, "returncode": 0, "stdout": iter([]), "stdin": None})())[1],
+        docker_env.subprocess,
+        "Popen",
+        lambda cmd, **kw: (
+            popen_cmds.append(cmd),
+            type(
+                "P",
+                (),
+                {
+                    "poll": lambda s: 0,
+                    "wait": lambda s, **k: None,
+                    "returncode": 0,
+                    "stdout": iter([]),
+                    "stdin": None,
+                },
+            )(),
+        )[1],
     )
 
     env = _make_dummy_env(persistent_filesystem=False, task_id="ephemeral-task")
@@ -220,7 +264,9 @@ def test_non_persistent_cleanup_removes_container(monkeypatch):
 
     # Should have stop and rm calls via Popen
     stop_cmds = [c for c in popen_cmds if container_id in str(c) and "stop" in str(c)]
-    assert len(stop_cmds) >= 1, f"cleanup() should schedule docker stop for {container_id}"
+    assert len(stop_cmds) >= 1, (
+        f"cleanup() should schedule docker stop for {container_id}"
+    )
 
 
 class _FakePopen:
@@ -242,7 +288,10 @@ def _make_execute_only_env(forward_env=None):
     env._forward_env = forward_env or []
     env._env = {}
     env._prepare_command = lambda command: (command, None)
-    env._timeout_result = lambda timeout: {"output": f"timed out after {timeout}", "returncode": 124}
+    env._timeout_result = lambda timeout: {
+        "output": f"timed out after {timeout}",
+        "returncode": 124,
+    }
     env._container_id = "test-container"
     env._docker_exe = "/usr/bin/docker"
     # Base class attributes needed by unified execute()
@@ -263,7 +312,11 @@ def test_init_env_args_uses_hermes_dotenv_for_allowlisted_env(monkeypatch):
     env = _make_execute_only_env(["DATABASE_URL"])
 
     monkeypatch.delenv("DATABASE_URL", raising=False)
-    monkeypatch.setattr(docker_env, "_load_hermes_env_vars", lambda: {"DATABASE_URL": "value_from_dotenv"})
+    monkeypatch.setattr(
+        docker_env,
+        "_load_hermes_env_vars",
+        lambda: {"DATABASE_URL": "value_from_dotenv"},
+    )
 
     args = env._build_init_env_args()
     args_str = " ".join(args)
@@ -276,7 +329,11 @@ def test_init_env_args_prefers_shell_env_over_hermes_dotenv(monkeypatch):
     env = _make_execute_only_env(["DATABASE_URL"])
 
     monkeypatch.setenv("DATABASE_URL", "value_from_shell")
-    monkeypatch.setattr(docker_env, "_load_hermes_env_vars", lambda: {"DATABASE_URL": "value_from_dotenv"})
+    monkeypatch.setattr(
+        docker_env,
+        "_load_hermes_env_vars",
+        lambda: {"DATABASE_URL": "value_from_dotenv"},
+    )
 
     args = env._build_init_env_args()
     args_str = " ".join(args)
@@ -293,9 +350,18 @@ def test_docker_env_appears_in_run_command(monkeypatch):
     monkeypatch.setattr(docker_env, "find_docker", lambda: "/usr/bin/docker")
     calls = _mock_subprocess_run(monkeypatch)
 
-    _make_dummy_env(env={"SSH_AUTH_SOCK": "/run/user/1000/ssh-agent.sock", "GNUPGHOME": "/root/.gnupg"})
+    _make_dummy_env(
+        env={
+            "SSH_AUTH_SOCK": "/run/user/1000/ssh-agent.sock",
+            "GNUPGHOME": "/root/.gnupg",
+        }
+    )
 
-    run_calls = [c for c in calls if isinstance(c[0], list) and len(c[0]) >= 2 and c[0][1] == "run"]
+    run_calls = [
+        c
+        for c in calls
+        if isinstance(c[0], list) and len(c[0]) >= 2 and c[0][1] == "run"
+    ]
     assert run_calls, "docker run should have been called"
     run_args = run_calls[0][0]
     run_args_str = " ".join(run_args)
@@ -344,26 +410,29 @@ def test_docker_env_and_forward_env_merge_in_init_args(monkeypatch):
     assert "TOKEN=secret123" in args_str
 
 
-
 def test_normalize_env_dict_filters_invalid_keys():
     """_normalize_env_dict should reject invalid variable names."""
-    result = docker_env._normalize_env_dict({
-        "VALID_KEY": "ok",
-        "123bad": "rejected",
-        "": "rejected",
-        "also valid": "rejected",  # spaces invalid
-        "GOOD": "ok",
-    })
+    result = docker_env._normalize_env_dict(
+        {
+            "VALID_KEY": "ok",
+            "123bad": "rejected",
+            "": "rejected",
+            "also valid": "rejected",  # spaces invalid
+            "GOOD": "ok",
+        }
+    )
     assert result == {"VALID_KEY": "ok", "GOOD": "ok"}
 
 
 def test_normalize_env_dict_coerces_scalars():
     """_normalize_env_dict should coerce int/float/bool to str."""
-    result = docker_env._normalize_env_dict({
-        "PORT": 8080,
-        "DEBUG": True,
-        "RATIO": 0.5,
-    })
+    result = docker_env._normalize_env_dict(
+        {
+            "PORT": 8080,
+            "DEBUG": True,
+            "RATIO": 0.5,
+        }
+    )
     assert result == {"PORT": "8080", "DEBUG": "True", "RATIO": "0.5"}
 
 
@@ -376,9 +445,11 @@ def test_normalize_env_dict_rejects_non_dict():
 
 def test_normalize_env_dict_rejects_complex_values():
     """_normalize_env_dict should reject list/dict values."""
-    result = docker_env._normalize_env_dict({
-        "GOOD": "string",
-        "BAD_LIST": [1, 2, 3],
-        "BAD_DICT": {"nested": True},
-    })
+    result = docker_env._normalize_env_dict(
+        {
+            "GOOD": "string",
+            "BAD_LIST": [1, 2, 3],
+            "BAD_DICT": {"nested": True},
+        }
+    )
     assert result == {"GOOD": "string"}

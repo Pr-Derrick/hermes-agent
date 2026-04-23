@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 # in headless environments (SSH, Docker, WSL, no PortAudio).
 # ---------------------------------------------------------------------------
 
+
 def _import_audio():
     """Lazy-import sounddevice and numpy.  Returns (sd, np).
 
@@ -36,6 +37,7 @@ def _import_audio():
     """
     import sounddevice as sd
     import numpy as np
+
     return sd, np
 
 
@@ -96,26 +98,26 @@ def detect_audio_environment() -> dict:
     reasons that block voice mode), and 'notices' (list of informational
     messages that do NOT block voice mode).
     """
-    warnings = []   # hard-fail: these block voice mode
-    notices = []     # informational: logged but don't block
+    warnings = []  # hard-fail: these block voice mode
+    notices = []  # informational: logged but don't block
     termux_mic_cmd = _termux_microphone_command()
     termux_app_installed = _termux_api_app_installed()
     termux_capture = bool(termux_mic_cmd and termux_app_installed)
 
     # SSH detection
-    if any(os.environ.get(v) for v in ('SSH_CLIENT', 'SSH_TTY', 'SSH_CONNECTION')):
+    if any(os.environ.get(v) for v in ("SSH_CLIENT", "SSH_TTY", "SSH_CONNECTION")):
         warnings.append("Running over SSH -- no audio devices available")
 
     # Docker detection
-    if os.path.exists('/.dockerenv'):
+    if os.path.exists("/.dockerenv"):
         warnings.append("Running inside Docker container -- no audio devices")
 
     # WSL detection — PulseAudio bridge makes audio work in WSL.
     # Only block if PULSE_SERVER is not configured.
     try:
-        with open('/proc/version', 'r') as f:
-            if 'microsoft' in f.read().lower():
-                if os.environ.get('PULSE_SERVER'):
+        with open("/proc/version", "r") as f:
+            if "microsoft" in f.read().lower():
+                if os.environ.get("PULSE_SERVER"):
                     notices.append("Running in WSL with PulseAudio bridge")
                 else:
                     warnings.append(
@@ -134,30 +136,44 @@ def detect_audio_environment() -> dict:
             devices = sd.query_devices()
             if not devices:
                 if termux_capture:
-                    notices.append("No PortAudio devices detected, but Termux:API microphone capture is available")
+                    notices.append(
+                        "No PortAudio devices detected, but Termux:API microphone capture is available"
+                    )
                 else:
                     warnings.append("No audio input/output devices detected")
         except Exception:
             # In WSL with PulseAudio, device queries can fail even though
             # recording/playback works fine. Don't block if PULSE_SERVER is set.
-            if os.environ.get('PULSE_SERVER'):
-                notices.append("Audio device query failed but PULSE_SERVER is set -- continuing")
+            if os.environ.get("PULSE_SERVER"):
+                notices.append(
+                    "Audio device query failed but PULSE_SERVER is set -- continuing"
+                )
             elif termux_capture:
-                notices.append("PortAudio device query failed, but Termux:API microphone capture is available")
+                notices.append(
+                    "PortAudio device query failed, but Termux:API microphone capture is available"
+                )
             else:
-                warnings.append("Audio subsystem error (PortAudio cannot query devices)")
+                warnings.append(
+                    "Audio subsystem error (PortAudio cannot query devices)"
+                )
     except ImportError:
         if termux_capture:
-            notices.append("Termux:API microphone recording available (sounddevice not required)")
+            notices.append(
+                "Termux:API microphone recording available (sounddevice not required)"
+            )
         elif termux_mic_cmd and not termux_app_installed:
             warnings.append(
                 "Termux:API Android app is not installed. Install/update the Termux:API app to use termux-microphone-record."
             )
         else:
-            warnings.append(f"Audio libraries not installed ({_voice_capture_install_hint()})")
+            warnings.append(
+                f"Audio libraries not installed ({_voice_capture_install_hint()})"
+            )
     except OSError:
         if termux_capture:
-            notices.append("Termux:API microphone recording available (PortAudio not required)")
+            notices.append(
+                "Termux:API microphone recording available (PortAudio not required)"
+            )
         elif termux_mic_cmd and not termux_app_installed:
             warnings.append(
                 "Termux:API Android app is not installed. Install/update the Termux:API app to use termux-microphone-record."
@@ -181,6 +197,7 @@ def detect_audio_environment() -> dict:
         "warnings": warnings,
         "notices": notices,
     }
+
 
 # ---------------------------------------------------------------------------
 # Recording parameters
@@ -235,7 +252,9 @@ def play_beep(frequency: int = 880, duration: float = 0.12, count: int = 1) -> N
         # sd.wait() calls Event.wait() without timeout — hangs forever if the
         # audio device stalls.  Poll with a 2s ceiling and force-stop.
         deadline = time.monotonic() + 2.0
-        while sd.get_stream() and sd.get_stream().active and time.monotonic() < deadline:
+        while (
+            sd.get_stream() and sd.get_stream().active and time.monotonic() < deadline
+        ):
             time.sleep(0.01)
         sd.stop()
     except Exception as e:
@@ -295,14 +314,21 @@ class TermuxAudioRecorder:
 
         command = [
             mic_cmd,
-            "-f", self._recording_path,
-            "-l", "0",
-            "-e", "aac",
-            "-r", str(SAMPLE_RATE),
-            "-c", str(CHANNELS),
+            "-f",
+            self._recording_path,
+            "-l",
+            "0",
+            "-e",
+            "aac",
+            "-r",
+            str(SAMPLE_RATE),
+            "-c",
+            str(CHANNELS),
         ]
         try:
-            subprocess.run(command, capture_output=True, text=True, timeout=15, check=True)
+            subprocess.run(
+                command, capture_output=True, text=True, timeout=15, check=True
+            )
         except subprocess.CalledProcessError as e:
             details = (e.stderr or e.stdout or str(e)).strip()
             raise RuntimeError(f"Termux microphone start failed: {details}") from e
@@ -319,7 +345,9 @@ class TermuxAudioRecorder:
         mic_cmd = _termux_microphone_command()
         if not mic_cmd:
             return
-        subprocess.run([mic_cmd, "-q"], capture_output=True, text=True, timeout=15, check=False)
+        subprocess.run(
+            [mic_cmd, "-q"], capture_output=True, text=True, timeout=15, check=False
+        )
 
     def stop(self) -> Optional[str]:
         with self._lock:
@@ -405,7 +433,9 @@ class AudioRecorder:
         self._max_dip_tolerance: float = 0.3  # Max dip duration before resetting speech
         self._silence_start: float = 0.0
         self._resume_start: float = 0.0  # Tracks sustained speech after silence starts
-        self._resume_dip_start: float = 0.0  # Dip tolerance tracker for resume detection
+        self._resume_dip_start: float = (
+            0.0  # Dip tolerance tracker for resume detection
+        )
         self._on_silence_stop = None
         self._silence_threshold: int = SILENCE_RMS_THRESHOLD
         self._silence_duration: float = SILENCE_DURATION_SECONDS
@@ -467,10 +497,15 @@ class AudioRecorder:
                     self._dip_start = 0.0  # Reset dip tracker
                     if self._speech_start == 0.0:
                         self._speech_start = now
-                    elif not self._has_spoken and now - self._speech_start >= self._min_speech_duration:
+                    elif (
+                        not self._has_spoken
+                        and now - self._speech_start >= self._min_speech_duration
+                    ):
                         self._has_spoken = True
-                        logger.debug("Speech confirmed (%.2fs above threshold)",
-                                     now - self._speech_start)
+                        logger.debug(
+                            "Speech confirmed (%.2fs above threshold)",
+                            now - self._speech_start,
+                        )
                     # After speech is confirmed, only reset silence timer if
                     # speech is sustained (>0.3s above threshold).  Brief
                     # spikes from ambient noise should NOT reset the timer.
@@ -505,8 +540,10 @@ class AudioRecorder:
                         self._dip_start = now
                     elif now - self._dip_start >= self._max_dip_tolerance:
                         # Dip lasted too long -- genuine silence, reset
-                        logger.debug("Speech attempt reset (dip lasted %.2fs)",
-                                     now - self._dip_start)
+                        logger.debug(
+                            "Speech attempt reset (dip lasted %.2fs)",
+                            now - self._dip_start,
+                        )
                         self._speech_start = 0.0
                         self._dip_start = 0.0
 
@@ -519,12 +556,13 @@ class AudioRecorder:
                     if self._silence_start == 0.0:
                         self._silence_start = now
                     elif now - self._silence_start >= self._silence_duration:
-                        logger.info("Silence detected (%.1fs), auto-stopping",
-                                    self._silence_duration)
+                        logger.info(
+                            "Silence detected (%.1fs), auto-stopping",
+                            self._silence_duration,
+                        )
                         should_fire = True
                 elif not self._has_spoken and elapsed >= self._max_wait:
-                    logger.info("No speech within %.0fs, auto-stopping",
-                                self._max_wait)
+                    logger.info("No speech within %.0fs, auto-stopping", self._max_wait)
                     should_fire = True
 
                 if should_fire:
@@ -532,11 +570,15 @@ class AudioRecorder:
                         cb = self._on_silence_stop
                         self._on_silence_stop = None  # fire only once
                     if cb:
+
                         def _safe_cb():
                             try:
                                 cb()
                             except Exception as e:
-                                logger.error("Silence callback failed: %s", e, exc_info=True)
+                                logger.error(
+                                    "Silence callback failed: %s", e, exc_info=True
+                                )
+
                         threading.Thread(target=_safe_cb, daemon=True).start()
 
         # Create stream — may block on CoreAudio (first call only).
@@ -606,7 +648,9 @@ class AudioRecorder:
 
         with self._lock:
             self._recording = True
-        logger.info("Voice recording started (rate=%d, channels=%d)", SAMPLE_RATE, CHANNELS)
+        logger.info(
+            "Voice recording started (rate=%d, channels=%d)", SAMPLE_RATE, CHANNELS
+        )
 
     def _close_stream_with_timeout(self, timeout: float = 3.0) -> None:
         """Close the audio stream with a timeout to prevent CoreAudio hangs."""
@@ -630,7 +674,9 @@ class AudioRecorder:
         while t.is_alive() and __import__("time").monotonic() < deadline:
             t.join(timeout=0.1)
         if t.is_alive():
-            logger.warning("Audio stream close timed out after %.1fs — forcing ahead", timeout)
+            logger.warning(
+                "Audio stream close timed out after %.1fs — forcing ahead", timeout
+            )
 
     def stop(self) -> Optional[str]:
         """Stop recording and write captured audio to a WAV file.
@@ -658,19 +704,26 @@ class AudioRecorder:
             self._frames = []
 
             elapsed = time.monotonic() - self._start_time
-            logger.info("Voice recording stopped (%.1fs, %d samples)", elapsed, len(audio_data))
+            logger.info(
+                "Voice recording stopped (%.1fs, %d samples)", elapsed, len(audio_data)
+            )
 
             # Skip very short recordings (< 0.3s of audio)
             min_samples = int(SAMPLE_RATE * 0.3)
             if len(audio_data) < min_samples:
-                logger.debug("Recording too short (%d samples), discarding", len(audio_data))
+                logger.debug(
+                    "Recording too short (%d samples), discarding", len(audio_data)
+                )
                 return None
 
             # Skip silent recordings using peak RMS (not overall average, which
             # gets diluted by silence at the end of the recording).
             if self._peak_rms < SILENCE_RMS_THRESHOLD:
-                logger.info("Recording too quiet (peak RMS=%d < %d), discarding",
-                            self._peak_rms, SILENCE_RMS_THRESHOLD)
+                logger.info(
+                    "Recording too quiet (peak RMS=%d < %d), discarding",
+                    self._peak_rms,
+                    SILENCE_RMS_THRESHOLD,
+                )
                 return None
 
             return self._write_wav(audio_data)
@@ -763,7 +816,7 @@ WHISPER_HALLUCINATIONS = {
 
 # Regex patterns for repetitive hallucinations (e.g. "Thank you. Thank you. Thank you.")
 _HALLUCINATION_REPEAT_RE = re.compile(
-    r'^(?:thank you|thanks|bye|you|ok|okay|the end|\.|\s|,|!)+$',
+    r"^(?:thank you|thanks|bye|you|ok|okay|the end|\.|\s|,|!)+$",
     flags=re.IGNORECASE,
 )
 
@@ -774,7 +827,10 @@ def is_whisper_hallucination(transcript: str) -> bool:
     if not cleaned:
         return True
     # Exact match against known phrases
-    if cleaned.rstrip('.!') in WHISPER_HALLUCINATIONS or cleaned in WHISPER_HALLUCINATIONS:
+    if (
+        cleaned.rstrip(".!") in WHISPER_HALLUCINATIONS
+        or cleaned in WHISPER_HALLUCINATIONS
+    ):
         return True
     # Repetitive patterns (e.g. "Thank you. Thank you. Thank you. you")
     if _HALLUCINATION_REPEAT_RE.match(cleaned):
@@ -872,7 +928,11 @@ def play_audio_file(file_path: str) -> bool:
             # the audio device stalls.  Poll with a ceiling and force-stop.
             duration_secs = len(audio_data) / sample_rate
             deadline = time.monotonic() + duration_secs + 2.0
-            while sd.get_stream() and sd.get_stream().active and time.monotonic() < deadline:
+            while (
+                sd.get_stream()
+                and sd.get_stream().active
+                and time.monotonic() < deadline
+            ):
                 time.sleep(0.01)
             sd.stop()
             return True
@@ -895,7 +955,9 @@ def play_audio_file(file_path: str) -> bool:
         exe = shutil.which(cmd[0])
         if exe:
             try:
-                proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                proc = subprocess.Popen(
+                    cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
                 with _playback_lock:
                     _active_playback = proc
                 proc.wait(timeout=300)
@@ -928,7 +990,12 @@ def check_voice_requirements() -> Dict[str, Any]:
         ``missing_packages``, and ``details``.
     """
     # Determine STT provider availability
-    from tools.transcription_tools import _get_provider, _load_stt_config, is_stt_enabled
+    from tools.transcription_tools import (
+        _get_provider,
+        _load_stt_config,
+        is_stt_enabled,
+    )
+
     stt_config = _load_stt_config()
     stt_enabled = is_stt_enabled(stt_config)
     stt_provider = _get_provider(stt_config)
@@ -952,7 +1019,9 @@ def check_voice_requirements() -> Dict[str, Any]:
     elif has_audio:
         details_parts.append("Audio capture: OK")
     else:
-        details_parts.append(f"Audio capture: MISSING ({_voice_capture_install_hint()})")
+        details_parts.append(
+            f"Audio capture: MISSING ({_voice_capture_install_hint()})"
+        )
 
     if not stt_enabled:
         details_parts.append("STT provider: DISABLED in config (stt.enabled: false)")
@@ -1002,7 +1071,11 @@ def cleanup_temp_recordings(max_age_seconds: int = 3600) -> int:
     now = time.time()
 
     for entry in os.scandir(_TEMP_DIR):
-        if entry.is_file() and entry.name.startswith("recording_") and entry.name.endswith(".wav"):
+        if (
+            entry.is_file()
+            and entry.name.startswith("recording_")
+            and entry.name.endswith(".wav")
+        ):
             try:
                 age = now - entry.stat().st_mtime
                 if age > max_age_seconds:

@@ -31,9 +31,12 @@ _HASS_TOKEN: str = ""
 def _get_config():
     """Return (hass_url, hass_token) from env vars at call time."""
     return (
-        (_HASS_URL or os.getenv("HASS_URL", "http://homeassistant.local:8123")).rstrip("/"),
+        (_HASS_URL or os.getenv("HASS_URL", "http://homeassistant.local:8123")).rstrip(
+            "/"
+        ),
         _HASS_TOKEN or os.getenv("HASS_TOKEN", ""),
     )
+
 
 # Regex for valid HA entity_id format (e.g. "light.living_room", "sensor.temperature_1")
 _ENTITY_ID_RE = re.compile(r"^[a-z_][a-z0-9_]*\.[a-z0-9_]+$")
@@ -41,14 +44,16 @@ _ENTITY_ID_RE = re.compile(r"^[a-z_][a-z0-9_]*\.[a-z0-9_]+$")
 # Service domains blocked for security -- these allow arbitrary code/command
 # execution on the HA host or enable SSRF attacks on the local network.
 # HA provides zero service-level access control; all safety must be in our layer.
-_BLOCKED_DOMAINS = frozenset({
-    "shell_command",    # arbitrary shell commands as root in HA container
-    "command_line",     # sensors/switches that execute shell commands
-    "python_script",    # sandboxed but can escalate via hass.services.call()
-    "pyscript",         # scripting integration with broader access
-    "hassio",           # addon control, host shutdown/reboot, stdin to containers
-    "rest_command",     # HTTP requests from HA server (SSRF vector)
-})
+_BLOCKED_DOMAINS = frozenset(
+    {
+        "shell_command",  # arbitrary shell commands as root in HA container
+        "command_line",  # sensors/switches that execute shell commands
+        "python_script",  # sandboxed but can escalate via hass.services.call()
+        "pyscript",  # scripting integration with broader access
+        "hassio",  # addon control, host shutdown/reboot, stdin to containers
+        "rest_command",  # HTTP requests from HA server (SSRF vector)
+    }
+)
 
 
 def _get_headers(token: str = "") -> Dict[str, str]:
@@ -65,6 +70,7 @@ def _get_headers(token: str = "") -> Dict[str, str]:
 # Async helpers (called from sync handlers via run_until_complete)
 # ---------------------------------------------------------------------------
 
+
 def _filter_and_summarize(
     states: list,
     domain: Optional[str] = None,
@@ -77,18 +83,22 @@ def _filter_and_summarize(
     if area:
         area_lower = area.lower()
         states = [
-            s for s in states
-            if area_lower in (s.get("attributes", {}).get("friendly_name", "") or "").lower()
+            s
+            for s in states
+            if area_lower
+            in (s.get("attributes", {}).get("friendly_name", "") or "").lower()
             or area_lower in (s.get("attributes", {}).get("area", "") or "").lower()
         ]
 
     entities = []
     for s in states:
-        entities.append({
-            "entity_id": s["entity_id"],
-            "state": s["state"],
-            "friendly_name": s.get("attributes", {}).get("friendly_name", ""),
-        })
+        entities.append(
+            {
+                "entity_id": s["entity_id"],
+                "state": s["state"],
+                "friendly_name": s.get("attributes", {}).get("friendly_name", ""),
+            }
+        )
 
     return {"count": len(entities), "entities": entities}
 
@@ -103,7 +113,11 @@ async def _async_list_entities(
     hass_url, hass_token = _get_config()
     url = f"{hass_url}/api/states"
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=_get_headers(hass_token), timeout=aiohttp.ClientTimeout(total=15)) as resp:
+        async with session.get(
+            url,
+            headers=_get_headers(hass_token),
+            timeout=aiohttp.ClientTimeout(total=15),
+        ) as resp:
             resp.raise_for_status()
             states = await resp.json()
 
@@ -117,7 +131,11 @@ async def _async_get_state(entity_id: str) -> Dict[str, Any]:
     hass_url, hass_token = _get_config()
     url = f"{hass_url}/api/states/{entity_id}"
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=_get_headers(hass_token), timeout=aiohttp.ClientTimeout(total=10)) as resp:
+        async with session.get(
+            url,
+            headers=_get_headers(hass_token),
+            timeout=aiohttp.ClientTimeout(total=10),
+        ) as resp:
             resp.raise_for_status()
             data = await resp.json()
 
@@ -153,10 +171,12 @@ def _parse_service_response(
     affected = []
     if isinstance(result, list):
         for s in result:
-            affected.append({
-                "entity_id": s.get("entity_id", ""),
-                "state": s.get("state", ""),
-            })
+            affected.append(
+                {
+                    "entity_id": s.get("entity_id", ""),
+                    "state": s.get("state", ""),
+                }
+            )
 
     return {
         "success": True,
@@ -195,6 +215,7 @@ async def _async_call_service(
 # Sync wrappers (handler signature: (args, **kw) -> str)
 # ---------------------------------------------------------------------------
 
+
 def _run_async(coro):
     """Run an async coroutine from a sync handler."""
     try:
@@ -205,6 +226,7 @@ def _run_async(coro):
     if loop and loop.is_running():
         # Already inside an event loop -- create a new thread
         import concurrent.futures
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
             future = pool.submit(asyncio.run, coro)
             return future.result(timeout=30)
@@ -247,10 +269,12 @@ def _handle_call_service(args: dict, **kw) -> str:
         return tool_error("Missing required parameters: domain and service")
 
     if domain in _BLOCKED_DOMAINS:
-        return json.dumps({
-            "error": f"Service domain '{domain}' is blocked for security. "
-            f"Blocked domains: {', '.join(sorted(_BLOCKED_DOMAINS))}"
-        })
+        return json.dumps(
+            {
+                "error": f"Service domain '{domain}' is blocked for security. "
+                f"Blocked domains: {', '.join(sorted(_BLOCKED_DOMAINS))}"
+            }
+        )
 
     entity_id = args.get("entity_id")
     if entity_id and not _ENTITY_ID_RE.match(entity_id):
@@ -269,15 +293,21 @@ def _handle_call_service(args: dict, **kw) -> str:
 # List services
 # ---------------------------------------------------------------------------
 
+
 async def _async_list_services(domain: Optional[str] = None) -> Dict[str, Any]:
     """Fetch available services from HA and optionally filter by domain."""
     import aiohttp
 
     hass_url, hass_token = _get_config()
     url = f"{hass_url}/api/services"
-    headers = {"Authorization": f"Bearer {hass_token}", "Content-Type": "application/json"}
+    headers = {
+        "Authorization": f"Bearer {hass_token}",
+        "Content-Type": "application/json",
+    }
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+        async with session.get(
+            url, headers=headers, timeout=aiohttp.ClientTimeout(total=15)
+        ) as resp:
             resp.raise_for_status()
             services = await resp.json()
 
@@ -294,7 +324,8 @@ async def _async_list_services(domain: Optional[str] = None) -> Dict[str, Any]:
             fields = svc_info.get("fields", {})
             if fields:
                 svc_entry["fields"] = {
-                    k: v.get("description", "") for k, v in fields.items()
+                    k: v.get("description", "")
+                    for k, v in fields.items()
                     if isinstance(v, dict)
                 }
             domain_services[svc_name] = svc_entry
@@ -317,6 +348,7 @@ def _handle_list_services(args: dict, **kw) -> str:
 # ---------------------------------------------------------------------------
 # Availability check
 # ---------------------------------------------------------------------------
+
 
 def _check_ha_available() -> bool:
     """Tool is only available when HASS_TOKEN is set."""

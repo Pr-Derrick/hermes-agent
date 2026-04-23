@@ -43,12 +43,15 @@ class TestDynamicRouteLoading:
         (tmp_path / _DYNAMIC_ROUTES_FILENAME).write_text(
             json.dumps({"conflict": {"secret": "dynamic", "prompt": "dyn"}})
         )
-        adapter = _make_adapter(routes={"conflict": {"secret": "static", "prompt": "stat"}})
+        adapter = _make_adapter(
+            routes={"conflict": {"secret": "static", "prompt": "stat"}}
+        )
         adapter._reload_dynamic_routes()
         assert adapter._routes["conflict"]["secret"] == "static"
 
     def test_mtime_gated(self, tmp_path):
         import time
+
         path = tmp_path / _DYNAMIC_ROUTES_FILENAME
         path.write_text(json.dumps({"v1": {"secret": "s"}}))
 

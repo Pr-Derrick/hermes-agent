@@ -26,8 +26,10 @@ def _ensure_feishu_mocks():
     if "lark_oapi" not in sys.modules:
         mod = MagicMock()
         for name in (
-            "lark_oapi", "lark_oapi.api.im.v1",
-            "lark_oapi.event", "lark_oapi.event.callback_type",
+            "lark_oapi",
+            "lark_oapi.api.im.v1",
+            "lark_oapi.event",
+            "lark_oapi.event.callback_type",
         ):
             sys.modules.setdefault(name, mod)
     if "aiohttp" not in sys.modules:
@@ -45,6 +47,7 @@ from gateway.platforms.feishu import FeishuAdapter
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_adapter() -> FeishuAdapter:
     """Create a FeishuAdapter with mocked internals."""
@@ -78,6 +81,7 @@ def _make_card_action_data(
 # send_exec_approval — interactive card with buttons
 # ===========================================================================
 
+
 class TestFeishuExecApproval:
     """Test send_exec_approval sends an interactive card."""
 
@@ -90,7 +94,9 @@ class TestFeishuExecApproval:
             data=SimpleNamespace(message_id="msg_001"),
         )
         with patch.object(
-            adapter, "_feishu_send_with_retry", new_callable=AsyncMock,
+            adapter,
+            "_feishu_send_with_retry",
+            new_callable=AsyncMock,
             return_value=mock_response,
         ) as mock_send:
             result = await adapter.send_exec_approval(
@@ -119,7 +125,10 @@ class TestFeishuExecApproval:
         assert len(actions) == 4
         action_names = [a["value"]["hermes_action"] for a in actions]
         assert action_names == [
-            "approve_once", "approve_session", "approve_always", "deny"
+            "approve_once",
+            "approve_session",
+            "approve_always",
+            "deny",
         ]
 
     @pytest.mark.asyncio
@@ -131,7 +140,9 @@ class TestFeishuExecApproval:
             data=SimpleNamespace(message_id="msg_002"),
         )
         with patch.object(
-            adapter, "_feishu_send_with_retry", new_callable=AsyncMock,
+            adapter,
+            "_feishu_send_with_retry",
+            new_callable=AsyncMock,
             return_value=mock_response,
         ):
             await adapter.send_exec_approval(
@@ -165,7 +176,9 @@ class TestFeishuExecApproval:
             data=SimpleNamespace(message_id="msg_003"),
         )
         with patch.object(
-            adapter, "_feishu_send_with_retry", new_callable=AsyncMock,
+            adapter,
+            "_feishu_send_with_retry",
+            new_callable=AsyncMock,
             return_value=mock_response,
         ) as mock_send:
             long_cmd = "x" * 5000
@@ -187,7 +200,9 @@ class TestFeishuExecApproval:
             data=SimpleNamespace(message_id="msg_x"),
         )
         with patch.object(
-            adapter, "_feishu_send_with_retry", new_callable=AsyncMock,
+            adapter,
+            "_feishu_send_with_retry",
+            new_callable=AsyncMock,
             return_value=mock_response,
         ):
             await adapter.send_exec_approval(
@@ -205,6 +220,7 @@ class TestFeishuExecApproval:
 # ===========================================================================
 # _handle_card_action_event — approval button clicks
 # ===========================================================================
+
 
 class TestFeishuApprovalCallback:
     """Test the approval intercept in _handle_card_action_event."""
@@ -224,16 +240,28 @@ class TestFeishuApprovalCallback:
 
         with (
             patch.object(
-                adapter, "_resolve_sender_profile", new_callable=AsyncMock,
-                return_value={"user_id": "ou_user1", "user_name": "Norbert", "user_id_alt": None},
+                adapter,
+                "_resolve_sender_profile",
+                new_callable=AsyncMock,
+                return_value={
+                    "user_id": "ou_user1",
+                    "user_name": "Norbert",
+                    "user_id_alt": None,
+                },
             ),
-            patch.object(adapter, "_update_approval_card", new_callable=AsyncMock) as mock_update,
-            patch("tools.approval.resolve_gateway_approval", return_value=1) as mock_resolve,
+            patch.object(
+                adapter, "_update_approval_card", new_callable=AsyncMock
+            ) as mock_update,
+            patch(
+                "tools.approval.resolve_gateway_approval", return_value=1
+            ) as mock_resolve,
         ):
             await adapter._handle_card_action_event(data)
 
         mock_resolve.assert_called_once_with("agent:main:feishu:group:oc_12345", "once")
-        mock_update.assert_called_once_with("msg_001", "Approved once", "Norbert", "once")
+        mock_update.assert_called_once_with(
+            "msg_001", "Approved once", "Norbert", "once"
+        )
 
         # State should be cleaned up
         assert 1 not in adapter._approval_state
@@ -254,11 +282,21 @@ class TestFeishuApprovalCallback:
 
         with (
             patch.object(
-                adapter, "_resolve_sender_profile", new_callable=AsyncMock,
-                return_value={"user_id": "ou_alice", "user_name": "Alice", "user_id_alt": None},
+                adapter,
+                "_resolve_sender_profile",
+                new_callable=AsyncMock,
+                return_value={
+                    "user_id": "ou_alice",
+                    "user_name": "Alice",
+                    "user_id_alt": None,
+                },
             ),
-            patch.object(adapter, "_update_approval_card", new_callable=AsyncMock) as mock_update,
-            patch("tools.approval.resolve_gateway_approval", return_value=1) as mock_resolve,
+            patch.object(
+                adapter, "_update_approval_card", new_callable=AsyncMock
+            ) as mock_update,
+            patch(
+                "tools.approval.resolve_gateway_approval", return_value=1
+            ) as mock_resolve,
         ):
             await adapter._handle_card_action_event(data)
 
@@ -281,16 +319,28 @@ class TestFeishuApprovalCallback:
 
         with (
             patch.object(
-                adapter, "_resolve_sender_profile", new_callable=AsyncMock,
-                return_value={"user_id": "ou_u", "user_name": "Bob", "user_id_alt": None},
+                adapter,
+                "_resolve_sender_profile",
+                new_callable=AsyncMock,
+                return_value={
+                    "user_id": "ou_u",
+                    "user_name": "Bob",
+                    "user_id_alt": None,
+                },
             ),
-            patch.object(adapter, "_update_approval_card", new_callable=AsyncMock) as mock_update,
-            patch("tools.approval.resolve_gateway_approval", return_value=1) as mock_resolve,
+            patch.object(
+                adapter, "_update_approval_card", new_callable=AsyncMock
+            ) as mock_update,
+            patch(
+                "tools.approval.resolve_gateway_approval", return_value=1
+            ) as mock_resolve,
         ):
             await adapter._handle_card_action_event(data)
 
         mock_resolve.assert_called_once_with("sess-3", "session")
-        mock_update.assert_called_once_with("msg_003", "Approved for session", "Bob", "session")
+        mock_update.assert_called_once_with(
+            "msg_003", "Approved for session", "Bob", "session"
+        )
 
     @pytest.mark.asyncio
     async def test_always_approval(self):
@@ -308,11 +358,19 @@ class TestFeishuApprovalCallback:
 
         with (
             patch.object(
-                adapter, "_resolve_sender_profile", new_callable=AsyncMock,
-                return_value={"user_id": "ou_u", "user_name": "Carol", "user_id_alt": None},
+                adapter,
+                "_resolve_sender_profile",
+                new_callable=AsyncMock,
+                return_value={
+                    "user_id": "ou_u",
+                    "user_name": "Carol",
+                    "user_id_alt": None,
+                },
             ),
             patch.object(adapter, "_update_approval_card", new_callable=AsyncMock),
-            patch("tools.approval.resolve_gateway_approval", return_value=1) as mock_resolve,
+            patch(
+                "tools.approval.resolve_gateway_approval", return_value=1
+            ) as mock_resolve,
         ):
             await adapter._handle_card_action_event(data)
 
@@ -346,11 +404,24 @@ class TestFeishuApprovalCallback:
 
         with (
             patch.object(
-                adapter, "_resolve_sender_profile", new_callable=AsyncMock,
-                return_value={"user_id": "ou_u", "user_name": "Dave", "user_id_alt": None},
+                adapter,
+                "_resolve_sender_profile",
+                new_callable=AsyncMock,
+                return_value={
+                    "user_id": "ou_u",
+                    "user_name": "Dave",
+                    "user_id_alt": None,
+                },
             ),
-            patch.object(adapter, "get_chat_info", new_callable=AsyncMock, return_value={"name": "Test Chat"}),
-            patch.object(adapter, "_handle_message_with_guards", new_callable=AsyncMock) as mock_handle,
+            patch.object(
+                adapter,
+                "get_chat_info",
+                new_callable=AsyncMock,
+                return_value={"name": "Test Chat"},
+            ),
+            patch.object(
+                adapter, "_handle_message_with_guards", new_callable=AsyncMock
+            ) as mock_handle,
             patch("tools.approval.resolve_gateway_approval") as mock_resolve,
         ):
             await adapter._handle_card_action_event(data)
@@ -366,6 +437,7 @@ class TestFeishuApprovalCallback:
 # ===========================================================================
 # _update_approval_card — card replacement after resolution
 # ===========================================================================
+
 
 class TestFeishuUpdateApprovalCard:
     """Test the card update after approval resolution."""
@@ -392,9 +464,7 @@ class TestFeishuUpdateApprovalCard:
         adapter = _make_adapter()
 
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_thread:
-            await adapter._update_approval_card(
-                "msg_002", "Denied", "Alice", "deny"
-            )
+            await adapter._update_approval_card("msg_002", "Denied", "Alice", "deny")
 
         mock_thread.assert_called_once()
 
@@ -404,9 +474,7 @@ class TestFeishuUpdateApprovalCard:
         adapter._client = None
 
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_thread:
-            await adapter._update_approval_card(
-                "msg_001", "Approved", "Bob", "once"
-            )
+            await adapter._update_approval_card("msg_001", "Approved", "Bob", "once")
 
         mock_thread.assert_not_called()
 
@@ -415,9 +483,7 @@ class TestFeishuUpdateApprovalCard:
         adapter = _make_adapter()
 
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_thread:
-            await adapter._update_approval_card(
-                "", "Approved", "Bob", "once"
-            )
+            await adapter._update_approval_card("", "Approved", "Bob", "once")
 
         mock_thread.assert_not_called()
 
@@ -425,8 +491,10 @@ class TestFeishuUpdateApprovalCard:
     async def test_swallows_update_errors(self):
         adapter = _make_adapter()
 
-        with patch("asyncio.to_thread", new_callable=AsyncMock, side_effect=Exception("API error")):
+        with patch(
+            "asyncio.to_thread",
+            new_callable=AsyncMock,
+            side_effect=Exception("API error"),
+        ):
             # Should not raise
-            await adapter._update_approval_card(
-                "msg_001", "Approved", "Bob", "once"
-            )
+            await adapter._update_approval_card("msg_001", "Approved", "Bob", "once")

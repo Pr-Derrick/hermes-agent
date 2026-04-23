@@ -79,6 +79,7 @@ class TestDiscordThreadPersistence:
         fake_home = tmp_path / "nonexistent" / "deep"
         with patch.dict(os.environ, {"HERMES_HOME": str(fake_home)}):
             from gateway.platforms.helpers import ThreadParticipationTracker
+
             # ThreadParticipationTracker should return empty set, not crash
             tracker = ThreadParticipationTracker("discord")
             assert "$test" not in tracker

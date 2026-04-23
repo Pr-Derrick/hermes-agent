@@ -113,8 +113,13 @@ def test_feasibility_check_passes_live_main_runtime():
     mock_client.base_url = "https://chatgpt.com/backend-api/codex"
     mock_client.api_key = "codex-token"
 
-    with patch("agent.auxiliary_client.get_text_auxiliary_client", return_value=(mock_client, "gpt-5.4")) as mock_get_client, \
-         patch("agent.model_metadata.get_model_context_length", return_value=200_000):
+    with (
+        patch(
+            "agent.auxiliary_client.get_text_auxiliary_client",
+            return_value=(mock_client, "gpt-5.4"),
+        ) as mock_get_client,
+        patch("agent.model_metadata.get_model_context_length", return_value=200_000),
+    ):
         agent._emit_status = lambda msg: None
         agent._check_compression_model_feasibility()
 

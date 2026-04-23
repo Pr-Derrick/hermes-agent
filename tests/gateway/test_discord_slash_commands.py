@@ -20,8 +20,8 @@ def _ensure_discord_mock():
     discord_mod.ForumChannel = type("ForumChannel", (), {})
     discord_mod.Interaction = object
     discord_mod.app_commands = SimpleNamespace(
-        describe=lambda **kwargs: (lambda fn: fn),
-        choices=lambda **kwargs: (lambda fn: fn),
+        describe=lambda **kwargs: lambda fn: fn,
+        choices=lambda **kwargs: lambda fn: fn,
         Choice=lambda **kwargs: SimpleNamespace(**kwargs),
     )
 
@@ -84,7 +84,9 @@ async def test_registers_native_thread_slash_command(adapter):
     await command(interaction, name="Planning", message="", auto_archive_duration=1440)
 
     interaction.response.defer.assert_awaited_once_with(ephemeral=True)
-    adapter._handle_thread_create_slash.assert_awaited_once_with(interaction, "Planning", "", 1440)
+    adapter._handle_thread_create_slash.assert_awaited_once_with(
+        interaction, "Planning", "", 1440
+    )
 
 
 # ------------------------------------------------------------------
@@ -95,7 +97,9 @@ async def test_registers_native_thread_slash_command(adapter):
 @pytest.mark.asyncio
 async def test_handle_thread_create_slash_reports_success(adapter):
     created_thread = SimpleNamespace(id=555, name="Planning", send=AsyncMock())
-    parent_channel = SimpleNamespace(create_thread=AsyncMock(return_value=created_thread), send=AsyncMock())
+    parent_channel = SimpleNamespace(
+        create_thread=AsyncMock(return_value=created_thread), send=AsyncMock()
+    )
     interaction_channel = SimpleNamespace(parent=parent_channel)
     interaction = SimpleNamespace(
         channel=interaction_channel,
@@ -121,10 +125,14 @@ async def test_handle_thread_create_slash_reports_success(adapter):
 
 
 @pytest.mark.asyncio
-async def test_handle_thread_create_slash_dispatches_session_when_message_provided(adapter):
+async def test_handle_thread_create_slash_dispatches_session_when_message_provided(
+    adapter,
+):
     """When a message is given, _dispatch_thread_session should be called."""
     created_thread = SimpleNamespace(id=555, name="Planning", send=AsyncMock())
-    parent_channel = SimpleNamespace(create_thread=AsyncMock(return_value=created_thread))
+    parent_channel = SimpleNamespace(
+        create_thread=AsyncMock(return_value=created_thread)
+    )
     interaction = SimpleNamespace(
         channel=SimpleNamespace(parent=parent_channel),
         channel_id=123,
@@ -135,10 +143,15 @@ async def test_handle_thread_create_slash_dispatches_session_when_message_provid
 
     adapter._dispatch_thread_session = AsyncMock()
 
-    await adapter._handle_thread_create_slash(interaction, "Planning", "Hello Hermes", 1440)
+    await adapter._handle_thread_create_slash(
+        interaction, "Planning", "Hello Hermes", 1440
+    )
 
     adapter._dispatch_thread_session.assert_awaited_once_with(
-        interaction, "555", "Planning", "Hello Hermes",
+        interaction,
+        "555",
+        "Planning",
+        "Hello Hermes",
     )
 
 
@@ -146,7 +159,9 @@ async def test_handle_thread_create_slash_dispatches_session_when_message_provid
 async def test_handle_thread_create_slash_no_dispatch_without_message(adapter):
     """Without a message, no session dispatch should occur."""
     created_thread = SimpleNamespace(id=555, name="Planning", send=AsyncMock())
-    parent_channel = SimpleNamespace(create_thread=AsyncMock(return_value=created_thread))
+    parent_channel = SimpleNamespace(
+        create_thread=AsyncMock(return_value=created_thread)
+    )
     interaction = SimpleNamespace(
         channel=SimpleNamespace(parent=parent_channel),
         channel_id=123,
@@ -165,7 +180,9 @@ async def test_handle_thread_create_slash_no_dispatch_without_message(adapter):
 @pytest.mark.asyncio
 async def test_handle_thread_create_slash_falls_back_to_seed_message(adapter):
     created_thread = SimpleNamespace(id=555, name="Planning")
-    seed_message = SimpleNamespace(id=777, create_thread=AsyncMock(return_value=created_thread))
+    seed_message = SimpleNamespace(
+        id=777, create_thread=AsyncMock(return_value=created_thread)
+    )
     channel = SimpleNamespace(
         create_thread=AsyncMock(side_effect=RuntimeError("direct failed")),
         send=AsyncMock(return_value=seed_message),
@@ -349,13 +366,21 @@ class _FakeTextChannel:
 class _FakeThreadChannel(_discord_mod.Thread):
     """isinstance(ch, discord.Thread) → True."""
 
-    def __init__(self, channel_id=200, name="existing-thread", guild_name="TestGuild", parent_id=100):
+    def __init__(
+        self,
+        channel_id=200,
+        name="existing-thread",
+        guild_name="TestGuild",
+        parent_id=100,
+    ):
         # Don't call super().__init__ — mock Thread is just an empty type
         self.id = channel_id
         self.name = name
         self.guild = SimpleNamespace(name=guild_name, id=1)
         self.topic = None
-        self.parent = SimpleNamespace(id=parent_id, name="general", guild=SimpleNamespace(name=guild_name, id=1))
+        self.parent = SimpleNamespace(
+            id=parent_id, name="general", guild=SimpleNamespace(name=guild_name, id=1)
+        )
 
 
 def _fake_message(channel, *, content="Hello", author_id=42, display_name="Jezza"):
@@ -485,16 +510,22 @@ def test_discord_auto_thread_config_bridge(monkeypatch, tmp_path):
     hermes_dir = tmp_path / ".hermes"
     hermes_dir.mkdir()
     config_path = hermes_dir / "config.yaml"
-    config_path.write_text(yaml.dump({
-        "discord": {"auto_thread": True},
-    }))
+    config_path.write_text(
+        yaml.dump(
+            {
+                "discord": {"auto_thread": True},
+            }
+        )
+    )
 
     monkeypatch.delenv("DISCORD_AUTO_THREAD", raising=False)
     monkeypatch.setenv("HERMES_HOME", str(hermes_dir))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
     from gateway.config import load_gateway_config
+
     load_gateway_config()
 
     import os
+
     assert os.getenv("DISCORD_AUTO_THREAD") == "true"

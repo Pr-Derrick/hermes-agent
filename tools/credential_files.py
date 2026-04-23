@@ -49,6 +49,7 @@ _config_files: List[Dict[str, str]] | None = None
 
 def _resolve_hermes_home() -> Path:
     from hermes_constants import get_hermes_home
+
     return get_hermes_home()
 
 
@@ -136,6 +137,7 @@ def _load_config_files() -> List[Dict[str, str]]:
     result: List[Dict[str, str]] = []
     try:
         from hermes_cli.config import read_raw_config
+
         hermes_home = _resolve_hermes_home()
         cfg = read_raw_config()
         cred_files = cfg.get("terminal", {}).get("credential_files")
@@ -147,7 +149,8 @@ def _load_config_files() -> List[Dict[str, str]]:
                     rel = item.strip()
                     if os.path.isabs(rel):
                         logger.warning(
-                            "credential_files: rejected absolute config path %r", rel,
+                            "credential_files: rejected absolute config path %r",
+                            rel,
                         )
                         continue
                     host_path = hermes_home / rel
@@ -155,16 +158,19 @@ def _load_config_files() -> List[Dict[str, str]]:
                     if containment_error:
                         logger.warning(
                             "credential_files: rejected config path traversal %r (%s)",
-                            rel, containment_error,
+                            rel,
+                            containment_error,
                         )
                         continue
                     resolved_path = host_path.resolve()
                     if resolved_path.is_file():
                         container_path = f"/root/.hermes/{rel}"
-                        result.append({
-                            "host_path": str(resolved_path),
-                            "container_path": container_path,
-                        })
+                        result.append(
+                            {
+                                "host_path": str(resolved_path),
+                                "container_path": container_path,
+                            }
+                        )
     except Exception as e:
         logger.warning("Could not read terminal.credential_files from config: %s", e)
 
@@ -192,10 +198,7 @@ def get_credential_file_mounts() -> List[Dict[str, str]]:
         if cp not in mounts and Path(entry["host_path"]).is_file():
             mounts[cp] = entry["host_path"]
 
-    return [
-        {"host_path": hp, "container_path": cp}
-        for cp, hp in mounts.items()
-    ]
+    return [{"host_path": hp, "container_path": cp} for cp, hp in mounts.items()]
 
 
 def get_skills_directory_mount(
@@ -222,21 +225,26 @@ def get_skills_directory_mount(
     skills_dir = hermes_home / "skills"
     if skills_dir.is_dir():
         host_path = _safe_skills_path(skills_dir)
-        mounts.append({
-            "host_path": host_path,
-            "container_path": f"{container_base.rstrip('/')}/skills",
-        })
+        mounts.append(
+            {
+                "host_path": host_path,
+                "container_path": f"{container_base.rstrip('/')}/skills",
+            }
+        )
 
     # Mount external skill dirs
     try:
         from agent.skill_utils import get_external_skills_dirs
+
         for idx, ext_dir in enumerate(get_external_skills_dirs()):
             if ext_dir.is_dir():
                 host_path = _safe_skills_path(ext_dir)
-                mounts.append({
-                    "host_path": host_path,
-                    "container_path": f"{container_base.rstrip('/')}/external_skills/{idx}",
-                })
+                mounts.append(
+                    {
+                        "host_path": host_path,
+                        "container_path": f"{container_base.rstrip('/')}/external_skills/{idx}",
+                    }
+                )
     except ImportError:
         pass
 
@@ -255,8 +263,11 @@ def _safe_skills_path(skills_dir: Path) -> str:
         return str(skills_dir)
 
     for link in symlinks:
-        logger.warning("credential_files: skipping symlink in skills dir: %s -> %s",
-                       link, os.readlink(link))
+        logger.warning(
+            "credential_files: skipping symlink in skills dir: %s -> %s",
+            link,
+            os.readlink(link),
+        )
 
     import atexit
     import shutil
@@ -309,14 +320,17 @@ def iter_skills_files(
             if item.is_symlink() or not item.is_file():
                 continue
             rel = item.relative_to(skills_dir)
-            result.append({
-                "host_path": str(item),
-                "container_path": f"{container_root}/{rel}",
-            })
+            result.append(
+                {
+                    "host_path": str(item),
+                    "container_path": f"{container_root}/{rel}",
+                }
+            )
 
     # Include external skill dirs
     try:
         from agent.skill_utils import get_external_skills_dirs
+
         for idx, ext_dir in enumerate(get_external_skills_dirs()):
             if not ext_dir.is_dir():
                 continue
@@ -325,10 +339,12 @@ def iter_skills_files(
                 if item.is_symlink() or not item.is_file():
                     continue
                 rel = item.relative_to(ext_dir)
-                result.append({
-                    "host_path": str(item),
-                    "container_path": f"{container_root}/{rel}",
-                })
+                result.append(
+                    {
+                        "host_path": str(item),
+                        "container_path": f"{container_root}/{rel}",
+                    }
+                )
     except ImportError:
         pass
 
@@ -366,10 +382,12 @@ def get_cache_directory_mounts(
         if host_dir.is_dir():
             # Always map to the *new* container layout regardless of host layout.
             container_path = f"{container_base.rstrip('/')}/{new_subpath}"
-            mounts.append({
-                "host_path": str(host_dir),
-                "container_path": container_path,
-            })
+            mounts.append(
+                {
+                    "host_path": str(host_dir),
+                    "container_path": container_path,
+                }
+            )
     return mounts
 
 
@@ -393,15 +411,15 @@ def iter_cache_files(
             if item.is_symlink() or not item.is_file():
                 continue
             rel = item.relative_to(host_dir)
-            result.append({
-                "host_path": str(item),
-                "container_path": f"{container_root}/{rel}",
-            })
+            result.append(
+                {
+                    "host_path": str(item),
+                    "container_path": f"{container_root}/{rel}",
+                }
+            )
     return result
 
 
 def clear_credential_files() -> None:
     """Reset the skill-scoped registry (e.g. on session reset)."""
     _get_registered().clear()
-
-

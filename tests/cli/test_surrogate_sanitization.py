@@ -4,6 +4,7 @@ Surrogates (U+D800..U+DFFF) are invalid in UTF-8 and crash json.dumps()
 inside the OpenAI SDK. They can appear via clipboard paste from rich-text
 editors like Google Docs.
 """
+
 import json
 import pytest
 from unittest.mock import MagicMock, patch
@@ -35,10 +36,20 @@ class TestSanitizeSurrogates:
 
     def test_all_surrogate_range(self):
         """Verify the regex catches the full surrogate range."""
-        for cp in [0xD800, 0xD900, 0xDA00, 0xDB00, 0xDC00, 0xDD00, 0xDE00, 0xDF00, 0xDFFF]:
+        for cp in [
+            0xD800,
+            0xD900,
+            0xDA00,
+            0xDB00,
+            0xDC00,
+            0xDD00,
+            0xDE00,
+            0xDF00,
+            0xDFFF,
+        ]:
             text = f"test{chr(cp)}end"
             result = _sanitize_surrogates(text)
-            assert '\ufffd' in result, f"Surrogate U+{cp:04X} not caught"
+            assert "\ufffd" in result, f"Surrogate U+{cp:04X} not caught"
 
     def test_result_is_json_serializable(self):
         """Sanitized text must survive json.dumps + utf-8 encoding."""
@@ -76,10 +87,13 @@ class TestSanitizeMessagesSurrogates:
 
     def test_dirty_multimodal_content_sanitized(self):
         msgs = [
-            {"role": "user", "content": [
-                {"type": "text", "text": "multimodal \udce2 content"},
-                {"type": "image_url", "image_url": {"url": "http://example.com"}},
-            ]},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "multimodal \udce2 content"},
+                    {"type": "image_url", "image_url": {"url": "http://example.com"}},
+                ],
+            },
         ]
         assert _sanitize_messages_surrogates(msgs) is True
         assert "\ufffd" in msgs[0]["content"][0]["text"]
@@ -131,14 +145,21 @@ class TestRunConversationSurrogateSanitization:
 
         mock_response = MagicMock()
         mock_response.choices = [mock_choice]
-        mock_response.usage = MagicMock(prompt_tokens=10, completion_tokens=5, total_tokens=15)
+        mock_response.usage = MagicMock(
+            prompt_tokens=10, completion_tokens=5, total_tokens=15
+        )
         mock_response.model = "test-model"
         mock_response.id = "test-id"
 
         mock_stream.return_value = mock_response
         mock_api.return_value = mock_response
 
-        agent = AIAgent(model="test/model", quiet_mode=True, skip_memory=True, skip_context_files=True)
+        agent = AIAgent(
+            model="test/model",
+            quiet_mode=True,
+            skip_memory=True,
+            skip_context_files=True,
+        )
         agent.client = MagicMock()
 
         # Pass a message with surrogates
@@ -150,5 +171,9 @@ class TestRunConversationSurrogateSanitization:
         # The message stored in history should have surrogates replaced
         for msg in result.get("messages", []):
             if msg.get("role") == "user":
-                assert "\udce2" not in msg["content"], "Surrogate leaked into stored message"
-                assert "\ufffd" in msg["content"], "Replacement char not in stored message"
+                assert "\udce2" not in msg["content"], (
+                    "Surrogate leaked into stored message"
+                )
+                assert "\ufffd" in msg["content"], (
+                    "Replacement char not in stored message"
+                )

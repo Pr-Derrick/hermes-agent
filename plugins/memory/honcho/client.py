@@ -45,6 +45,7 @@ def resolve_active_host() -> str:
 
     try:
         from hermes_cli.profiles import get_active_profile_name
+
         profile = get_active_profile_name()
         if profile and profile not in ("default", "custom"):
             return f"{HOST}.{profile}"
@@ -95,7 +96,11 @@ def _resolve_bool(host_val, root_val, *, default: bool) -> bool:
 
 
 _VALID_OBSERVATION_MODES = {"unified", "directional"}
-_OBSERVATION_MODE_ALIASES = {"shared": "unified", "separate": "directional", "cross": "directional"}
+_OBSERVATION_MODE_ALIASES = {
+    "shared": "unified",
+    "separate": "directional",
+    "cross": "directional",
+}
 
 
 def _normalize_observation_mode(val: str) -> str:
@@ -108,12 +113,16 @@ def _normalize_observation_mode(val: str) -> str:
 # Explicit per-peer config always wins over presets.
 _OBSERVATION_PRESETS = {
     "directional": {
-        "user_observe_me": True, "user_observe_others": True,
-        "ai_observe_me": True, "ai_observe_others": True,
+        "user_observe_me": True,
+        "user_observe_others": True,
+        "ai_observe_me": True,
+        "ai_observe_others": True,
     },
     "unified": {
-        "user_observe_me": True, "user_observe_others": False,
-        "ai_observe_me": False, "ai_observe_others": True,
+        "user_observe_me": True,
+        "user_observe_others": False,
+        "ai_observe_me": False,
+        "ai_observe_others": True,
     },
 }
 
@@ -140,13 +149,12 @@ def _resolve_observation(
 
     return {
         "user_observe_me": user_block.get("observeMe", preset["user_observe_me"]),
-        "user_observe_others": user_block.get("observeOthers", preset["user_observe_others"]),
+        "user_observe_others": user_block.get(
+            "observeOthers", preset["user_observe_others"]
+        ),
         "ai_observe_me": ai_block.get("observeMe", preset["ai_observe_me"]),
         "ai_observe_others": ai_block.get("observeOthers", preset["ai_observe_others"]),
     }
-
-
-
 
 
 @dataclass
@@ -263,25 +271,16 @@ class HonchoClientConfig:
         _explicitly_configured = bool(host_block) or raw.get("enabled") is True
 
         # Explicit host block fields win, then flat/global, then defaults
-        workspace = (
-            host_block.get("workspace")
-            or raw.get("workspace")
-            or resolved_host
-        )
-        ai_peer = (
-            host_block.get("aiPeer")
-            or raw.get("aiPeer")
-            or resolved_host
-        )
+        workspace = host_block.get("workspace") or raw.get("workspace") or resolved_host
+        ai_peer = host_block.get("aiPeer") or raw.get("aiPeer") or resolved_host
         api_key = (
             host_block.get("apiKey")
             or raw.get("apiKey")
             or os.environ.get("HONCHO_API_KEY")
         )
 
-        environment = (
-            host_block.get("environment")
-            or raw.get("environment", "production")
+        environment = host_block.get("environment") or raw.get(
+            "environment", "production"
         )
 
         base_url = (
@@ -305,9 +304,7 @@ class HonchoClientConfig:
 
         # write_frequency: accept int or string
         raw_wf = (
-            host_block.get("writeFrequency")
-            or raw.get("writeFrequency")
-            or "async"
+            host_block.get("writeFrequency") or raw.get("writeFrequency") or "async"
         )
         try:
             write_frequency: str | int = int(raw_wf)
@@ -316,16 +313,18 @@ class HonchoClientConfig:
 
         # saveMessages: host wins (None-aware since False is valid)
         host_save = host_block.get("saveMessages")
-        save_messages = host_save if host_save is not None else raw.get("saveMessages", True)
+        save_messages = (
+            host_save if host_save is not None else raw.get("saveMessages", True)
+        )
 
         # sessionStrategy / sessionPeerPrefix: host first, root fallback
-        session_strategy = (
-            host_block.get("sessionStrategy")
-            or raw.get("sessionStrategy", "per-directory")
+        session_strategy = host_block.get("sessionStrategy") or raw.get(
+            "sessionStrategy", "per-directory"
         )
         host_prefix = host_block.get("sessionPeerPrefix")
         session_peer_prefix = (
-            host_prefix if host_prefix is not None
+            host_prefix
+            if host_prefix is not None
             else raw.get("sessionPeerPrefix", False)
         )
 
@@ -357,9 +356,7 @@ class HonchoClientConfig:
                 or 600
             ),
             message_max_chars=int(
-                host_block.get("messageMaxChars")
-                or raw.get("messageMaxChars")
-                or 25000
+                host_block.get("messageMaxChars") or raw.get("messageMaxChars") or 25000
             ),
             dialectic_max_input_chars=int(
                 host_block.get("dialecticMaxInputChars")
@@ -367,9 +364,7 @@ class HonchoClientConfig:
                 or 10000
             ),
             recall_mode=_normalize_recall_mode(
-                host_block.get("recallMode")
-                or raw.get("recallMode")
-                or "hybrid"
+                host_block.get("recallMode") or raw.get("recallMode") or "hybrid"
             ),
             init_on_session_start=_resolve_bool(
                 host_block.get("initOnSessionStart"),
@@ -409,7 +404,10 @@ class HonchoClientConfig:
         try:
             root = subprocess.run(
                 ["git", "rev-parse", "--show-toplevel"],
-                capture_output=True, text=True, cwd=cwd, timeout=5,
+                capture_output=True,
+                text=True,
+                cwd=cwd,
+                timeout=5,
             )
             if root.returncode == 0:
                 return Path(root.stdout.strip()).name
@@ -445,7 +443,7 @@ class HonchoClientConfig:
 
         # /title mid-session remap
         if session_title:
-            sanitized = re.sub(r'[^a-zA-Z0-9_-]', '-', session_title).strip('-')
+            sanitized = re.sub(r"[^a-zA-Z0-9_-]", "-", session_title).strip("-")
             if sanitized:
                 if self.session_peer_prefix and self.peer_name:
                     return f"{self.peer_name}-{sanitized}"
@@ -515,6 +513,7 @@ def get_honcho_client(config: HonchoClientConfig | None = None) -> Honcho:
     if not resolved_base_url:
         try:
             from hermes_cli.config import load_config
+
             hermes_cfg = load_config()
             honcho_cfg = hermes_cfg.get("honcho", {})
             if isinstance(honcho_cfg, dict):
@@ -523,9 +522,17 @@ def get_honcho_client(config: HonchoClientConfig | None = None) -> Honcho:
             pass
 
     if resolved_base_url:
-        logger.info("Initializing Honcho client (base_url: %s, workspace: %s)", resolved_base_url, config.workspace_id)
+        logger.info(
+            "Initializing Honcho client (base_url: %s, workspace: %s)",
+            resolved_base_url,
+            config.workspace_id,
+        )
     else:
-        logger.info("Initializing Honcho client (host: %s, workspace: %s)", config.host, config.workspace_id)
+        logger.info(
+            "Initializing Honcho client (host: %s, workspace: %s)",
+            config.host,
+            config.workspace_id,
+        )
 
     # Local Honcho instances don't require an API key, but the SDK
     # expects a non-empty string.  Use a placeholder for local URLs.

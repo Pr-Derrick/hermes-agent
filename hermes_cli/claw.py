@@ -52,6 +52,7 @@ _OPENCLAW_SCRIPT_INSTALLED = (
 # Known OpenClaw directory names (current + legacy)
 _OPENCLAW_DIR_NAMES = (".openclaw", ".clawdbot", ".moltbot")
 
+
 def _warn_if_gateway_running(auto_yes: bool) -> None:
     """Check if a Hermes gateway is running with connected platforms.
 
@@ -66,15 +67,17 @@ def _warn_if_gateway_running(auto_yes: bool) -> None:
 
     data = read_runtime_status() or {}
     platforms = data.get("platforms") or {}
-    connected = [name for name, info in platforms.items()
-                 if isinstance(info, dict) and info.get("state") == "connected"]
+    connected = [
+        name
+        for name, info in platforms.items()
+        if isinstance(info, dict) and info.get("state") == "connected"
+    ]
     if not connected:
         return
 
     print()
     print_error(
-        "Hermes gateway is running with active connections: "
-        + ", ".join(connected)
+        "Hermes gateway is running with active connections: " + ", ".join(connected)
     )
     print_info(
         "Migrating bot tokens while the gateway is active will cause "
@@ -86,6 +89,7 @@ def _warn_if_gateway_running(auto_yes: bool) -> None:
     if not auto_yes and not prompt_yes_no("Continue anyway?", default=False):
         print_info("Migration cancelled. Stop the gateway and try again.")
         sys.exit(0)
+
 
 # State files commonly found in OpenClaw workspace directories — listed
 # during cleanup to help the user decide whether to archive
@@ -201,7 +205,9 @@ def claw_command(args):
         print()
         print("Commands:")
         print("  migrate          Migrate settings from OpenClaw to Hermes")
-        print("  cleanup          Archive leftover OpenClaw directories after migration")
+        print(
+            "  cleanup          Archive leftover OpenClaw directories after migration"
+        )
         print()
         print("Run 'hermes claw <command> --help' for options.")
 
@@ -257,7 +263,9 @@ def _cmd_migrate(args):
         print()
         print_error(f"OpenClaw directory not found: {source_dir}")
         print_info("Make sure your OpenClaw installation is at the expected path.")
-        print_info("You can specify a custom path: hermes claw migrate --source /path/to/.openclaw")
+        print_info(
+            "You can specify a custom path: hermes claw migrate --source /path/to/.openclaw"
+        )
         return
 
     # Find the migration script
@@ -442,9 +450,14 @@ def _cmd_cleanup(args):
         # Show directory stats
         try:
             workspace_dirs = [
-                d for d in source_dir.iterdir()
-                if d.is_dir() and not d.name.startswith(".")
-                and any((d / name).exists() for name in ("todo.json", "SOUL.md", "MEMORY.md", "USER.md"))
+                d
+                for d in source_dir.iterdir()
+                if d.is_dir()
+                and not d.name.startswith(".")
+                and any(
+                    (d / name).exists()
+                    for name in ("todo.json", "SOUL.md", "MEMORY.md", "USER.md")
+                )
             ]
         except OSError:
             workspace_dirs = []
@@ -490,18 +503,24 @@ def _cmd_cleanup(args):
                     total_archived += 1
                 except OSError as e:
                     print_error(f"Could not archive: {e}")
-                    print_info(f"Try manually: mv {source_dir} {source_dir}.pre-migration")
+                    print_info(
+                        f"Try manually: mv {source_dir} {source_dir}.pre-migration"
+                    )
             else:
                 print_info("Skipped.")
 
     # Summary
     print()
     if dry_run:
-        print_info(f"Dry run complete. {len(dirs_to_check)} directory(ies) would be archived.")
+        print_info(
+            f"Dry run complete. {len(dirs_to_check)} directory(ies) would be archived."
+        )
         print_info("Run without --dry-run to archive them.")
     elif total_archived:
         print_success(f"Cleaned up {total_archived} OpenClaw directory(ies).")
-        print_info("Directories were renamed, not deleted. You can undo by renaming them back.")
+        print_info(
+            "Directories were renamed, not deleted. You can undo by renaming them back."
+        )
     else:
         print_info("No directories were archived.")
 
@@ -546,7 +565,11 @@ def _print_migration_report(report: dict, dry_run: bool):
             print()
 
         if conflict_items:
-            print(color("  ⚠ Conflicts (skipped — use --overwrite to force):", Colors.YELLOW))
+            print(
+                color(
+                    "  ⚠ Conflicts (skipped — use --overwrite to force):", Colors.YELLOW
+                )
+            )
             for item in conflict_items:
                 kind = item.get("kind", "unknown")
                 reason = item.get("reason", "already exists")
@@ -600,13 +623,24 @@ def _print_migration_report(report: dict, dry_run: bool):
         print_success("Migration complete!")
         # Warn if API keys were skipped (migrate_secrets not enabled)
         skipped_keys = [
-            i for i in report.get("items", [])
+            i
+            for i in report.get("items", [])
             if i.get("kind") == "provider-keys" and i.get("status") == "skipped"
         ]
         if skipped_keys:
             print()
-            print(color("  ⚠ API keys were NOT migrated (secrets migration is disabled by default).", Colors.YELLOW))
-            print(color("  Your OPENROUTER_API_KEY and other provider keys must be added manually.", Colors.YELLOW))
+            print(
+                color(
+                    "  ⚠ API keys were NOT migrated (secrets migration is disabled by default).",
+                    Colors.YELLOW,
+                )
+            )
+            print(
+                color(
+                    "  Your OPENROUTER_API_KEY and other provider keys must be added manually.",
+                    Colors.YELLOW,
+                )
+            )
             print()
             print_info("To migrate API keys, re-run with:")
             print_info("  hermes claw migrate --migrate-secrets")

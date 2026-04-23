@@ -189,7 +189,9 @@ def _prompt_plugin_env_vars(manifest: dict, console) -> None:
         return
 
     plugin_name = manifest.get("name", "this plugin")
-    console.print(f"\n[bold]{plugin_name}[/bold] requires the following environment variables:\n")
+    console.print(
+        f"\n[bold]{plugin_name}[/bold] requires the following environment variables:\n"
+    )
 
     for spec in missing:
         name = spec["name"]
@@ -207,11 +209,14 @@ def _prompt_plugin_env_vars(manifest: dict, console) -> None:
         try:
             if secret:
                 import getpass
+
                 value = getpass.getpass(f"  {name}: ").strip()
             else:
                 value = input(f"  {name}: ").strip()
         except (EOFError, KeyboardInterrupt):
-            console.print(f"\n[dim]  Skipped (you can set these later in {display_hermes_home()}/.env)[/dim]")
+            console.print(
+                f"\n[dim]  Skipped (you can set these later in {display_hermes_home()}/.env)[/dim]"
+            )
             return
 
         if value:
@@ -219,7 +224,9 @@ def _prompt_plugin_env_vars(manifest: dict, console) -> None:
             os.environ[name] = value
             console.print(f"  [green]✓[/green] Saved to {display_hermes_home()}/.env")
         else:
-            console.print(f"  [dim]  Skipped (set {name} in {display_hermes_home()}/.env later)[/dim]")
+            console.print(
+                f"  [dim]  Skipped (set {name} in {display_hermes_home()}/.env later)[/dim]"
+            )
 
     console.print()
 
@@ -267,7 +274,9 @@ def _require_installed_plugin(name: str, plugins_dir: Path, console) -> Path:
     """Return the plugin path if it exists, or exit with an error listing installed plugins."""
     target = _sanitize_plugin_name(name, plugins_dir)
     if not target.exists():
-        installed = ", ".join(d.name for d in plugins_dir.iterdir() if d.is_dir()) or "(none)"
+        installed = (
+            ", ".join(d.name for d in plugins_dir.iterdir() if d.is_dir()) or "(none)"
+        )
         console.print(
             f"[red]Error:[/red] Plugin '{name}' not found in {plugins_dir}.\n"
             f"Installed plugins: {installed}"
@@ -352,6 +361,7 @@ def cmd_install(identifier: str, force: bool = False) -> None:
                 sys.exit(1)
             if mv_int > _SUPPORTED_MANIFEST_VERSION:
                 from hermes_cli.config import recommended_update_command
+
                 console.print(
                     f"[red]Error:[/red] Plugin '{plugin_name}' requires manifest_version "
                     f"{mv}, but this installer only supports up to {_SUPPORTED_MANIFEST_VERSION}.\n"
@@ -471,6 +481,7 @@ def _get_disabled_set() -> set:
     """Read the disabled plugins set from config.yaml."""
     try:
         from hermes_cli.config import load_config
+
         config = load_config()
         disabled = config.get("plugins", {}).get("disabled", [])
         return set(disabled) if isinstance(disabled, list) else set()
@@ -481,6 +492,7 @@ def _get_disabled_set() -> set:
 def _save_disabled_set(disabled: set) -> None:
     """Write the disabled plugins list to config.yaml."""
     from hermes_cli.config import load_config, save_config
+
     config = load_config()
     if "plugins" not in config:
         config["plugins"] = {}
@@ -508,7 +520,9 @@ def cmd_enable(name: str) -> None:
 
     disabled.discard(name)
     _save_disabled_set(disabled)
-    console.print(f"[green]✓[/green] Plugin [bold]{name}[/bold] enabled. Takes effect on next session.")
+    console.print(
+        f"[green]✓[/green] Plugin [bold]{name}[/bold] enabled. Takes effect on next session."
+    )
 
 
 def cmd_disable(name: str) -> None:
@@ -531,7 +545,9 @@ def cmd_disable(name: str) -> None:
 
     disabled.add(name)
     _save_disabled_set(disabled)
-    console.print(f"[yellow]\u2298[/yellow] Plugin [bold]{name}[/bold] disabled. Takes effect on next session.")
+    console.print(
+        f"[yellow]\u2298[/yellow] Plugin [bold]{name}[/bold] disabled. Takes effect on next session."
+    )
 
 
 def cmd_list() -> None:
@@ -603,6 +619,7 @@ def _discover_memory_providers() -> list[tuple[str, str]]:
     """Return [(name, description), ...] for available memory providers."""
     try:
         from plugins.memory import discover_memory_providers
+
         return [(name, desc) for name, desc, _avail in discover_memory_providers()]
     except Exception:
         return []
@@ -612,6 +629,7 @@ def _discover_context_engines() -> list[tuple[str, str]]:
     """Return [(name, description), ...] for available context engines."""
     try:
         from plugins.context_engine import discover_context_engines
+
         return [(name, desc) for name, desc, _avail in discover_context_engines()]
     except Exception:
         return []
@@ -621,6 +639,7 @@ def _get_current_memory_provider() -> str:
     """Return the current memory.provider from config (empty = built-in)."""
     try:
         from hermes_cli.config import load_config
+
         config = load_config()
         return config.get("memory", {}).get("provider", "") or ""
     except Exception:
@@ -631,6 +650,7 @@ def _get_current_context_engine() -> str:
     """Return the current context.engine from config."""
     try:
         from hermes_cli.config import load_config
+
         config = load_config()
         return config.get("context", {}).get("engine", "compressor") or "compressor"
     except Exception:
@@ -640,6 +660,7 @@ def _get_current_context_engine() -> str:
 def _save_memory_provider(name: str) -> None:
     """Persist memory.provider to config.yaml."""
     from hermes_cli.config import load_config, save_config
+
     config = load_config()
     if "memory" not in config:
         config["memory"] = {}
@@ -650,6 +671,7 @@ def _save_memory_provider(name: str) -> None:
 def _save_context_engine(name: str) -> None:
     """Persist context.engine to config.yaml."""
     from hermes_cli.config import load_config, save_config
+
     config = load_config()
     if "context" not in config:
         config["context"] = {}
@@ -791,7 +813,9 @@ def cmd_toggle() -> None:
     has_categories = bool(categories)
 
     if not has_plugins and not has_categories:
-        console.print("[dim]No plugins installed and no provider categories available.[/dim]")
+        console.print(
+            "[dim]No plugins installed and no provider categories available.[/dim]"
+        )
         console.print("[dim]Install with:[/dim] hermes plugins install owner/repo")
         return
 
@@ -803,15 +827,25 @@ def cmd_toggle() -> None:
     # Launch the composite curses UI
     try:
         import curses
-        _run_composite_ui(curses, plugin_names, plugin_labels, plugin_selected,
-                          disabled, categories, console)
+
+        _run_composite_ui(
+            curses,
+            plugin_names,
+            plugin_labels,
+            plugin_selected,
+            disabled,
+            categories,
+            console,
+        )
     except ImportError:
-        _run_composite_fallback(plugin_names, plugin_labels, plugin_selected,
-                                disabled, categories, console)
+        _run_composite_fallback(
+            plugin_names, plugin_labels, plugin_selected, disabled, categories, console
+        )
 
 
-def _run_composite_ui(curses, plugin_names, plugin_labels, plugin_selected,
-                      disabled, categories, console):
+def _run_composite_ui(
+    curses, plugin_names, plugin_labels, plugin_selected, disabled, categories, console
+):
     """Custom curses screen with checkboxes + category action rows."""
     from hermes_cli.curses_ui import flush_stdin
 
@@ -847,9 +881,11 @@ def _run_composite_ui(curses, plugin_names, plugin_labels, plugin_selected,
                     hattr |= curses.color_pair(2)
                 stdscr.addnstr(0, 0, "Plugins", max_x - 1, hattr)
                 stdscr.addnstr(
-                    1, 0,
+                    1,
+                    0,
                     "  \u2191\u2193 navigate  SPACE toggle  ENTER configure/confirm  ESC done",
-                    max_x - 1, curses.A_DIM,
+                    max_x - 1,
+                    curses.A_DIM,
                 )
             except curses.error:
                 pass
@@ -963,7 +999,8 @@ def _run_composite_ui(curses, plugin_names, plugin_labels, plugin_selected,
                             # Refresh current values
                             categories[ci] = (
                                 _cat_name,
-                                _get_current_memory_provider() or "built-in" if ci == 0
+                                _get_current_memory_provider() or "built-in"
+                                if ci == 0
                                 else _get_current_context_engine(),
                                 cat_fn,
                             )
@@ -996,7 +1033,8 @@ def _run_composite_ui(curses, plugin_names, plugin_labels, plugin_selected,
                             result_holder["providers_changed"] = True
                             categories[ci] = (
                                 _cat_name,
-                                _get_current_memory_provider() or "built-in" if ci == 0
+                                _get_current_memory_provider() or "built-in"
+                                if ci == 0
                                 else _get_current_context_engine(),
                                 cat_fn,
                             )
@@ -1049,8 +1087,9 @@ def _run_composite_ui(curses, plugin_names, plugin_labels, plugin_selected,
     console.print()
 
 
-def _run_composite_fallback(plugin_names, plugin_labels, plugin_selected,
-                            disabled, categories, console):
+def _run_composite_fallback(
+    plugin_names, plugin_labels, plugin_selected, disabled, categories, console
+):
     """Text-based fallback for the composite plugins UI."""
     from hermes_cli.colors import Colors, color
 
@@ -1068,7 +1107,9 @@ def _run_composite_fallback(plugin_names, plugin_labels, plugin_selected,
                 print(f"  {marker} {i + 1:>2}. {label}")
             print()
             try:
-                val = input(color("  Toggle # (or Enter to confirm): ", Colors.DIM)).strip()
+                val = input(
+                    color("  Toggle # (or Enter to confirm): ", Colors.DIM)
+                ).strip()
                 if not val:
                     break
                 idx = int(val) - 1

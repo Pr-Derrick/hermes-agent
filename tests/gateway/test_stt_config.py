@@ -16,7 +16,9 @@ def test_gateway_config_stt_disabled_from_dict_nested():
     assert config.stt_enabled is False
 
 
-def test_load_gateway_config_bridges_stt_enabled_from_config_yaml(tmp_path, monkeypatch):
+def test_load_gateway_config_bridges_stt_enabled_from_config_yaml(
+    tmp_path, monkeypatch
+):
     hermes_home = tmp_path / ".hermes"
     hermes_home.mkdir()
     (hermes_home / "config.yaml").write_text(
@@ -41,7 +43,9 @@ async def test_enrich_message_with_transcription_skips_when_stt_disabled():
 
     with patch(
         "tools.transcription_tools.transcribe_audio",
-        side_effect=AssertionError("transcribe_audio should not be called when STT is disabled"),
+        side_effect=AssertionError(
+            "transcribe_audio should not be called when STT is disabled"
+        ),
     ):
         result = await runner._enrich_message_with_transcription(
             "caption",

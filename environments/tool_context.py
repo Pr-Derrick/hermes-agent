@@ -54,10 +54,9 @@ def _run_tool_in_thread(tool_name: str, arguments: Dict[str, Any], task_id: str)
         loop = asyncio.get_running_loop()
         # We're in an async context -- need to run in thread
         import concurrent.futures
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            future = pool.submit(
-                handle_function_call, tool_name, arguments, task_id
-            )
+            future = pool.submit(handle_function_call, tool_name, arguments, task_id)
             return future.result(timeout=300)
     except RuntimeError:
         # No running event loop -- safe to call directly
@@ -92,8 +91,14 @@ class ToolContext:
             Dict with 'exit_code' (int) and 'output' (str)
         """
         import os
+
         backend = os.getenv("TERMINAL_ENV", "local")
-        logger.debug("ToolContext.terminal [%s backend] task=%s: %s", backend, self.task_id[:8], command[:100])
+        logger.debug(
+            "ToolContext.terminal [%s backend] task=%s: %s",
+            backend,
+            self.task_id[:8],
+            command[:100],
+        )
 
         # Run via thread helper so modal/docker/daytona backends' asyncio.run() doesn't deadlock
         result = _run_tool_in_thread(
@@ -120,9 +125,7 @@ class ToolContext:
         Returns:
             Dict with file content or error
         """
-        result = handle_function_call(
-            "read_file", {"path": path}, task_id=self.task_id
-        )
+        result = handle_function_call("read_file", {"path": path}, task_id=self.task_id)
         try:
             return json.loads(result)
         except json.JSONDecodeError:
@@ -221,7 +224,9 @@ class ToolContext:
 
         local = _Path(local_dir)
         if not local.exists() or not local.is_dir():
-            return [{"exit_code": -1, "output": f"Local directory not found: {local_dir}"}]
+            return [
+                {"exit_code": -1, "output": f"Local directory not found: {local_dir}"}
+            ]
 
         results = []
         for file_path in sorted(local.rglob("*")):
@@ -263,7 +268,10 @@ class ToolContext:
 
         b64_data = result.get("output", "").strip()
         if not b64_data:
-            return {"success": False, "error": f"Remote file is empty or missing: {remote_path}"}
+            return {
+                "success": False,
+                "error": f"Remote file is empty or missing: {remote_path}",
+            }
 
         try:
             raw = base64.b64decode(b64_data)
@@ -300,11 +308,18 @@ class ToolContext:
         )
 
         if ls_result.get("exit_code", -1) != 0:
-            return [{"success": False, "error": f"Failed to list remote dir: {remote_dir}"}]
+            return [
+                {"success": False, "error": f"Failed to list remote dir: {remote_dir}"}
+            ]
 
         file_list = ls_result.get("output", "").strip()
         if not file_list:
-            return [{"success": False, "error": f"Remote directory is empty or missing: {remote_dir}"}]
+            return [
+                {
+                    "success": False,
+                    "error": f"Remote directory is empty or missing: {remote_dir}",
+                }
+            ]
 
         results = []
         for remote_file in file_list.splitlines():
@@ -313,7 +328,7 @@ class ToolContext:
                 continue
             # Compute the relative path to preserve directory structure
             if remote_file.startswith(remote_dir):
-                relative = remote_file[len(remote_dir):].lstrip("/")
+                relative = remote_file[len(remote_dir) :].lstrip("/")
             else:
                 relative = _Path(remote_file).name
             local_file = str(_Path(local_dir) / relative)
@@ -405,9 +420,7 @@ class ToolContext:
         Returns:
             Dict with page content/accessibility snapshot
         """
-        result = handle_function_call(
-            "browser_snapshot", {}, task_id=self.task_id
-        )
+        result = handle_function_call("browser_snapshot", {}, task_id=self.task_id)
         try:
             return json.loads(result)
         except json.JSONDecodeError:
@@ -448,9 +461,14 @@ class ToolContext:
         # Kill any background processes from this rollout (safety net)
         try:
             from tools.process_registry import process_registry
+
             killed = process_registry.kill_all(task_id=self.task_id)
             if killed:
-                logger.debug("Process cleanup for task %s: killed %d process(es)", self.task_id, killed)
+                logger.debug(
+                    "Process cleanup for task %s: killed %d process(es)",
+                    self.task_id,
+                    killed,
+                )
         except Exception as e:
             logger.debug("Process cleanup for task %s: %s", self.task_id, e)
 

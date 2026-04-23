@@ -96,7 +96,9 @@ class TestGatewayPlanCommand:
         runner = _make_runner()
         event = _make_event("/plan Add OAuth login")
 
-        monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"})
+        monkeypatch.setattr(
+            gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"}
+        )
         monkeypatch.setattr(
             "agent.model_metadata.get_model_context_length",
             lambda *_args, **_kwargs: 100_000,
@@ -117,7 +119,9 @@ class TestGatewayPlanCommand:
         assert "Runtime note:" in forwarded
 
     @pytest.mark.asyncio
-    async def test_plan_command_appears_in_help_output_via_skill_listing(self, tmp_path):
+    async def test_plan_command_appears_in_help_output_via_skill_listing(
+        self, tmp_path
+    ):
         runner = _make_runner()
         event = _make_event("/help")
 

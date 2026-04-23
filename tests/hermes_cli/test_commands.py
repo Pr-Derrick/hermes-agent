@@ -39,6 +39,7 @@ def _completions(completer: SlashCommandCompleter, text: str):
 # CommandDef registry tests
 # ---------------------------------------------------------------------------
 
+
 class TestCommandRegistry:
     def test_registry_is_nonempty(self):
         assert len(COMMAND_REGISTRY) > 30
@@ -49,7 +50,9 @@ class TestCommandRegistry:
 
     def test_no_duplicate_canonical_names(self):
         names = [cmd.name for cmd in COMMAND_REGISTRY]
-        assert len(names) == len(set(names)), f"Duplicate names: {[n for n in names if names.count(n) > 1]}"
+        assert len(names) == len(set(names)), (
+            f"Duplicate names: {[n for n in names if names.count(n) > 1]}"
+        )
 
     def test_no_alias_collides_with_canonical_name(self):
         """An alias must not shadow another command's canonical name."""
@@ -60,13 +63,24 @@ class TestCommandRegistry:
                     # reset -> new is intentional (reset IS an alias for new)
                     target = next(c for c in COMMAND_REGISTRY if c.name == alias)
                     # This should only happen if the alias points to the same entry
-                    assert resolve_command(alias).name == cmd.name or alias == cmd.name, \
+                    assert (
+                        resolve_command(alias).name == cmd.name or alias == cmd.name
+                    ), (
                         f"Alias '{alias}' of '{cmd.name}' shadows canonical '{target.name}'"
+                    )
 
     def test_every_entry_has_valid_category(self):
-        valid_categories = {"Session", "Configuration", "Tools & Skills", "Info", "Exit"}
+        valid_categories = {
+            "Session",
+            "Configuration",
+            "Tools & Skills",
+            "Info",
+            "Exit",
+        }
         for cmd in COMMAND_REGISTRY:
-            assert cmd.category in valid_categories, f"{cmd.name} has invalid category '{cmd.category}'"
+            assert cmd.category in valid_categories, (
+                f"{cmd.name} has invalid category '{cmd.category}'"
+            )
 
     def test_reasoning_subcommands_are_in_logical_order(self):
         reasoning = next(cmd for cmd in COMMAND_REGISTRY if cmd.name == "reasoning")
@@ -81,13 +95,15 @@ class TestCommandRegistry:
 
     def test_cli_only_and_gateway_only_are_mutually_exclusive(self):
         for cmd in COMMAND_REGISTRY:
-            assert not (cmd.cli_only and cmd.gateway_only), \
+            assert not (cmd.cli_only and cmd.gateway_only), (
                 f"{cmd.name} cannot be both cli_only and gateway_only"
+            )
 
 
 # ---------------------------------------------------------------------------
 # resolve_command tests
 # ---------------------------------------------------------------------------
+
 
 class TestResolveCommand:
     def test_canonical_name_resolves(self):
@@ -116,19 +132,22 @@ class TestResolveCommand:
 # Derived dicts (backwards compat)
 # ---------------------------------------------------------------------------
 
+
 class TestDerivedDicts:
     def test_commands_dict_excludes_gateway_only(self):
         """gateway_only commands should NOT appear in the CLI COMMANDS dict."""
         for cmd in COMMAND_REGISTRY:
             if cmd.gateway_only:
-                assert f"/{cmd.name}" not in COMMANDS, \
+                assert f"/{cmd.name}" not in COMMANDS, (
                     f"gateway_only command /{cmd.name} should not be in COMMANDS"
+                )
 
     def test_commands_dict_includes_all_cli_commands(self):
         for cmd in COMMAND_REGISTRY:
             if not cmd.gateway_only:
-                assert f"/{cmd.name}" in COMMANDS, \
+                assert f"/{cmd.name}" in COMMANDS, (
                     f"/{cmd.name} missing from COMMANDS dict"
+                )
 
     def test_commands_dict_includes_aliases(self):
         assert "/bg" in COMMANDS
@@ -139,31 +158,38 @@ class TestDerivedDicts:
         assert "/gateway" in COMMANDS
 
     def test_commands_by_category_covers_all_categories(self):
-        registry_categories = {cmd.category for cmd in COMMAND_REGISTRY if not cmd.gateway_only}
+        registry_categories = {
+            cmd.category for cmd in COMMAND_REGISTRY if not cmd.gateway_only
+        }
         assert set(COMMANDS_BY_CATEGORY.keys()) == registry_categories
 
     def test_every_command_has_nonempty_description(self):
         for cmd, desc in COMMANDS.items():
-            assert isinstance(desc, str) and len(desc) > 0, f"{cmd} has empty description"
+            assert isinstance(desc, str) and len(desc) > 0, (
+                f"{cmd} has empty description"
+            )
 
 
 # ---------------------------------------------------------------------------
 # Gateway helpers
 # ---------------------------------------------------------------------------
 
+
 class TestGatewayKnownCommands:
     def test_excludes_cli_only_without_config_gate(self):
         for cmd in COMMAND_REGISTRY:
             if cmd.cli_only and not cmd.gateway_config_gate:
-                assert cmd.name not in GATEWAY_KNOWN_COMMANDS, \
+                assert cmd.name not in GATEWAY_KNOWN_COMMANDS, (
                     f"cli_only command '{cmd.name}' should not be in GATEWAY_KNOWN_COMMANDS"
+                )
 
     def test_includes_config_gated_cli_only(self):
         """Commands with gateway_config_gate are always in GATEWAY_KNOWN_COMMANDS."""
         for cmd in COMMAND_REGISTRY:
             if cmd.gateway_config_gate:
-                assert cmd.name in GATEWAY_KNOWN_COMMANDS, \
+                assert cmd.name in GATEWAY_KNOWN_COMMANDS, (
                     f"config-gated command '{cmd.name}' should be in GATEWAY_KNOWN_COMMANDS"
+                )
 
     def test_includes_gateway_commands(self):
         for cmd in COMMAND_REGISTRY:
@@ -190,8 +216,9 @@ class TestGatewayHelpLines:
         joined = "\n".join(lines)
         for cmd in COMMAND_REGISTRY:
             if cmd.cli_only and not cmd.gateway_config_gate:
-                assert f"`/{cmd.name}" not in joined, \
+                assert f"`/{cmd.name}" not in joined, (
                     f"cli_only command /{cmd.name} should not be in gateway help"
+                )
 
     def test_includes_alias_note_for_bg(self):
         lines = gateway_help_lines()
@@ -216,6 +243,7 @@ class TestTelegramBotCommands:
     def test_all_names_valid_telegram_chars(self):
         """Telegram requires: lowercase a-z, 0-9, underscores only."""
         import re
+
         tg_valid = re.compile(r"^[a-z0-9_]+$")
         for name, _ in telegram_bot_commands():
             assert tg_valid.match(name), f"Invalid Telegram command name: {name!r}"
@@ -253,6 +281,7 @@ class TestSlackSubcommandMap:
 # ---------------------------------------------------------------------------
 # Config-gated gateway commands
 # ---------------------------------------------------------------------------
+
 
 class TestGatewayConfigGate:
     """Tests for the gateway_config_gate mechanism on CommandDef."""
@@ -324,6 +353,7 @@ class TestGatewayConfigGate:
 # ---------------------------------------------------------------------------
 # Autocomplete (SlashCommandCompleter)
 # ---------------------------------------------------------------------------
+
 
 class TestSlashCommandCompleter:
     # -- basic prefix completion -----------------------------------------
@@ -572,11 +602,17 @@ class TestSanitizeTelegramName:
 
     def test_plus_sign_stripped(self):
         """Regression: skill name 'Jellyfin + Jellystat 24h Summary'."""
-        assert _sanitize_telegram_name("jellyfin-+-jellystat-24h-summary") == "jellyfin_jellystat_24h_summary"
+        assert (
+            _sanitize_telegram_name("jellyfin-+-jellystat-24h-summary")
+            == "jellyfin_jellystat_24h_summary"
+        )
 
     def test_slash_stripped(self):
         """Regression: skill name 'Sonarr v3/v4 API Integration'."""
-        assert _sanitize_telegram_name("sonarr-v3/v4-api-integration") == "sonarr_v3v4_api_integration"
+        assert (
+            _sanitize_telegram_name("sonarr-v3/v4-api-integration")
+            == "sonarr_v3v4_api_integration"
+        )
 
     def test_uppercase_lowercased(self):
         assert _sanitize_telegram_name("MyCommand") == "mycommand"
@@ -692,10 +728,7 @@ class TestTelegramMenuCommands:
         # Set up a config with a telegram-specific disabled list
         config_file = tmp_path / "config.yaml"
         config_file.write_text(
-            "skills:\n"
-            "  platform_disabled:\n"
-            "    telegram:\n"
-            "      - my-disabled-skill\n"
+            "skills:\n  platform_disabled:\n    telegram:\n      - my-disabled-skill\n"
         )
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
 
@@ -799,6 +832,7 @@ class TestTelegramMenuCommands:
 # Backward-compat aliases
 # ---------------------------------------------------------------------------
 
+
 class TestBackwardCompatAliases:
     """The renamed constants/functions still exist under the old names."""
 
@@ -812,6 +846,7 @@ class TestBackwardCompatAliases:
 # ---------------------------------------------------------------------------
 # Discord skill command registration
 # ---------------------------------------------------------------------------
+
 
 class TestDiscordSkillCommands:
     """Tests for discord_skill_commands() — centralized skill registration."""
@@ -842,7 +877,8 @@ class TestDiscordSkillCommands:
             patch("tools.skills_tool.SKILLS_DIR", tmp_path / "skills"),
         ):
             entries, hidden = discord_skill_commands(
-                max_slots=50, reserved_names=set(),
+                max_slots=50,
+                reserved_names=set(),
             )
 
         names = {n for n, _d, _k in entries}
@@ -874,7 +910,8 @@ class TestDiscordSkillCommands:
             patch("tools.skills_tool.SKILLS_DIR", tmp_path / "skills"),
         ):
             entries, _ = discord_skill_commands(
-                max_slots=50, reserved_names=set(),
+                max_slots=50,
+                reserved_names=set(),
             )
 
         assert entries[0][0] == "my-cool-skill"  # hyphens preserved
@@ -900,7 +937,8 @@ class TestDiscordSkillCommands:
             patch("tools.skills_tool.SKILLS_DIR", tmp_path / "skills"),
         ):
             entries, hidden = discord_skill_commands(
-                max_slots=5, reserved_names=set(),
+                max_slots=5,
+                reserved_names=set(),
             )
 
         assert len(entries) == 5
@@ -912,10 +950,7 @@ class TestDiscordSkillCommands:
 
         config_file = tmp_path / "config.yaml"
         config_file.write_text(
-            "skills:\n"
-            "  platform_disabled:\n"
-            "    discord:\n"
-            "      - secret-skill\n"
+            "skills:\n  platform_disabled:\n    discord:\n      - secret-skill\n"
         )
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
 
@@ -940,7 +975,8 @@ class TestDiscordSkillCommands:
             patch("tools.skills_tool.SKILLS_DIR", tmp_path / "skills"),
         ):
             entries, _ = discord_skill_commands(
-                max_slots=50, reserved_names=set(),
+                max_slots=50,
+                reserved_names=set(),
             )
 
         names = {n for n, _d, _k in entries}
@@ -967,7 +1003,8 @@ class TestDiscordSkillCommands:
             patch("tools.skills_tool.SKILLS_DIR", tmp_path / "skills"),
         ):
             entries, _ = discord_skill_commands(
-                max_slots=50, reserved_names={"status"},
+                max_slots=50,
+                reserved_names={"status"},
             )
 
         names = {n for n, _d, _k in entries}
@@ -994,7 +1031,8 @@ class TestDiscordSkillCommands:
             patch("tools.skills_tool.SKILLS_DIR", tmp_path / "skills"),
         ):
             entries, _ = discord_skill_commands(
-                max_slots=50, reserved_names=set(),
+                max_slots=50,
+                reserved_names=set(),
             )
 
         assert len(entries[0][1]) == 100
@@ -1021,7 +1059,8 @@ class TestDiscordSkillCommands:
             patch("tools.skills_tool.SKILLS_DIR", tmp_path / "skills"),
         ):
             entries, _ = discord_skill_commands(
-                max_slots=50, reserved_names=set(),
+                max_slots=50,
+                reserved_names=set(),
             )
 
         for name, _d, _k in entries:

@@ -47,13 +47,18 @@ def _make_cli(tool_progress="all"):
         "prompt_toolkit.formatted_text": MagicMock(),
         "prompt_toolkit.auto_suggest": MagicMock(),
     }
-    with patch.dict(sys.modules, prompt_toolkit_stubs), \
-         patch.dict("os.environ", clean_env, clear=False):
+    with (
+        patch.dict(sys.modules, prompt_toolkit_stubs),
+        patch.dict("os.environ", clean_env, clear=False),
+    ):
         import cli as mod
+
         mod = importlib.reload(mod)
         _cli_mod = mod
-        with patch.object(mod, "get_tool_definitions", return_value=[]), \
-             patch.dict(mod.__dict__, {"CLI_CONFIG": _clean_config}):
+        with (
+            patch.object(mod, "get_tool_definitions", return_value=[]),
+            patch.dict(mod.__dict__, {"CLI_CONFIG": _clean_config}),
+        ):
             return mod.HermesCLI()
 
 
@@ -64,10 +69,14 @@ class TestToolProgressScrollback:
         """In 'all' mode, tool.completed prints a stacked line."""
         cli = _make_cli(tool_progress="all")
         # Simulate tool.started
-        cli._on_tool_progress("tool.started", "terminal", "git log", {"command": "git log"})
+        cli._on_tool_progress(
+            "tool.started", "terminal", "git log", {"command": "git log"}
+        )
         # Simulate tool.completed
         with patch.object(_cli_mod, "_cprint") as mock_print:
-            cli._on_tool_progress("tool.completed", "terminal", None, None, duration=1.5, is_error=False)
+            cli._on_tool_progress(
+                "tool.completed", "terminal", None, None, duration=1.5, is_error=False
+            )
 
         mock_print.assert_called_once()
         line = mock_print.call_args[0][0]
@@ -79,11 +88,19 @@ class TestToolProgressScrollback:
         cli = _make_cli(tool_progress="all")
         with patch.object(_cli_mod, "_cprint") as mock_print:
             # First call
-            cli._on_tool_progress("tool.started", "read_file", "cli.py", {"path": "cli.py"})
-            cli._on_tool_progress("tool.completed", "read_file", None, None, duration=0.1, is_error=False)
+            cli._on_tool_progress(
+                "tool.started", "read_file", "cli.py", {"path": "cli.py"}
+            )
+            cli._on_tool_progress(
+                "tool.completed", "read_file", None, None, duration=0.1, is_error=False
+            )
             # Second call (same tool)
-            cli._on_tool_progress("tool.started", "read_file", "run_agent.py", {"path": "run_agent.py"})
-            cli._on_tool_progress("tool.completed", "read_file", None, None, duration=0.2, is_error=False)
+            cli._on_tool_progress(
+                "tool.started", "read_file", "run_agent.py", {"path": "run_agent.py"}
+            )
+            cli._on_tool_progress(
+                "tool.completed", "read_file", None, None, duration=0.2, is_error=False
+            )
 
         assert mock_print.call_count == 2
 
@@ -91,10 +108,18 @@ class TestToolProgressScrollback:
         """In 'new' mode, consecutive calls to the same tool only print once."""
         cli = _make_cli(tool_progress="new")
         with patch.object(_cli_mod, "_cprint") as mock_print:
-            cli._on_tool_progress("tool.started", "read_file", "cli.py", {"path": "cli.py"})
-            cli._on_tool_progress("tool.completed", "read_file", None, None, duration=0.1, is_error=False)
-            cli._on_tool_progress("tool.started", "read_file", "run_agent.py", {"path": "run_agent.py"})
-            cli._on_tool_progress("tool.completed", "read_file", None, None, duration=0.2, is_error=False)
+            cli._on_tool_progress(
+                "tool.started", "read_file", "cli.py", {"path": "cli.py"}
+            )
+            cli._on_tool_progress(
+                "tool.completed", "read_file", None, None, duration=0.1, is_error=False
+            )
+            cli._on_tool_progress(
+                "tool.started", "read_file", "run_agent.py", {"path": "run_agent.py"}
+            )
+            cli._on_tool_progress(
+                "tool.completed", "read_file", None, None, duration=0.2, is_error=False
+            )
 
         assert mock_print.call_count == 1  # Only the first read_file
 
@@ -102,12 +127,29 @@ class TestToolProgressScrollback:
         """In 'new' mode, a different tool name triggers a new line."""
         cli = _make_cli(tool_progress="new")
         with patch.object(_cli_mod, "_cprint") as mock_print:
-            cli._on_tool_progress("tool.started", "read_file", "cli.py", {"path": "cli.py"})
-            cli._on_tool_progress("tool.completed", "read_file", None, None, duration=0.1, is_error=False)
-            cli._on_tool_progress("tool.started", "search_files", "pattern", {"pattern": "test"})
-            cli._on_tool_progress("tool.completed", "search_files", None, None, duration=0.3, is_error=False)
-            cli._on_tool_progress("tool.started", "read_file", "run_agent.py", {"path": "run_agent.py"})
-            cli._on_tool_progress("tool.completed", "read_file", None, None, duration=0.2, is_error=False)
+            cli._on_tool_progress(
+                "tool.started", "read_file", "cli.py", {"path": "cli.py"}
+            )
+            cli._on_tool_progress(
+                "tool.completed", "read_file", None, None, duration=0.1, is_error=False
+            )
+            cli._on_tool_progress(
+                "tool.started", "search_files", "pattern", {"pattern": "test"}
+            )
+            cli._on_tool_progress(
+                "tool.completed",
+                "search_files",
+                None,
+                None,
+                duration=0.3,
+                is_error=False,
+            )
+            cli._on_tool_progress(
+                "tool.started", "read_file", "run_agent.py", {"path": "run_agent.py"}
+            )
+            cli._on_tool_progress(
+                "tool.completed", "read_file", None, None, duration=0.2, is_error=False
+            )
 
         # read_file, search_files, read_file (3rd prints because search_files broke the streak)
         assert mock_print.call_count == 3
@@ -117,16 +159,22 @@ class TestToolProgressScrollback:
         cli = _make_cli(tool_progress="off")
         with patch.object(_cli_mod, "_cprint") as mock_print:
             cli._on_tool_progress("tool.started", "terminal", "ls", {"command": "ls"})
-            cli._on_tool_progress("tool.completed", "terminal", None, None, duration=0.5, is_error=False)
+            cli._on_tool_progress(
+                "tool.completed", "terminal", None, None, duration=0.5, is_error=False
+            )
 
         mock_print.assert_not_called()
 
     def test_error_suffix_on_failed_tool(self):
         """When is_error=True, the stacked line includes [error]."""
         cli = _make_cli(tool_progress="all")
-        cli._on_tool_progress("tool.started", "terminal", "bad cmd", {"command": "bad cmd"})
+        cli._on_tool_progress(
+            "tool.started", "terminal", "bad cmd", {"command": "bad cmd"}
+        )
         with patch.object(_cli_mod, "_cprint") as mock_print:
-            cli._on_tool_progress("tool.completed", "terminal", None, None, duration=0.5, is_error=True)
+            cli._on_tool_progress(
+                "tool.completed", "terminal", None, None, duration=0.5, is_error=True
+            )
 
         line = mock_print.call_args[0][0]
         assert "[error]" in line
@@ -134,16 +182,22 @@ class TestToolProgressScrollback:
     def test_spinner_still_updates_on_started(self):
         """tool.started still updates the spinner text for live display."""
         cli = _make_cli(tool_progress="all")
-        cli._on_tool_progress("tool.started", "terminal", "git status", {"command": "git status"})
+        cli._on_tool_progress(
+            "tool.started", "terminal", "git status", {"command": "git status"}
+        )
         assert "git status" in cli._spinner_text
 
     def test_spinner_timer_clears_on_completed(self):
         """tool.completed still clears the tool timer."""
         cli = _make_cli(tool_progress="all")
-        cli._on_tool_progress("tool.started", "terminal", "git status", {"command": "git status"})
+        cli._on_tool_progress(
+            "tool.started", "terminal", "git status", {"command": "git status"}
+        )
         assert cli._tool_start_time > 0
         with patch.object(_cli_mod, "_cprint"):
-            cli._on_tool_progress("tool.completed", "terminal", None, None, duration=0.5, is_error=False)
+            cli._on_tool_progress(
+                "tool.completed", "terminal", None, None, duration=0.5, is_error=False
+            )
         assert cli._tool_start_time == 0.0
 
     def test_concurrent_tools_produce_stacked_lines(self):
@@ -151,11 +205,19 @@ class TestToolProgressScrollback:
         cli = _make_cli(tool_progress="all")
         with patch.object(_cli_mod, "_cprint") as mock_print:
             # All start first (concurrent pattern)
-            cli._on_tool_progress("tool.started", "web_search", "query 1", {"query": "test 1"})
-            cli._on_tool_progress("tool.started", "web_search", "query 2", {"query": "test 2"})
+            cli._on_tool_progress(
+                "tool.started", "web_search", "query 1", {"query": "test 1"}
+            )
+            cli._on_tool_progress(
+                "tool.started", "web_search", "query 2", {"query": "test 2"}
+            )
             # All complete
-            cli._on_tool_progress("tool.completed", "web_search", None, None, duration=1.0, is_error=False)
-            cli._on_tool_progress("tool.completed", "web_search", None, None, duration=1.5, is_error=False)
+            cli._on_tool_progress(
+                "tool.completed", "web_search", None, None, duration=1.0, is_error=False
+            )
+            cli._on_tool_progress(
+                "tool.completed", "web_search", None, None, duration=1.5, is_error=False
+            )
 
         assert mock_print.call_count == 2
 
@@ -164,7 +226,9 @@ class TestToolProgressScrollback:
         cli = _make_cli(tool_progress="verbose")
         with patch.object(_cli_mod, "_cprint") as mock_print:
             cli._on_tool_progress("tool.started", "terminal", "ls", {"command": "ls"})
-            cli._on_tool_progress("tool.completed", "terminal", None, None, duration=0.5, is_error=False)
+            cli._on_tool_progress(
+                "tool.completed", "terminal", None, None, duration=0.5, is_error=False
+            )
 
         mock_print.assert_not_called()
 
@@ -183,7 +247,9 @@ class TestToolProgressScrollback:
         cli._on_tool_progress("tool.started", "terminal", "pwd", {"command": "pwd"})
         assert len(cli._pending_tool_info["terminal"]) == 2
         with patch.object(_cli_mod, "_cprint"):
-            cli._on_tool_progress("tool.completed", "terminal", None, None, duration=0.1, is_error=False)
+            cli._on_tool_progress(
+                "tool.completed", "terminal", None, None, duration=0.1, is_error=False
+            )
         # First entry consumed, second remains
         assert len(cli._pending_tool_info.get("terminal", [])) == 1
         assert cli._pending_tool_info["terminal"][0] == {"command": "pwd"}

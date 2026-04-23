@@ -24,6 +24,7 @@ from gateway.platforms.base import (
 # Minimal adapter for testing pending message storage
 # ---------------------------------------------------------------------------
 
+
 class _StubAdapter(BasePlatformAdapter):
     def __init__(self):
         super().__init__(PlatformConfig(enabled=True, token="test"), Platform.TELEGRAM)
@@ -36,6 +37,7 @@ class _StubAdapter(BasePlatformAdapter):
 
     async def send(self, chat_id, content, reply_to=None, metadata=None):
         from gateway.platforms.base import SendResult
+
         return SendResult(success=True, message_id="msg-1")
 
     async def get_chat_info(self, chat_id):
@@ -45,6 +47,7 @@ class _StubAdapter(BasePlatformAdapter):
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestQueueMessageStorage:
     """Verify /queue stores messages correctly in adapter._pending_messages."""

@@ -116,11 +116,19 @@ class TestPriorityProcessingModels(unittest.TestCase):
 
         # All models from OpenAI's Priority Processing pricing table
         supported = [
-            "gpt-5.4", "gpt-5.4-mini", "gpt-5.2",
-            "gpt-5.1", "gpt-5", "gpt-5-mini",
-            "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",
-            "gpt-4o", "gpt-4o-mini",
-            "o3", "o4-mini",
+            "gpt-5.4",
+            "gpt-5.4-mini",
+            "gpt-5.2",
+            "gpt-5.1",
+            "gpt-5",
+            "gpt-5-mini",
+            "gpt-4.1",
+            "gpt-4.1-mini",
+            "gpt-4.1-nano",
+            "gpt-4o",
+            "gpt-4o-mini",
+            "o3",
+            "o4-mini",
         ]
         for model in supported:
             assert model_supports_fast_mode(model), f"{model} should support fast mode"
@@ -159,16 +167,25 @@ class TestPriorityProcessingModels(unittest.TestCase):
 class TestFastModeRouting(unittest.TestCase):
     def test_fast_command_exposed_for_model_even_when_provider_is_auto(self):
         cli_mod = _import_cli()
-        stub = SimpleNamespace(provider="auto", requested_provider="auto", model="gpt-5.4", agent=None)
+        stub = SimpleNamespace(
+            provider="auto", requested_provider="auto", model="gpt-5.4", agent=None
+        )
 
         assert cli_mod.HermesCLI._fast_command_available(stub) is True
 
     def test_fast_command_exposed_for_non_codex_models(self):
         cli_mod = _import_cli()
-        stub = SimpleNamespace(provider="openai", requested_provider="openai", model="gpt-4.1", agent=None)
+        stub = SimpleNamespace(
+            provider="openai", requested_provider="openai", model="gpt-4.1", agent=None
+        )
         assert cli_mod.HermesCLI._fast_command_available(stub) is True
 
-        stub = SimpleNamespace(provider="openrouter", requested_provider="openrouter", model="o3", agent=None)
+        stub = SimpleNamespace(
+            provider="openrouter",
+            requested_provider="openrouter",
+            model="o3",
+            agent=None,
+        )
         assert cli_mod.HermesCLI._fast_command_available(stub) is True
 
     def test_turn_route_injects_overrides_without_provider_switch(self):
@@ -197,12 +214,22 @@ class TestFastModeRouting(unittest.TestCase):
             "credential_pool": None,
         }
 
-        with patch("agent.smart_model_routing.resolve_turn_route", return_value={
-            "model": "gpt-5.4",
-            "runtime": dict(original_runtime),
-            "label": None,
-            "signature": ("gpt-5.4", "openrouter", "https://openrouter.ai/api/v1", "chat_completions", None, ()),
-        }):
+        with patch(
+            "agent.smart_model_routing.resolve_turn_route",
+            return_value={
+                "model": "gpt-5.4",
+                "runtime": dict(original_runtime),
+                "label": None,
+                "signature": (
+                    "gpt-5.4",
+                    "openrouter",
+                    "https://openrouter.ai/api/v1",
+                    "chat_completions",
+                    None,
+                    (),
+                ),
+            },
+        ):
             route = cli_mod.HermesCLI._resolve_turn_agent_config(stub, "hi")
 
         # Provider should NOT have changed
@@ -238,9 +265,18 @@ class TestFastModeRouting(unittest.TestCase):
                 "credential_pool": None,
             },
             "label": None,
-            "signature": ("gpt-5.3-codex", "openrouter", "https://openrouter.ai/api/v1", "chat_completions", None, ()),
+            "signature": (
+                "gpt-5.3-codex",
+                "openrouter",
+                "https://openrouter.ai/api/v1",
+                "chat_completions",
+                None,
+                (),
+            ),
         }
-        with patch("agent.smart_model_routing.resolve_turn_route", return_value=primary_route):
+        with patch(
+            "agent.smart_model_routing.resolve_turn_route", return_value=primary_route
+        ):
             route = cli_mod.HermesCLI._resolve_turn_agent_config(stub, "hi")
 
         assert route["runtime"]["provider"] == "openrouter"
@@ -304,16 +340,20 @@ class TestAnthropicFastMode(unittest.TestCase):
     def test_fast_command_exposed_for_anthropic_model(self):
         cli_mod = _import_cli()
         stub = SimpleNamespace(
-            provider="anthropic", requested_provider="anthropic",
-            model="claude-opus-4-6", agent=None,
+            provider="anthropic",
+            requested_provider="anthropic",
+            model="claude-opus-4-6",
+            agent=None,
         )
         assert cli_mod.HermesCLI._fast_command_available(stub) is True
 
     def test_fast_command_hidden_for_anthropic_sonnet(self):
         cli_mod = _import_cli()
         stub = SimpleNamespace(
-            provider="anthropic", requested_provider="anthropic",
-            model="claude-sonnet-4-6", agent=None,
+            provider="anthropic",
+            requested_provider="anthropic",
+            model="claude-sonnet-4-6",
+            agent=None,
         )
         assert cli_mod.HermesCLI._fast_command_available(stub) is False
 
@@ -343,12 +383,22 @@ class TestAnthropicFastMode(unittest.TestCase):
             "credential_pool": None,
         }
 
-        with patch("agent.smart_model_routing.resolve_turn_route", return_value={
-            "model": "claude-opus-4-6",
-            "runtime": dict(original_runtime),
-            "label": None,
-            "signature": ("claude-opus-4-6", "anthropic", "https://api.anthropic.com", "anthropic_messages", None, ()),
-        }):
+        with patch(
+            "agent.smart_model_routing.resolve_turn_route",
+            return_value={
+                "model": "claude-opus-4-6",
+                "runtime": dict(original_runtime),
+                "label": None,
+                "signature": (
+                    "claude-opus-4-6",
+                    "anthropic",
+                    "https://api.anthropic.com",
+                    "anthropic_messages",
+                    None,
+                    (),
+                ),
+            },
+        ):
             route = cli_mod.HermesCLI._resolve_turn_agent_config(stub, "hi")
 
         assert route["runtime"]["provider"] == "anthropic"

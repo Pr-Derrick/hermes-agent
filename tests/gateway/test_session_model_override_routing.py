@@ -28,7 +28,9 @@ class _CapturingAgent:
         type(self).last_init = dict(kwargs)
         self.tools = []
 
-    def run_conversation(self, user_message: str, conversation_history=None, task_id=None):
+    def run_conversation(
+        self, user_message: str, conversation_history=None, task_id=None
+    ):
         return {
             "final_response": "ok",
             "messages": [],
@@ -84,7 +86,9 @@ def _explode_runtime_resolution():
 def test_run_agent_prefers_session_override_over_global_runtime(monkeypatch):
     monkeypatch.setattr(gateway_run, "_load_gateway_config", lambda: {})
     monkeypatch.setattr(gateway_run, "load_dotenv", lambda *args, **kwargs: None)
-    monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", _explode_runtime_resolution)
+    monkeypatch.setattr(
+        gateway_run, "_resolve_runtime_agent_kwargs", _explode_runtime_resolution
+    )
 
     fake_run_agent = types.ModuleType("run_agent")
     fake_run_agent.AIAgent = _CapturingAgent
@@ -119,14 +123,20 @@ def test_run_agent_prefers_session_override_over_global_runtime(monkeypatch):
     assert _CapturingAgent.last_init["model"] == "gpt-5.4"
     assert _CapturingAgent.last_init["provider"] == "openai-codex"
     assert _CapturingAgent.last_init["api_mode"] == "codex_responses"
-    assert _CapturingAgent.last_init["base_url"] == "https://chatgpt.com/backend-api/codex"
+    assert (
+        _CapturingAgent.last_init["base_url"] == "https://chatgpt.com/backend-api/codex"
+    )
     assert _CapturingAgent.last_init["api_key"] == "***"
 
 
 @pytest.mark.asyncio
-async def test_background_task_prefers_session_override_over_global_runtime(monkeypatch):
+async def test_background_task_prefers_session_override_over_global_runtime(
+    monkeypatch,
+):
     monkeypatch.setattr(gateway_run, "_load_gateway_config", lambda: {})
-    monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", _explode_runtime_resolution)
+    monkeypatch.setattr(
+        gateway_run, "_resolve_runtime_agent_kwargs", _explode_runtime_resolution
+    )
 
     fake_run_agent = types.ModuleType("run_agent")
     fake_run_agent.AIAgent = _CapturingAgent
@@ -156,5 +166,7 @@ async def test_background_task_prefers_session_override_over_global_runtime(monk
     assert _CapturingAgent.last_init["model"] == "gpt-5.4"
     assert _CapturingAgent.last_init["provider"] == "openai-codex"
     assert _CapturingAgent.last_init["api_mode"] == "codex_responses"
-    assert _CapturingAgent.last_init["base_url"] == "https://chatgpt.com/backend-api/codex"
+    assert (
+        _CapturingAgent.last_init["base_url"] == "https://chatgpt.com/backend-api/codex"
+    )
     assert _CapturingAgent.last_init["api_key"] == "***"

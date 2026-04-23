@@ -25,7 +25,14 @@ from acp.schema import (
 # ---------------------------------------------------------------------------
 
 
-COMMON_HERMES_TOOLS = ["read_file", "search_files", "terminal", "patch", "write_file", "process"]
+COMMON_HERMES_TOOLS = [
+    "read_file",
+    "search_files",
+    "terminal",
+    "patch",
+    "write_file",
+    "process",
+]
 
 
 class TestToolKindMap:
@@ -198,7 +205,9 @@ class TestBuildToolStart:
 class TestBuildToolComplete:
     def test_build_tool_complete_for_terminal(self):
         """Completed terminal call should include output text."""
-        result = build_tool_complete("tc-2", "terminal", "total 42\ndrwxr-xr-x 2 root root 4096 ...")
+        result = build_tool_complete(
+            "tc-2", "terminal", "total 42\ndrwxr-xr-x 2 root root 4096 ..."
+        )
         assert isinstance(result, ToolCallProgress)
         assert result.status == "completed"
         assert len(result.content) >= 1

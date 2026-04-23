@@ -30,7 +30,9 @@ class RestartTestAdapter(BasePlatformAdapter):
         return {"id": chat_id}
 
 
-def make_restart_source(chat_id: str = "123456", chat_type: str = "dm") -> SessionSource:
+def make_restart_source(
+    chat_id: str = "123456", chat_type: str = "dm"
+) -> SessionSource:
     return SessionSource(
         platform=Platform.TELEGRAM,
         chat_id=chat_id,
@@ -68,8 +70,8 @@ def make_restart_runner(
     runner._session_model_overrides = {}
     runner._shutdown_all_gateway_honcho = lambda: None
     runner._update_runtime_status = MagicMock()
-    runner._queue_or_replace_pending_event = GatewayRunner._queue_or_replace_pending_event.__get__(
-        runner, GatewayRunner
+    runner._queue_or_replace_pending_event = (
+        GatewayRunner._queue_or_replace_pending_event.__get__(runner, GatewayRunner)
     )
     runner._session_key_for_source = GatewayRunner._session_key_for_source.__get__(
         runner, GatewayRunner
@@ -86,16 +88,18 @@ def make_restart_runner(
     runner._status_action_gerund = GatewayRunner._status_action_gerund.__get__(
         runner, GatewayRunner
     )
-    runner._queue_during_drain_enabled = GatewayRunner._queue_during_drain_enabled.__get__(
-        runner, GatewayRunner
+    runner._queue_during_drain_enabled = (
+        GatewayRunner._queue_during_drain_enabled.__get__(runner, GatewayRunner)
     )
     runner._running_agent_count = GatewayRunner._running_agent_count.__get__(
         runner, GatewayRunner
     )
-    runner._launch_detached_restart_command = GatewayRunner._launch_detached_restart_command.__get__(
+    runner._launch_detached_restart_command = (
+        GatewayRunner._launch_detached_restart_command.__get__(runner, GatewayRunner)
+    )
+    runner.request_restart = GatewayRunner.request_restart.__get__(
         runner, GatewayRunner
     )
-    runner.request_restart = GatewayRunner.request_restart.__get__(runner, GatewayRunner)
     runner._is_user_authorized = lambda _source: True
     runner.hooks = MagicMock()
     runner.hooks.emit = AsyncMock()
@@ -105,6 +109,8 @@ def make_restart_runner(
 
     platform_adapter = adapter or RestartTestAdapter()
     platform_adapter.set_message_handler(AsyncMock(return_value=None))
-    platform_adapter.set_busy_session_handler(runner._handle_active_session_busy_message)
+    platform_adapter.set_busy_session_handler(
+        runner._handle_active_session_busy_message
+    )
     runner.adapters = {Platform.TELEGRAM: platform_adapter}
     return runner, platform_adapter

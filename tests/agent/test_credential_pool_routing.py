@@ -21,6 +21,7 @@ import pytest
 # 1. smart_model_routing: credential_pool preserved in no-route path
 # ---------------------------------------------------------------------------
 
+
 class TestSmartRoutingPoolPreservation:
     def test_no_route_preserves_credential_pool(self):
         from agent.smart_model_routing import resolve_turn_route
@@ -109,19 +110,19 @@ class TestSmartRoutingPoolPreservation:
 # 2 & 3. CLI and Gateway _resolve_turn_agent_config include credential_pool
 # ---------------------------------------------------------------------------
 
+
 class TestCliTurnRoutePool:
     def test_resolve_turn_includes_pool(self, monkeypatch, tmp_path):
         """CLI's _resolve_turn_agent_config must pass credential_pool to primary."""
         from agent.smart_model_routing import resolve_turn_route
+
         captured = {}
 
         def spy_resolve(user_message, routing_config, primary):
             captured["primary"] = primary
             return resolve_turn_route(user_message, routing_config, primary)
 
-        monkeypatch.setattr(
-            "agent.smart_model_routing.resolve_turn_route", spy_resolve
-        )
+        monkeypatch.setattr("agent.smart_model_routing.resolve_turn_route", spy_resolve)
 
         # Build a minimal HermesCLI-like object with the method
         shell = SimpleNamespace(
@@ -138,6 +139,7 @@ class TestCliTurnRoutePool:
 
         # Import and bind the real method
         from cli import HermesCLI
+
         bound = HermesCLI._resolve_turn_agent_config.__get__(shell)
         bound("test message")
 
@@ -149,15 +151,14 @@ class TestGatewayTurnRoutePool:
     def test_resolve_turn_includes_pool(self, monkeypatch):
         """Gateway's _resolve_turn_agent_config must pass credential_pool."""
         from agent.smart_model_routing import resolve_turn_route
+
         captured = {}
 
         def spy_resolve(user_message, routing_config, primary):
             captured["primary"] = primary
             return resolve_turn_route(user_message, routing_config, primary)
 
-        monkeypatch.setattr(
-            "agent.smart_model_routing.resolve_turn_route", spy_resolve
-        )
+        monkeypatch.setattr("agent.smart_model_routing.resolve_turn_route", spy_resolve)
 
         from gateway.run import GatewayRunner
 
@@ -179,12 +180,15 @@ class TestGatewayTurnRoutePool:
         bound("test message", "gpt-5.4", runtime_kwargs)
 
         assert "credential_pool" in captured["primary"]
-        assert captured["primary"]["credential_pool"] is runtime_kwargs["credential_pool"]
+        assert (
+            captured["primary"]["credential_pool"] is runtime_kwargs["credential_pool"]
+        )
 
 
 # ---------------------------------------------------------------------------
 # 4 & 5. Eager fallback deferred/fires based on credential pool
 # ---------------------------------------------------------------------------
+
 
 class TestEagerFallbackWithPool:
     """Test the eager fallback guard in run_agent.py's error handling loop."""
@@ -254,6 +258,7 @@ class TestEagerFallbackWithPool:
 # 6. Full 429 rotation cycle via _recover_with_credential_pool
 # ---------------------------------------------------------------------------
 
+
 class TestPoolRotationCycle:
     """Verify the retry-same → rotate → exhaust flow in _recover_with_credential_pool."""
 
@@ -307,7 +312,9 @@ class TestPoolRotationCycle:
         )
         assert recovered is True
         assert has_retried is False  # reset after rotation
-        pool.mark_exhausted_and_rotate.assert_called_once_with(status_code=429, error_context=None)
+        pool.mark_exhausted_and_rotate.assert_called_once_with(
+            status_code=429, error_context=None
+        )
         agent._swap_credential.assert_called_once_with(entries[1])
 
     def test_pool_exhaustion_returns_false(self):
@@ -333,7 +340,9 @@ class TestPoolRotationCycle:
         )
         assert recovered is True
         assert has_retried is False
-        pool.mark_exhausted_and_rotate.assert_called_once_with(status_code=402, error_context=None)
+        pool.mark_exhausted_and_rotate.assert_called_once_with(
+            status_code=402, error_context=None
+        )
 
     def test_no_pool_returns_false(self):
         """No pool should return (False, unchanged)."""

@@ -24,6 +24,7 @@ def session_db(tmp_path):
     os.environ["HERMES_HOME"] = str(tmp_path / ".hermes")
     os.makedirs(tmp_path / ".hermes", exist_ok=True)
     from hermes_state import SessionDB
+
     db = SessionDB(db_path=tmp_path / ".hermes" / "test_sessions.db")
     yield db
     db.close()
@@ -90,6 +91,7 @@ class TestBranchCommandCLI:
     def test_branch_preserves_parent_link(self, cli_instance, session_db):
         """The new session should reference the original as parent."""
         from cli import HermesCLI
+
         original_id = cli_instance.session_id
 
         HermesCLI._handle_branch_command(cli_instance, "/branch")
@@ -100,6 +102,7 @@ class TestBranchCommandCLI:
     def test_branch_ends_original_session(self, cli_instance, session_db):
         """The original session should be marked as ended with 'branched' reason."""
         from cli import HermesCLI
+
         original_id = cli_instance.session_id
 
         HermesCLI._handle_branch_command(cli_instance, "/branch")
@@ -128,6 +131,7 @@ class TestBranchCommandCLI:
     def test_branch_empty_conversation(self, cli_instance, session_db):
         """Branching with no history should show an error."""
         from cli import HermesCLI
+
         cli_instance.conversation_history = []
 
         HermesCLI._handle_branch_command(cli_instance, "/branch")
@@ -138,6 +142,7 @@ class TestBranchCommandCLI:
     def test_branch_no_session_db(self, cli_instance):
         """Branching without a session DB should show an error."""
         from cli import HermesCLI
+
         cli_instance._session_db = None
 
         HermesCLI._handle_branch_command(cli_instance, "/branch")
@@ -171,6 +176,7 @@ class TestBranchCommandCLI:
     def test_fork_alias(self):
         """The /fork alias should resolve to 'branch'."""
         from hermes_cli.commands import resolve_command
+
         result = resolve_command("fork")
         assert result is not None
         assert result.name == "branch"
@@ -182,17 +188,20 @@ class TestBranchCommandDef:
     def test_branch_in_registry(self):
         """The branch command should be in the command registry."""
         from hermes_cli.commands import COMMAND_REGISTRY
+
         names = [c.name for c in COMMAND_REGISTRY]
         assert "branch" in names
 
     def test_branch_has_fork_alias(self):
         """The branch command should have 'fork' as an alias."""
         from hermes_cli.commands import COMMAND_REGISTRY
+
         branch = next(c for c in COMMAND_REGISTRY if c.name == "branch")
         assert "fork" in branch.aliases
 
     def test_branch_in_session_category(self):
         """The branch command should be in the Session category."""
         from hermes_cli.commands import COMMAND_REGISTRY
+
         branch = next(c for c in COMMAND_REGISTRY if c.name == "branch")
         assert branch.category == "Session"

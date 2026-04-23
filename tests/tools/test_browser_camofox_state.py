@@ -7,6 +7,7 @@ import pytest
 
 def _load_module():
     from tools import browser_camofox_state as state
+
     return state
 
 
@@ -14,7 +15,9 @@ class TestCamofoxStatePaths:
     def test_paths_are_profile_scoped(self, tmp_path):
         state = _load_module()
         with patch.object(state, "get_hermes_home", return_value=tmp_path):
-            assert state.get_camofox_state_dir() == tmp_path / "browser_auth" / "camofox"
+            assert (
+                state.get_camofox_state_dir() == tmp_path / "browser_auth" / "camofox"
+            )
 
 
 class TestCamofoxIdentity:
@@ -36,9 +39,13 @@ class TestCamofoxIdentity:
 
     def test_identity_differs_by_profile(self, tmp_path):
         state = _load_module()
-        with patch.object(state, "get_hermes_home", return_value=tmp_path / "profile-a"):
+        with patch.object(
+            state, "get_hermes_home", return_value=tmp_path / "profile-a"
+        ):
             a = state.get_camofox_identity("task-1")
-        with patch.object(state, "get_hermes_home", return_value=tmp_path / "profile-b"):
+        with patch.object(
+            state, "get_hermes_home", return_value=tmp_path / "profile-b"
+        ):
             b = state.get_camofox_identity("task-1")
         assert a["user_id"] != b["user_id"]
 

@@ -71,30 +71,27 @@ _TIER_MINIMAL = {
 
 _PLATFORM_DEFAULTS: dict[str, dict[str, Any]] = {
     # Tier 1 — full edit support, personal/team use
-    "telegram":    _TIER_HIGH,
-    "discord":     _TIER_HIGH,
-
+    "telegram": _TIER_HIGH,
+    "discord": _TIER_HIGH,
     # Tier 2 — edit support, often customer/workspace channels
-    "slack":           _TIER_MEDIUM,
-    "mattermost":      _TIER_MEDIUM,
-    "matrix":          _TIER_MEDIUM,
-    "feishu":          _TIER_MEDIUM,
-
+    "slack": _TIER_MEDIUM,
+    "mattermost": _TIER_MEDIUM,
+    "matrix": _TIER_MEDIUM,
+    "feishu": _TIER_MEDIUM,
     # Tier 3 — no edit support, progress messages are permanent
-    "signal":          _TIER_LOW,
-    "whatsapp":        _TIER_LOW,
-    "bluebubbles":     _TIER_LOW,
-    "weixin":          _TIER_LOW,
-    "wecom":           _TIER_LOW,
-    "wecom_callback":  _TIER_LOW,
-    "dingtalk":        _TIER_LOW,
-
+    "signal": _TIER_LOW,
+    "whatsapp": _TIER_LOW,
+    "bluebubbles": _TIER_LOW,
+    "weixin": _TIER_LOW,
+    "wecom": _TIER_LOW,
+    "wecom_callback": _TIER_LOW,
+    "dingtalk": _TIER_LOW,
     # Tier 4 — batch or non-interactive delivery
-    "email":           _TIER_MINIMAL,
-    "sms":             _TIER_MINIMAL,
-    "webhook":         _TIER_MINIMAL,
-    "homeassistant":   _TIER_MINIMAL,
-    "api_server":      {**_TIER_HIGH, "tool_preview_length": 0},
+    "email": _TIER_MINIMAL,
+    "sms": _TIER_MINIMAL,
+    "webhook": _TIER_MINIMAL,
+    "homeassistant": _TIER_MINIMAL,
+    "api_server": {**_TIER_HIGH, "tool_preview_length": 0},
 }
 
 # Canonical set of per-platform overrideable keys (for validation).
@@ -185,6 +182,7 @@ def get_effective_display(user_config: dict, platform_key: str) -> dict[str, Any
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _normalise(setting: str, value: Any) -> Any:
     """Normalise YAML quirks (bare ``off`` → False in YAML 1.1)."""

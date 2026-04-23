@@ -169,7 +169,9 @@ class TestSessionOps:
 
     @pytest.mark.asyncio
     async def test_new_session_schedules_available_commands_update(self, agent):
-        with patch.object(agent, "_schedule_available_commands_update") as mock_schedule:
+        with patch.object(
+            agent, "_schedule_available_commands_update"
+        ) as mock_schedule:
             resp = await agent.new_session(cwd="/home/user/project")
 
         mock_schedule.assert_called_once_with(resp.session_id)
@@ -196,7 +198,9 @@ class TestSessionOps:
     @pytest.mark.asyncio
     async def test_load_session_schedules_available_commands_update(self, agent):
         resp = await agent.new_session(cwd="/tmp")
-        with patch.object(agent, "_schedule_available_commands_update") as mock_schedule:
+        with patch.object(
+            agent, "_schedule_available_commands_update"
+        ) as mock_schedule:
             load_resp = await agent.load_session(cwd="/tmp", session_id=resp.session_id)
 
         assert isinstance(load_resp, LoadSessionResponse)
@@ -216,8 +220,12 @@ class TestSessionOps:
     @pytest.mark.asyncio
     async def test_resume_session_schedules_available_commands_update(self, agent):
         resp = await agent.new_session(cwd="/tmp")
-        with patch.object(agent, "_schedule_available_commands_update") as mock_schedule:
-            resume_resp = await agent.resume_session(cwd="/tmp", session_id=resp.session_id)
+        with patch.object(
+            agent, "_schedule_available_commands_update"
+        ) as mock_schedule:
+            resume_resp = await agent.resume_session(
+                cwd="/tmp", session_id=resp.session_id
+            )
 
         assert isinstance(resume_resp, ResumeSessionResponse)
         mock_schedule.assert_called_once_with(resp.session_id)
@@ -245,15 +253,21 @@ class TestListAndFork:
     @pytest.mark.asyncio
     async def test_fork_session(self, agent):
         new_resp = await agent.new_session(cwd="/original")
-        fork_resp = await agent.fork_session(cwd="/forked", session_id=new_resp.session_id)
+        fork_resp = await agent.fork_session(
+            cwd="/forked", session_id=new_resp.session_id
+        )
         assert fork_resp.session_id
         assert fork_resp.session_id != new_resp.session_id
 
     @pytest.mark.asyncio
     async def test_fork_session_schedules_available_commands_update(self, agent):
         new_resp = await agent.new_session(cwd="/original")
-        with patch.object(agent, "_schedule_available_commands_update") as mock_schedule:
-            fork_resp = await agent.fork_session(cwd="/forked", session_id=new_resp.session_id)
+        with patch.object(
+            agent, "_schedule_available_commands_update"
+        ) as mock_schedule:
+            fork_resp = await agent.fork_session(
+                cwd="/forked", session_id=new_resp.session_id
+            )
 
         assert fork_resp.session_id
         mock_schedule.assert_called_once_with(fork_resp.session_id)
@@ -268,7 +282,9 @@ class TestSessionConfiguration:
     @pytest.mark.asyncio
     async def test_set_session_mode_returns_response(self, agent):
         new_resp = await agent.new_session(cwd="/tmp")
-        resp = await agent.set_session_mode(mode_id="chat", session_id=new_resp.session_id)
+        resp = await agent.set_session_mode(
+            mode_id="chat", session_id=new_resp.session_id
+        )
         state = agent.session_manager.get_session(new_resp.session_id)
 
         assert isinstance(resp, SetSessionModeResponse)
@@ -354,13 +370,15 @@ class TestPrompt:
         state = agent.session_manager.get_session(new_resp.session_id)
 
         # Mock the agent's run_conversation
-        state.agent.run_conversation = MagicMock(return_value={
-            "final_response": "Hello! How can I help?",
-            "messages": [
-                {"role": "user", "content": "hello"},
-                {"role": "assistant", "content": "Hello! How can I help?"},
-            ],
-        })
+        state.agent.run_conversation = MagicMock(
+            return_value={
+                "final_response": "Hello! How can I help?",
+                "messages": [
+                    {"role": "user", "content": "hello"},
+                    {"role": "assistant", "content": "Hello! How can I help?"},
+                ],
+            }
+        )
 
         # Set up a mock connection
         mock_conn = MagicMock(spec=acp.Client)
@@ -384,10 +402,12 @@ class TestPrompt:
             {"role": "user", "content": "hi"},
             {"role": "assistant", "content": "hey"},
         ]
-        state.agent.run_conversation = MagicMock(return_value={
-            "final_response": "hey",
-            "messages": expected_history,
-        })
+        state.agent.run_conversation = MagicMock(
+            return_value={
+                "final_response": "hey",
+                "messages": expected_history,
+            }
+        )
 
         mock_conn = MagicMock(spec=acp.Client)
         mock_conn.session_update = AsyncMock()
@@ -404,10 +424,12 @@ class TestPrompt:
         new_resp = await agent.new_session(cwd=".")
         state = agent.session_manager.get_session(new_resp.session_id)
 
-        state.agent.run_conversation = MagicMock(return_value={
-            "final_response": "I can help with that!",
-            "messages": [],
-        })
+        state.agent.run_conversation = MagicMock(
+            return_value={
+                "final_response": "I can help with that!",
+                "messages": [],
+            }
+        )
 
         mock_conn = MagicMock(spec=acp.Client)
         mock_conn.session_update = AsyncMock()
@@ -424,20 +446,24 @@ class TestPrompt:
         assert update.session_update == "agent_message_chunk"
 
     @pytest.mark.asyncio
-    async def test_prompt_populates_usage_from_top_level_run_conversation_fields(self, agent):
+    async def test_prompt_populates_usage_from_top_level_run_conversation_fields(
+        self, agent
+    ):
         """ACP should map top-level token fields into PromptResponse.usage."""
         new_resp = await agent.new_session(cwd=".")
         state = agent.session_manager.get_session(new_resp.session_id)
 
-        state.agent.run_conversation = MagicMock(return_value={
-            "final_response": "usage attached",
-            "messages": [],
-            "prompt_tokens": 123,
-            "completion_tokens": 45,
-            "total_tokens": 168,
-            "reasoning_tokens": 7,
-            "cache_read_tokens": 11,
-        })
+        state.agent.run_conversation = MagicMock(
+            return_value={
+                "final_response": "usage attached",
+                "messages": [],
+                "prompt_tokens": 123,
+                "completion_tokens": 45,
+                "total_tokens": 168,
+                "reasoning_tokens": 7,
+                "cache_read_tokens": 11,
+            }
+        )
 
         mock_conn = MagicMock(spec=acp.Client)
         mock_conn.session_update = AsyncMock()
@@ -625,10 +651,12 @@ class TestSlashCommands:
 
         # Mock run_in_executor to avoid actually running the agent
         with patch("asyncio.get_running_loop") as mock_loop:
-            mock_loop.return_value.run_in_executor = AsyncMock(return_value={
-                "final_response": "I processed /foo",
-                "messages": [],
-            })
+            mock_loop.return_value.run_in_executor = AsyncMock(
+                return_value={
+                    "final_response": "I processed /foo",
+                    "messages": [],
+                }
+            )
             prompt = [TextContentBlock(type="text", text="/foo bar")]
             resp = await agent.prompt(prompt=prompt, session_id=new_resp.session_id)
 
@@ -643,7 +671,9 @@ class TestSlashCommands:
             provider = requested or "openrouter"
             return {
                 "provider": provider,
-                "api_mode": "anthropic_messages" if provider == "anthropic" else "chat_completions",
+                "api_mode": "anthropic_messages"
+                if provider == "anthropic"
+                else "chat_completions",
                 "base_url": f"https://{provider}.example/v1",
                 "api_key": f"{provider}-key",
                 "command": None,
@@ -658,9 +688,12 @@ class TestSlashCommands:
                 api_mode=kwargs.get("api_mode"),
             )
 
-        monkeypatch.setattr("hermes_cli.config.load_config", lambda: {
-            "model": {"provider": "openrouter", "default": "openrouter/gpt-5"}
-        })
+        monkeypatch.setattr(
+            "hermes_cli.config.load_config",
+            lambda: {
+                "model": {"provider": "openrouter", "default": "openrouter/gpt-5"}
+            },
+        )
         monkeypatch.setattr(
             "hermes_cli.runtime_provider.resolve_runtime_provider",
             fake_resolve_runtime_provider,
@@ -714,12 +747,15 @@ class TestRegisterSessionMcpServers:
         )
 
         registered_config = {}
+
         def capture_register(config_map):
             registered_config.update(config_map)
             return ["mcp_test_server_tool1"]
 
-        with patch("tools.mcp_tool.register_mcp_servers", side_effect=capture_register), \
-             patch("model_tools.get_tool_definitions", return_value=[]):
+        with (
+            patch("tools.mcp_tool.register_mcp_servers", side_effect=capture_register),
+            patch("model_tools.get_tool_definitions", return_value=[]),
+        ):
             await agent._register_session_mcp_servers(state, [server])
 
         assert "test-server" in registered_config
@@ -746,12 +782,15 @@ class TestRegisterSessionMcpServers:
         )
 
         registered_config = {}
+
         def capture_register(config_map):
             registered_config.update(config_map)
             return []
 
-        with patch("tools.mcp_tool.register_mcp_servers", side_effect=capture_register), \
-             patch("model_tools.get_tool_definitions", return_value=[]):
+        with (
+            patch("tools.mcp_tool.register_mcp_servers", side_effect=capture_register),
+            patch("model_tools.get_tool_definitions", return_value=[]),
+        ):
             await agent._register_session_mcp_servers(state, [server])
 
         assert "http-server" in registered_config
@@ -783,8 +822,12 @@ class TestRegisterSessionMcpServers:
             {"function": {"name": "terminal"}},
         ]
 
-        with patch("tools.mcp_tool.register_mcp_servers", return_value=["mcp_srv_search"]), \
-             patch("model_tools.get_tool_definitions", return_value=fake_tools):
+        with (
+            patch(
+                "tools.mcp_tool.register_mcp_servers", return_value=["mcp_srv_search"]
+            ),
+            patch("model_tools.get_tool_definitions", return_value=fake_tools),
+        ):
             await agent._register_session_mcp_servers(state, [server])
 
         assert state.agent.tools == fake_tools
@@ -805,14 +848,18 @@ class TestRegisterSessionMcpServers:
             env=[],
         )
 
-        with patch("tools.mcp_tool.register_mcp_servers", side_effect=RuntimeError("boom")):
+        with patch(
+            "tools.mcp_tool.register_mcp_servers", side_effect=RuntimeError("boom")
+        ):
             # Should not raise
             await agent._register_session_mcp_servers(state, [server])
 
     @pytest.mark.asyncio
     async def test_new_session_calls_register(self, agent, mock_manager):
         """new_session passes mcp_servers to _register_session_mcp_servers."""
-        with patch.object(agent, "_register_session_mcp_servers", new_callable=AsyncMock) as mock_reg:
+        with patch.object(
+            agent, "_register_session_mcp_servers", new_callable=AsyncMock
+        ) as mock_reg:
             resp = await agent.new_session(cwd="/tmp", mcp_servers=["fake"])
             assert resp is not None
             mock_reg.assert_called_once()
@@ -826,8 +873,12 @@ class TestRegisterSessionMcpServers:
         state = mock_manager.create_session(cwd="/tmp")
         sid = state.session_id
 
-        with patch.object(agent, "_register_session_mcp_servers", new_callable=AsyncMock) as mock_reg:
-            resp = await agent.load_session(cwd="/tmp", session_id=sid, mcp_servers=["fake"])
+        with patch.object(
+            agent, "_register_session_mcp_servers", new_callable=AsyncMock
+        ) as mock_reg:
+            resp = await agent.load_session(
+                cwd="/tmp", session_id=sid, mcp_servers=["fake"]
+            )
             assert resp is not None
             mock_reg.assert_called_once()
 
@@ -837,8 +888,12 @@ class TestRegisterSessionMcpServers:
         state = mock_manager.create_session(cwd="/tmp")
         sid = state.session_id
 
-        with patch.object(agent, "_register_session_mcp_servers", new_callable=AsyncMock) as mock_reg:
-            resp = await agent.resume_session(cwd="/tmp", session_id=sid, mcp_servers=["fake"])
+        with patch.object(
+            agent, "_register_session_mcp_servers", new_callable=AsyncMock
+        ) as mock_reg:
+            resp = await agent.resume_session(
+                cwd="/tmp", session_id=sid, mcp_servers=["fake"]
+            )
             assert resp is not None
             mock_reg.assert_called_once()
 
@@ -848,7 +903,11 @@ class TestRegisterSessionMcpServers:
         state = mock_manager.create_session(cwd="/tmp")
         sid = state.session_id
 
-        with patch.object(agent, "_register_session_mcp_servers", new_callable=AsyncMock) as mock_reg:
-            resp = await agent.fork_session(cwd="/tmp", session_id=sid, mcp_servers=["fake"])
+        with patch.object(
+            agent, "_register_session_mcp_servers", new_callable=AsyncMock
+        ) as mock_reg:
+            resp = await agent.fork_session(
+                cwd="/tmp", session_id=sid, mcp_servers=["fake"]
+            )
             assert resp is not None
             mock_reg.assert_called_once()

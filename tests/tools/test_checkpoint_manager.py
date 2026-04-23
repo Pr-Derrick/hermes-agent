@@ -23,6 +23,7 @@ from tools.checkpoint_manager import (
 # Fixtures
 # =========================================================================
 
+
 @pytest.fixture()
 def work_dir(tmp_path):
     """Temporary working directory."""
@@ -70,6 +71,7 @@ def disabled_mgr(checkpoint_base, monkeypatch):
 # Shadow repo path
 # =========================================================================
 
+
 class TestShadowRepoPath:
     def test_deterministic(self, work_dir, checkpoint_base, monkeypatch):
         monkeypatch.setattr("tools.checkpoint_manager.CHECKPOINT_BASE", checkpoint_base)
@@ -77,7 +79,9 @@ class TestShadowRepoPath:
         p2 = _shadow_repo_path(str(work_dir))
         assert p1 == p2
 
-    def test_different_dirs_different_paths(self, tmp_path, checkpoint_base, monkeypatch):
+    def test_different_dirs_different_paths(
+        self, tmp_path, checkpoint_base, monkeypatch
+    ):
         monkeypatch.setattr("tools.checkpoint_manager.CHECKPOINT_BASE", checkpoint_base)
         p1 = _shadow_repo_path(str(tmp_path / "a"))
         p2 = _shadow_repo_path(str(tmp_path / "b"))
@@ -88,7 +92,9 @@ class TestShadowRepoPath:
         p = _shadow_repo_path(str(work_dir))
         assert str(p).startswith(str(checkpoint_base))
 
-    def test_tilde_and_expanded_home_share_shadow_repo(self, fake_home, checkpoint_base, monkeypatch):
+    def test_tilde_and_expanded_home_share_shadow_repo(
+        self, fake_home, checkpoint_base, monkeypatch
+    ):
         monkeypatch.setattr("tools.checkpoint_manager.CHECKPOINT_BASE", checkpoint_base)
         project = fake_home / "project"
         project.mkdir()
@@ -102,6 +108,7 @@ class TestShadowRepoPath:
 # =========================================================================
 # Shadow repo init
 # =========================================================================
+
 
 class TestShadowRepoInit:
     def test_creates_git_repo(self, work_dir, checkpoint_base, monkeypatch):
@@ -148,6 +155,7 @@ class TestShadowRepoInit:
 # CheckpointManager — disabled
 # =========================================================================
 
+
 class TestDisabledManager:
     def test_ensure_checkpoint_returns_false(self, disabled_mgr, work_dir):
         assert disabled_mgr.ensure_checkpoint(str(work_dir)) is False
@@ -160,16 +168,21 @@ class TestDisabledManager:
 # CheckpointManager — taking checkpoints
 # =========================================================================
 
+
 class TestTakeCheckpoint:
     def test_first_checkpoint(self, mgr, work_dir):
         result = mgr.ensure_checkpoint(str(work_dir), "initial")
         assert result is True
 
-    def test_successful_checkpoint_does_not_log_expected_diff_exit(self, mgr, work_dir, caplog):
+    def test_successful_checkpoint_does_not_log_expected_diff_exit(
+        self, mgr, work_dir, caplog
+    ):
         with caplog.at_level(logging.ERROR, logger="tools.checkpoint_manager"):
             result = mgr.ensure_checkpoint(str(work_dir), "initial")
         assert result is True
-        assert not any("diff --cached --quiet" in r.getMessage() for r in caplog.records)
+        assert not any(
+            "diff --cached --quiet" in r.getMessage() for r in caplog.records
+        )
 
     def test_dedup_same_turn(self, mgr, work_dir):
         r1 = mgr.ensure_checkpoint(str(work_dir), "first")
@@ -210,6 +223,7 @@ class TestTakeCheckpoint:
 # CheckpointManager — listing checkpoints
 # =========================================================================
 
+
 class TestListCheckpoints:
     def test_empty_when_no_checkpoints(self, mgr, work_dir):
         result = mgr.list_checkpoints(str(work_dir))
@@ -241,7 +255,9 @@ class TestListCheckpoints:
         assert result[0]["reason"] == "third"
         assert result[2]["reason"] == "first"
 
-    def test_tilde_path_lists_same_checkpoints_as_expanded_path(self, checkpoint_base, fake_home, monkeypatch):
+    def test_tilde_path_lists_same_checkpoints_as_expanded_path(
+        self, checkpoint_base, fake_home, monkeypatch
+    ):
         monkeypatch.setattr("tools.checkpoint_manager.CHECKPOINT_BASE", checkpoint_base)
         mgr = CheckpointManager(enabled=True, max_snapshots=50)
         project = fake_home / "project"
@@ -259,6 +275,7 @@ class TestListCheckpoints:
 # =========================================================================
 # CheckpointManager — restoring
 # =========================================================================
+
 
 class TestRestore:
     def test_restore_to_previous(self, mgr, work_dir):
@@ -305,7 +322,9 @@ class TestRestore:
         assert len(all_cps) >= 2
         assert "pre-rollback" in all_cps[0]["reason"]
 
-    def test_tilde_path_supports_diff_and_restore_flow(self, checkpoint_base, fake_home, monkeypatch):
+    def test_tilde_path_supports_diff_and_restore_flow(
+        self, checkpoint_base, fake_home, monkeypatch
+    ):
         monkeypatch.setattr("tools.checkpoint_manager.CHECKPOINT_BASE", checkpoint_base)
         mgr = CheckpointManager(enabled=True, max_snapshots=50)
         project = fake_home / "project"
@@ -331,6 +350,7 @@ class TestRestore:
 # =========================================================================
 # CheckpointManager — working dir resolution
 # =========================================================================
+
 
 class TestWorkingDirResolution:
     def test_resolves_git_project_root(self, tmp_path):
@@ -384,6 +404,7 @@ class TestWorkingDirResolution:
 # Git env isolation
 # =========================================================================
 
+
 class TestGitEnvIsolation:
     def test_sets_git_dir(self, tmp_path):
         shadow = tmp_path / "shadow"
@@ -415,6 +436,7 @@ class TestGitEnvIsolation:
 # format_checkpoint_list
 # =========================================================================
 
+
 class TestFormatCheckpointList:
     def test_empty_list(self):
         result = format_checkpoint_list([], "/some/dir")
@@ -422,8 +444,18 @@ class TestFormatCheckpointList:
 
     def test_formats_entries(self):
         cps = [
-            {"hash": "abc123", "short_hash": "abc1", "timestamp": "2026-03-09T21:15:00-07:00", "reason": "before write_file"},
-            {"hash": "def456", "short_hash": "def4", "timestamp": "2026-03-09T21:10:00-07:00", "reason": "before patch"},
+            {
+                "hash": "abc123",
+                "short_hash": "abc1",
+                "timestamp": "2026-03-09T21:15:00-07:00",
+                "reason": "before write_file",
+            },
+            {
+                "hash": "def456",
+                "short_hash": "def4",
+                "timestamp": "2026-03-09T21:10:00-07:00",
+                "reason": "before patch",
+            },
         ]
         result = format_checkpoint_list(cps, "/home/user/project")
         assert "abc1" in result
@@ -435,6 +467,7 @@ class TestFormatCheckpointList:
 # =========================================================================
 # File count guard
 # =========================================================================
+
 
 class TestDirFileCount:
     def test_counts_files(self, work_dir):
@@ -449,6 +482,7 @@ class TestDirFileCount:
 # =========================================================================
 # Error resilience
 # =========================================================================
+
 
 class TestErrorResilience:
     def test_no_git_installed(self, work_dir, checkpoint_base, monkeypatch):
@@ -493,16 +527,22 @@ class TestErrorResilience:
         assert ok is False
         assert stdout == ""
         assert "working directory not found" in stderr
-        assert not any("Git executable not found" in r.getMessage() for r in caplog.records)
+        assert not any(
+            "Git executable not found" in r.getMessage() for r in caplog.records
+        )
 
-    def test_run_git_missing_git_reports_git_not_found(self, tmp_path, monkeypatch, caplog):
+    def test_run_git_missing_git_reports_git_not_found(
+        self, tmp_path, monkeypatch, caplog
+    ):
         work = tmp_path / "work"
         work.mkdir()
 
         def raise_missing_git(*args, **kwargs):
             raise FileNotFoundError(2, "No such file or directory", "git")
 
-        monkeypatch.setattr("tools.checkpoint_manager.subprocess.run", raise_missing_git)
+        monkeypatch.setattr(
+            "tools.checkpoint_manager.subprocess.run", raise_missing_git
+        )
         with caplog.at_level(logging.ERROR, logger="tools.checkpoint_manager"):
             ok, stdout, stderr = _run_git(
                 ["status"],
@@ -516,8 +556,10 @@ class TestErrorResilience:
 
     def test_checkpoint_failure_does_not_raise(self, mgr, work_dir, monkeypatch):
         """Checkpoint failures should never raise — they're silently logged."""
+
         def broken_run_git(*args, **kwargs):
             raise OSError("git exploded")
+
         monkeypatch.setattr("tools.checkpoint_manager._run_git", broken_run_git)
         # Should not raise
         result = mgr.ensure_checkpoint(str(work_dir), "test")
@@ -528,6 +570,7 @@ class TestErrorResilience:
 # Security / Input validation
 # =========================================================================
 
+
 class TestSecurity:
     def test_restore_rejects_argument_injection(self, mgr, work_dir):
         mgr.ensure_checkpoint(str(work_dir), "initial")
@@ -536,18 +579,18 @@ class TestSecurity:
         assert result["success"] is False
         assert "Invalid commit hash" in result["error"]
         assert "must not start with '-'" in result["error"]
-        
+
         result = mgr.restore(str(work_dir), "-p")
         assert result["success"] is False
         assert "Invalid commit hash" in result["error"]
-        
+
     def test_restore_rejects_invalid_hex_chars(self, mgr, work_dir):
         mgr.ensure_checkpoint(str(work_dir), "initial")
         # Git hashes should not contain characters like ;, &, |
         result = mgr.restore(str(work_dir), "abc; rm -rf /")
         assert result["success"] is False
         assert "expected 4-64 hex characters" in result["error"]
-        
+
         result = mgr.diff(str(work_dir), "abc&def")
         assert result["success"] is False
         assert "expected 4-64 hex characters" in result["error"]
@@ -557,14 +600,16 @@ class TestSecurity:
         # Real commit hash but malicious path
         checkpoints = mgr.list_checkpoints(str(work_dir))
         target_hash = checkpoints[0]["hash"]
-        
+
         # Absolute path outside
         result = mgr.restore(str(work_dir), target_hash, file_path="/etc/passwd")
         assert result["success"] is False
         assert "got absolute path" in result["error"]
-        
+
         # Relative traversal outside path
-        result = mgr.restore(str(work_dir), target_hash, file_path="../outside_file.txt")
+        result = mgr.restore(
+            str(work_dir), target_hash, file_path="../outside_file.txt"
+        )
         assert result["success"] is False
         assert "escapes the working directory" in result["error"]
 
@@ -572,11 +617,11 @@ class TestSecurity:
         mgr.ensure_checkpoint(str(work_dir), "initial")
         checkpoints = mgr.list_checkpoints(str(work_dir))
         target_hash = checkpoints[0]["hash"]
-        
+
         # Valid path inside directory
         result = mgr.restore(str(work_dir), target_hash, file_path="main.py")
         assert result["success"] is True
-        
+
         # Another valid path with subdirectories
         (work_dir / "subdir").mkdir()
         (work_dir / "subdir" / "test.txt").write_text("hello")
@@ -584,6 +629,6 @@ class TestSecurity:
         mgr.ensure_checkpoint(str(work_dir), "second")
         checkpoints = mgr.list_checkpoints(str(work_dir))
         target_hash = checkpoints[0]["hash"]
-        
+
         result = mgr.restore(str(work_dir), target_hash, file_path="subdir/test.txt")
         assert result["success"] is True

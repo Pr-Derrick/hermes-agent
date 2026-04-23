@@ -29,8 +29,13 @@ def _build_parser():
     parser = argparse.ArgumentParser(prog="hermes")
     parser.add_argument("--resume", "-r", metavar="SESSION", default=None)
     parser.add_argument(
-        "--continue", "-c", dest="continue_last", nargs="?",
-        const=True, default=None, metavar="SESSION_NAME",
+        "--continue",
+        "-c",
+        dest="continue_last",
+        nargs="?",
+        const=True,
+        default=None,
+        metavar="SESSION_NAME",
     )
     parser.add_argument("--worktree", "-w", action="store_true", default=False)
     parser.add_argument("--skills", "-s", action="append", default=None)
@@ -40,19 +45,23 @@ def _build_parser():
     subparsers = parser.add_subparsers(dest="command")
     chat = subparsers.add_parser("chat")
     # These MUST use argparse.SUPPRESS to avoid overwriting parent values
-    chat.add_argument("--yolo", action="store_true",
-                      default=argparse.SUPPRESS)
-    chat.add_argument("--worktree", "-w", action="store_true",
-                      default=argparse.SUPPRESS)
-    chat.add_argument("--skills", "-s", action="append",
-                      default=argparse.SUPPRESS)
-    chat.add_argument("--pass-session-id", action="store_true",
-                      default=argparse.SUPPRESS)
-    chat.add_argument("--resume", "-r", metavar="SESSION_ID",
-                      default=argparse.SUPPRESS)
+    chat.add_argument("--yolo", action="store_true", default=argparse.SUPPRESS)
     chat.add_argument(
-        "--continue", "-c", dest="continue_last", nargs="?",
-        const=True, default=argparse.SUPPRESS, metavar="SESSION_NAME",
+        "--worktree", "-w", action="store_true", default=argparse.SUPPRESS
+    )
+    chat.add_argument("--skills", "-s", action="append", default=argparse.SUPPRESS)
+    chat.add_argument(
+        "--pass-session-id", action="store_true", default=argparse.SUPPRESS
+    )
+    chat.add_argument("--resume", "-r", metavar="SESSION_ID", default=argparse.SUPPRESS)
+    chat.add_argument(
+        "--continue",
+        "-c",
+        dest="continue_last",
+        nargs="?",
+        const=True,
+        default=argparse.SUPPRESS,
+        metavar="SESSION_NAME",
     )
     return parser
 

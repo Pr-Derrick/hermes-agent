@@ -210,8 +210,10 @@ def _make_compressor(config=None):
     """Create a TrajectoryCompressor with mocked tokenizer and summarizer."""
     if config is None:
         config = CompressionConfig()
-    with patch.object(TrajectoryCompressor, '_init_tokenizer'), \
-         patch.object(TrajectoryCompressor, '_init_summarizer'):
+    with (
+        patch.object(TrajectoryCompressor, "_init_tokenizer"),
+        patch.object(TrajectoryCompressor, "_init_summarizer"),
+    ):
         compressor = TrajectoryCompressor(config)
     # Provide a simple token counter for tests (1 token per 4 chars)
     compressor.tokenizer = MagicMock()
@@ -368,15 +370,15 @@ class TestTokenCounting:
     def test_count_trajectory_tokens(self):
         tc = _make_compressor()
         trajectory = [
-            {"from": "system", "value": "12345678"},   # 2 tokens
-            {"from": "human", "value": "1234567890ab"}, # 3 tokens
+            {"from": "system", "value": "12345678"},  # 2 tokens
+            {"from": "human", "value": "1234567890ab"},  # 3 tokens
         ]
         assert tc.count_trajectory_tokens(trajectory) == 5
 
     def test_count_turn_tokens(self):
         tc = _make_compressor()
         trajectory = [
-            {"from": "system", "value": "1234"},     # 1 token
+            {"from": "system", "value": "1234"},  # 1 token
             {"from": "human", "value": "12345678"},  # 2 tokens
         ]
         result = tc.count_turn_tokens(trajectory)

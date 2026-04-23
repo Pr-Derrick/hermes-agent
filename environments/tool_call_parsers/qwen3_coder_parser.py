@@ -83,13 +83,15 @@ class Qwen3CoderToolCallParser(ToolCallParser):
         re.DOTALL,
     )
 
-    def _parse_function_call(self, function_str: str) -> Optional[ChatCompletionMessageToolCall]:
+    def _parse_function_call(
+        self, function_str: str
+    ) -> Optional[ChatCompletionMessageToolCall]:
         """Parse a single <function=name>...</function> block into a ToolCall."""
         try:
             # Extract function name: everything before the first '>'
             gt_idx = function_str.index(">")
             func_name = function_str[:gt_idx].strip()
-            params_str = function_str[gt_idx + 1:]
+            params_str = function_str[gt_idx + 1 :]
 
             # Extract parameters
             param_dict: Dict[str, Any] = {}
@@ -98,7 +100,7 @@ class Qwen3CoderToolCallParser(ToolCallParser):
                     continue
                 eq_idx = match_text.index(">")
                 param_name = match_text[:eq_idx].strip()
-                param_value = match_text[eq_idx + 1:]
+                param_value = match_text[eq_idx + 1 :]
 
                 # Clean up whitespace
                 if param_value.startswith("\n"):

@@ -24,6 +24,7 @@ def test_estimate_tool_tokens_returns_positive_counts():
 
     # Clear cache to force fresh computation
     import hermes_cli.tools_config as tc
+
     tc._tool_token_cache = None
 
     tokens = _estimate_tool_tokens()
@@ -40,6 +41,7 @@ def test_estimate_tool_tokens_returns_positive_counts():
 def test_estimate_tool_tokens_is_cached():
     """Second call should return the same cached dict object."""
     import hermes_cli.tools_config as tc
+
     tc._tool_token_cache = None
 
     first = tc._estimate_tool_tokens()
@@ -51,9 +53,11 @@ def test_estimate_tool_tokens_is_cached():
 def test_estimate_tool_tokens_returns_empty_when_tiktoken_unavailable(monkeypatch):
     """Graceful degradation when tiktoken cannot be imported."""
     import hermes_cli.tools_config as tc
+
     tc._tool_token_cache = None
 
     import builtins
+
     real_import = builtins.__import__
 
     def mock_import(name, *args, **kwargs):
@@ -75,6 +79,7 @@ def test_estimate_tool_tokens_returns_empty_when_tiktoken_unavailable(monkeypatc
 def test_estimate_tool_tokens_covers_known_tools():
     """Should include schemas for well-known tools like terminal, web_search."""
     import hermes_cli.tools_config as tc
+
     tc._tool_token_cache = None
 
     tokens = tc._estimate_tool_tokens()
@@ -172,7 +177,7 @@ def test_status_fn_deduplicates_overlapping_tools(monkeypatch):
         if not m:
             return 0
         val = float(m.group(1))
-        if "k" in s[m.start():m.end()]:
+        if "k" in s[m.start() : m.end()]:
             val *= 1000
         return val
 

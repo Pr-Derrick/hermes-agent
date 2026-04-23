@@ -101,7 +101,6 @@ class TestScanSkillCommands:
         assert "/enabled-skill" in result
         assert "/disabled-skill" not in result
 
-
     def test_special_chars_stripped_from_cmd_key(self, tmp_path):
         """Skill names with +, /, or other special chars produce clean cmd keys."""
         with patch("tools.skills_tool.SKILLS_DIR", tmp_path):
@@ -137,8 +136,7 @@ class TestScanSkillCommands:
             skill_dir = tmp_path / "sonarr-api"
             skill_dir.mkdir()
             (skill_dir / "SKILL.md").write_text(
-                "---\nname: Sonarr v3/v4 API\n"
-                "description: Test skill\n---\n\nBody.\n"
+                "---\nname: Sonarr v3/v4 API\ndescription: Test skill\n---\n\nBody.\n"
             )
             result = scan_skill_commands()
         assert "/sonarr-v3v4-api" in result
@@ -238,7 +236,9 @@ Generate some audio.
 
         with patch("tools.skills_tool.SKILLS_DIR", tmp_path):
             scan_skill_commands()
-            msg = build_skill_invocation_message("/audiocraft-audio-generation", "compose")
+            msg = build_skill_invocation_message(
+                "/audiocraft-audio-generation", "compose"
+            )
 
         assert msg is not None
         assert "AudioCraft" in msg
@@ -380,7 +380,12 @@ class TestPlanSkillHelpers:
             now=datetime(2026, 3, 15, 9, 30, 45),
         )
 
-        assert path == Path(".hermes") / "plans" / "2026-03-15_093045-implement-oauth-login-refresh-tokens.md"
+        assert (
+            path
+            == Path(".hermes")
+            / "plans"
+            / "2026-03-15_093045-implement-oauth-login-refresh-tokens.md"
+        )
 
     def test_plan_skill_message_can_include_runtime_save_path_note(self, tmp_path):
         with patch("tools.skills_tool.SKILLS_DIR", tmp_path):

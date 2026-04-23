@@ -116,12 +116,13 @@ ALL_TOOL_SCHEMAS = [PROFILE_SCHEMA, SEARCH_SCHEMA, CONTEXT_SCHEMA, CONCLUDE_SCHE
 # MemoryProvider implementation
 # ---------------------------------------------------------------------------
 
+
 class HonchoMemoryProvider(MemoryProvider):
     """Honcho AI-native memory with dialectic Q&A and persistent user modeling."""
 
     def __init__(self):
-        self._manager = None   # HonchoSessionManager
-        self._config = None    # HonchoClientConfig
+        self._manager = None  # HonchoSessionManager
+        self._config = None  # HonchoClientConfig
         self._session_key = ""
         self._prefetch_result = ""
         self._prefetch_lock = threading.Lock()
@@ -138,9 +139,11 @@ class HonchoMemoryProvider(MemoryProvider):
         # B5: Cost-awareness turn counting and cadence
         self._turn_count = 0
         self._injection_frequency = "every-turn"  # or "first-turn"
-        self._context_cadence = 1   # minimum turns between context API calls
+        self._context_cadence = 1  # minimum turns between context API calls
         self._dialectic_cadence = 1  # minimum turns between dialectic API calls
-        self._reasoning_level_cap: Optional[str] = None  # "minimal", "low", "mid", "high"
+        self._reasoning_level_cap: Optional[str] = (
+            None  # "minimal", "low", "mid", "high"
+        )
         self._last_context_turn = -999
         self._last_dialectic_turn = -999
 
@@ -160,6 +163,7 @@ class HonchoMemoryProvider(MemoryProvider):
         """Check if Honcho is configured. No network calls."""
         try:
             from plugins.memory.honcho.client import HonchoClientConfig
+
             cfg = HonchoClientConfig.from_global_config()
             # Port #2645: baseUrl-only verification — api_key OR base_url suffices
             return cfg.enabled and bool(cfg.api_key or cfg.base_url)
@@ -170,6 +174,7 @@ class HonchoMemoryProvider(MemoryProvider):
         """Write config to $HERMES_HOME/honcho.json (Honcho SDK native format)."""
         import json
         from pathlib import Path
+
         config_path = Path(hermes_home) / "honcho.json"
         existing = {}
         if config_path.exists():
@@ -182,7 +187,13 @@ class HonchoMemoryProvider(MemoryProvider):
 
     def get_config_schema(self):
         return [
-            {"key": "api_key", "description": "Honcho API key", "secret": True, "env_var": "HONCHO_API_KEY", "url": "https://app.honcho.dev"},
+            {
+                "key": "api_key",
+                "description": "Honcho API key",
+                "secret": True,
+                "env_var": "HONCHO_API_KEY",
+                "url": "https://app.honcho.dev",
+            },
             {"key": "baseUrl", "description": "Honcho base URL (for self-hosted)"},
         ]
 
@@ -190,6 +201,7 @@ class HonchoMemoryProvider(MemoryProvider):
         """Run the full Honcho setup wizard after provider selection."""
         import types
         from plugins.memory.honcho.cli import cmd_setup
+
         cmd_setup(types.SimpleNamespace())
 
     def initialize(self, session_id: str, **kwargs) -> None:
@@ -204,12 +216,18 @@ class HonchoMemoryProvider(MemoryProvider):
             agent_context = kwargs.get("agent_context", "")
             platform = kwargs.get("platform", "cli")
             if agent_context in ("cron", "flush") or platform == "cron":
-                logger.debug("Honcho skipped: cron/flush context (agent_context=%s, platform=%s)",
-                             agent_context, platform)
+                logger.debug(
+                    "Honcho skipped: cron/flush context (agent_context=%s, platform=%s)",
+                    agent_context,
+                    platform,
+                )
                 self._cron_skipped = True
                 return
 
-            from plugins.memory.honcho.client import HonchoClientConfig, get_honcho_client
+            from plugins.memory.honcho.client import (
+                HonchoClientConfig,
+                get_honcho_client,
+            )
             from plugins.memory.honcho.session import HonchoSessionManager
 
             cfg = HonchoClientConfig.from_global_config()
@@ -253,7 +271,9 @@ class HonchoMemoryProvider(MemoryProvider):
                 if cfg.init_on_session_start:
                     # Eager init: create session now so sync_turn() works from turn 1.
                     # Does NOT enable auto-injection — prefetch() still returns empty.
-                    logger.debug("Honcho tools-only mode — eager session init (initOnSessionStart=true)")
+                    logger.debug(
+                        "Honcho tools-only mode — eager session init (initOnSessionStart=true)"
+                    )
                     self._do_session_init(cfg, session_id, **kwargs)
                     return
                 # Defer actual session creation until first tool call
@@ -261,7 +281,9 @@ class HonchoMemoryProvider(MemoryProvider):
                 self._lazy_init_session_id = session_id
                 # Still need a client reference for _ensure_session
                 self._config = cfg
-                logger.debug("Honcho tools-only mode — deferring session init until first tool call")
+                logger.debug(
+                    "Honcho tools-only mode — deferring session init until first tool call"
+                )
                 return
 
             # ----- Eager init (context or hybrid mode) -----
@@ -302,9 +324,13 @@ class HonchoMemoryProvider(MemoryProvider):
         try:
             if not session.messages:
                 from hermes_constants import get_hermes_home
+
                 mem_dir = str(get_hermes_home() / "memories")
                 self._manager.migrate_memory_files(self._session_key, mem_dir)
-                logger.debug("Honcho memory file migration attempted for new session: %s", self._session_key)
+                logger.debug(
+                    "Honcho memory file migration attempted for new session: %s",
+                    self._session_key,
+                )
         except Exception as e:
             logger.debug("Honcho memory file migration skipped: %s", e)
 
@@ -312,8 +338,12 @@ class HonchoMemoryProvider(MemoryProvider):
         if self._recall_mode in ("context", "hybrid"):
             try:
                 self._manager.prefetch_context(self._session_key)
-                self._manager.prefetch_dialectic(self._session_key, "What should I know about this user?")
-                logger.debug("Honcho pre-warm threads started for session: %s", self._session_key)
+                self._manager.prefetch_dialectic(
+                    self._session_key, "What should I know about this user?"
+                )
+                logger.debug(
+                    "Honcho pre-warm threads started for session: %s", self._session_key
+                )
             except Exception as e:
                 logger.debug("Honcho pre-warm failed: %s", e)
 
@@ -394,7 +424,9 @@ class HonchoMemoryProvider(MemoryProvider):
                     # First call — fetch and cache
                     try:
                         ctx = self._manager.get_prefetch_context(self._session_key)
-                        self._first_turn_context = self._format_first_turn_context(ctx) if ctx else ""
+                        self._first_turn_context = (
+                            self._format_first_turn_context(ctx) if ctx else ""
+                        )
                     except Exception as e:
                         logger.debug("Honcho first-turn context fetch failed: %s", e)
                         self._first_turn_context = ""
@@ -491,8 +523,11 @@ class HonchoMemoryProvider(MemoryProvider):
         # B5: cadence check — skip if too soon since last dialectic call
         if self._dialectic_cadence > 1:
             if (self._turn_count - self._last_dialectic_turn) < self._dialectic_cadence:
-                logger.debug("Honcho dialectic prefetch skipped: cadence %d, turns since last: %d",
-                             self._dialectic_cadence, self._turn_count - self._last_dialectic_turn)
+                logger.debug(
+                    "Honcho dialectic prefetch skipped: cadence %d, turns since last: %d",
+                    self._dialectic_cadence,
+                    self._turn_count - self._last_dialectic_turn,
+                )
                 return
 
         self._last_dialectic_turn = self._turn_count
@@ -514,7 +549,10 @@ class HonchoMemoryProvider(MemoryProvider):
         self._prefetch_thread.start()
 
         # Also fire context prefetch if cadence allows
-        if self._context_cadence <= 1 or (self._turn_count - self._last_context_turn) >= self._context_cadence:
+        if (
+            self._context_cadence <= 1
+            or (self._turn_count - self._last_context_turn) >= self._context_cadence
+        ):
             self._last_context_turn = self._turn_count
             try:
                 self._manager.prefetch_context(self._session_key, query)
@@ -570,7 +608,9 @@ class HonchoMemoryProvider(MemoryProvider):
 
         return chunks
 
-    def sync_turn(self, user_content: str, assistant_content: str, *, session_id: str = "") -> None:
+    def sync_turn(
+        self, user_content: str, assistant_content: str, *, session_id: str = ""
+    ) -> None:
         """Record the conversation turn in Honcho (non-blocking).
 
         Messages exceeding the Honcho API limit (default 25k chars) are
@@ -716,6 +756,7 @@ class HonchoMemoryProvider(MemoryProvider):
 # ---------------------------------------------------------------------------
 # Plugin entry point
 # ---------------------------------------------------------------------------
+
 
 def register(ctx) -> None:
     """Register Honcho as a memory provider plugin."""

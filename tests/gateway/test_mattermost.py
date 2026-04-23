@@ -1,4 +1,5 @@
 """Tests for Mattermost platform adapter."""
+
 import json
 import os
 import time
@@ -11,6 +12,7 @@ from gateway.config import Platform, PlatformConfig
 # ---------------------------------------------------------------------------
 # Platform & Config
 # ---------------------------------------------------------------------------
+
 
 class TestMattermostPlatformEnum:
     def test_mattermost_enum_exists(self):
@@ -27,6 +29,7 @@ class TestMattermostConfigLoading:
         monkeypatch.setenv("MATTERMOST_URL", "https://mm.example.com")
 
         from gateway.config import GatewayConfig, _apply_env_overrides
+
         config = GatewayConfig()
         _apply_env_overrides(config)
 
@@ -41,6 +44,7 @@ class TestMattermostConfigLoading:
         monkeypatch.delenv("MATTERMOST_URL", raising=False)
 
         from gateway.config import GatewayConfig, _apply_env_overrides
+
         config = GatewayConfig()
         _apply_env_overrides(config)
 
@@ -51,6 +55,7 @@ class TestMattermostConfigLoading:
         monkeypatch.setenv("MATTERMOST_URL", "https://mm.example.com")
 
         from gateway.config import GatewayConfig, _apply_env_overrides
+
         config = GatewayConfig()
         _apply_env_overrides(config)
 
@@ -64,6 +69,7 @@ class TestMattermostConfigLoading:
         monkeypatch.setenv("MATTERMOST_HOME_CHANNEL_NAME", "General")
 
         from gateway.config import GatewayConfig, _apply_env_overrides
+
         config = GatewayConfig()
         _apply_env_overrides(config)
 
@@ -78,6 +84,7 @@ class TestMattermostConfigLoading:
         monkeypatch.delenv("MATTERMOST_URL", raising=False)
 
         from gateway.config import GatewayConfig, _apply_env_overrides
+
         config = GatewayConfig()
         _apply_env_overrides(config)
 
@@ -89,9 +96,11 @@ class TestMattermostConfigLoading:
 # Adapter format / truncate
 # ---------------------------------------------------------------------------
 
+
 def _make_adapter():
     """Create a MattermostAdapter with mocked config."""
     from gateway.platforms.mattermost import MattermostAdapter
+
     config = PlatformConfig(
         enabled=True,
         token="test-token",
@@ -111,7 +120,9 @@ class TestMattermostFormatMessage:
         assert result == "https://img.example.com/cat.png"
 
     def test_image_markdown_strips_alt_text(self):
-        result = self.adapter.format_message("Here: ![my image](https://x.com/a.jpg) done")
+        result = self.adapter.format_message(
+            "Here: ![my image](https://x.com/a.jpg) done"
+        )
         assert "![" not in result
         assert "https://x.com/a.jpg" in result
 
@@ -168,6 +179,7 @@ class TestMattermostTruncateMessage:
 # ---------------------------------------------------------------------------
 # Send
 # ---------------------------------------------------------------------------
+
 
 class TestMattermostSend:
     def setup_method(self):
@@ -265,6 +277,7 @@ class TestMattermostSend:
 # ---------------------------------------------------------------------------
 # WebSocket event parsing
 # ---------------------------------------------------------------------------
+
 
 class TestMattermostWebSocketParsing:
     def setup_method(self):
@@ -417,6 +430,7 @@ class TestMattermostWebSocketParsing:
 # Mention behavior (require_mention + free_response_channels)
 # ---------------------------------------------------------------------------
 
+
 class TestMattermostMentionBehavior:
     def setup_method(self):
         self.adapter = _make_adapter()
@@ -459,9 +473,13 @@ class TestMattermostMentionBehavior:
     @pytest.mark.asyncio
     async def test_free_response_channel_responds_without_mention(self):
         """Messages in free-response channels don't need @mention."""
-        with patch.dict(os.environ, {"MATTERMOST_FREE_RESPONSE_CHANNELS": "chan_456,chan_789"}):
+        with patch.dict(
+            os.environ, {"MATTERMOST_FREE_RESPONSE_CHANNELS": "chan_456,chan_789"}
+        ):
             os.environ.pop("MATTERMOST_REQUIRE_MENTION", None)
-            await self.adapter._handle_ws_event(self._make_event("hello", channel_id="chan_456"))
+            await self.adapter._handle_ws_event(
+                self._make_event("hello", channel_id="chan_456")
+            )
             assert self.adapter.handle_message.called
 
     @pytest.mark.asyncio
@@ -469,7 +487,9 @@ class TestMattermostMentionBehavior:
         """Channels NOT in free-response list still require @mention."""
         with patch.dict(os.environ, {"MATTERMOST_FREE_RESPONSE_CHANNELS": "chan_789"}):
             os.environ.pop("MATTERMOST_REQUIRE_MENTION", None)
-            await self.adapter._handle_ws_event(self._make_event("hello", channel_id="chan_456"))
+            await self.adapter._handle_ws_event(
+                self._make_event("hello", channel_id="chan_456")
+            )
             assert not self.adapter.handle_message.called
 
     @pytest.mark.asyncio
@@ -477,7 +497,9 @@ class TestMattermostMentionBehavior:
         """DMs (channel_type=D) always respond regardless of mention settings."""
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("MATTERMOST_REQUIRE_MENTION", None)
-            await self.adapter._handle_ws_event(self._make_event("hello", channel_type="D"))
+            await self.adapter._handle_ws_event(
+                self._make_event("hello", channel_type="D")
+            )
             assert self.adapter.handle_message.called
 
     @pytest.mark.asyncio
@@ -497,6 +519,7 @@ class TestMattermostMentionBehavior:
 # ---------------------------------------------------------------------------
 # File upload (send_image)
 # ---------------------------------------------------------------------------
+
 
 class TestMattermostFileUpload:
     def setup_method(self):
@@ -518,9 +541,9 @@ class TestMattermostFileUpload:
         # Mock the upload (POST to /files)
         mock_upload_resp = AsyncMock()
         mock_upload_resp.status = 200
-        mock_upload_resp.json = AsyncMock(return_value={
-            "file_infos": [{"id": "file_abc123"}]
-        })
+        mock_upload_resp.json = AsyncMock(
+            return_value={"file_infos": [{"id": "file_abc123"}]}
+        )
         mock_upload_resp.text = AsyncMock(return_value="")
         mock_upload_resp.__aenter__ = AsyncMock(return_value=mock_upload_resp)
         mock_upload_resp.__aexit__ = AsyncMock(return_value=False)
@@ -540,7 +563,9 @@ class TestMattermostFileUpload:
 
         def post_side_effect(*args, **kwargs):
             nonlocal post_call_count
-            resp = original_post_returns[min(post_call_count, len(original_post_returns) - 1)]
+            resp = original_post_returns[
+                min(post_call_count, len(original_post_returns) - 1)
+            ]
             post_call_count += 1
             return resp
 
@@ -557,6 +582,7 @@ class TestMattermostFileUpload:
 # ---------------------------------------------------------------------------
 # Dedup cache
 # ---------------------------------------------------------------------------
+
 
 class TestMattermostDedup:
     def setup_method(self):
@@ -641,29 +667,34 @@ class TestMattermostDedup:
 # Requirements check
 # ---------------------------------------------------------------------------
 
+
 class TestMattermostRequirements:
     def test_check_requirements_with_token_and_url(self, monkeypatch):
         monkeypatch.setenv("MATTERMOST_TOKEN", "test-token")
         monkeypatch.setenv("MATTERMOST_URL", "https://mm.example.com")
         from gateway.platforms.mattermost import check_mattermost_requirements
+
         assert check_mattermost_requirements() is True
 
     def test_check_requirements_without_token(self, monkeypatch):
         monkeypatch.delenv("MATTERMOST_TOKEN", raising=False)
         monkeypatch.delenv("MATTERMOST_URL", raising=False)
         from gateway.platforms.mattermost import check_mattermost_requirements
+
         assert check_mattermost_requirements() is False
 
     def test_check_requirements_without_url(self, monkeypatch):
         monkeypatch.setenv("MATTERMOST_TOKEN", "test-token")
         monkeypatch.delenv("MATTERMOST_URL", raising=False)
         from gateway.platforms.mattermost import check_mattermost_requirements
+
         assert check_mattermost_requirements() is False
 
 
 # ---------------------------------------------------------------------------
 # Media type propagation (MIME types, not bare strings)
 # ---------------------------------------------------------------------------
+
 
 class TestMattermostMediaTypes:
     """Verify that media_types contains actual MIME types (e.g. 'image/png')
@@ -706,7 +737,10 @@ class TestMattermostMediaTypes:
         self.adapter._session = MagicMock()
         self.adapter._session.get = MagicMock(return_value=mock_resp)
 
-        with patch("gateway.platforms.base.cache_image_from_bytes", return_value="/tmp/photo.png"):
+        with patch(
+            "gateway.platforms.base.cache_image_from_bytes",
+            return_value="/tmp/photo.png",
+        ):
             await self.adapter._handle_ws_event(self._make_event(["file1"]))
 
         msg = self.adapter.handle_message.call_args[0][0]
@@ -727,9 +761,14 @@ class TestMattermostMediaTypes:
         self.adapter._session = MagicMock()
         self.adapter._session.get = MagicMock(return_value=mock_resp)
 
-        with patch("gateway.platforms.base.cache_audio_from_bytes", return_value="/tmp/voice.ogg"), \
-             patch("gateway.platforms.base.cache_image_from_bytes"), \
-             patch("gateway.platforms.base.cache_document_from_bytes"):
+        with (
+            patch(
+                "gateway.platforms.base.cache_audio_from_bytes",
+                return_value="/tmp/voice.ogg",
+            ),
+            patch("gateway.platforms.base.cache_image_from_bytes"),
+            patch("gateway.platforms.base.cache_document_from_bytes"),
+        ):
             await self.adapter._handle_ws_event(self._make_event(["file2"]))
 
         msg = self.adapter.handle_message.call_args[0][0]
@@ -750,8 +789,13 @@ class TestMattermostMediaTypes:
         self.adapter._session = MagicMock()
         self.adapter._session.get = MagicMock(return_value=mock_resp)
 
-        with patch("gateway.platforms.base.cache_document_from_bytes", return_value="/tmp/report.pdf"), \
-             patch("gateway.platforms.base.cache_image_from_bytes"):
+        with (
+            patch(
+                "gateway.platforms.base.cache_document_from_bytes",
+                return_value="/tmp/report.pdf",
+            ),
+            patch("gateway.platforms.base.cache_image_from_bytes"),
+        ):
             await self.adapter._handle_ws_event(self._make_event(["file3"]))
 
         msg = self.adapter.handle_message.call_args[0][0]

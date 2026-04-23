@@ -22,9 +22,13 @@ _FORCE_SYNC_ENV = "HERMES_FORCE_FILE_SYNC"
 
 # Transport callbacks provided by each backend
 UploadFn = Callable[[str, str], None]  # (host_path, remote_path) -> raises on failure
-BulkUploadFn = Callable[[list[tuple[str, str]]], None]  # [(host_path, remote_path), ...] -> raises on failure
+BulkUploadFn = Callable[
+    [list[tuple[str, str]]], None
+]  # [(host_path, remote_path), ...] -> raises on failure
 DeleteFn = Callable[[list[str]], None]  # (remote_paths) -> raises on failure
-GetFilesFn = Callable[[], list[tuple[str, str]]]  # () -> [(host_path, remote_path), ...]
+GetFilesFn = Callable[
+    [], list[tuple[str, str]]
+]  # () -> [(host_path, remote_path), ...]
 
 
 def iter_sync_files(container_base: str = "/root/.hermes") -> list[tuple[str, str]]:
@@ -45,9 +49,7 @@ def iter_sync_files(container_base: str = "/root/.hermes") -> list[tuple[str, st
 
     files: list[tuple[str, str]] = []
     for entry in get_credential_file_mounts():
-        remote = entry["container_path"].replace(
-            "/root/.hermes", container_base, 1
-        )
+        remote = entry["container_path"].replace("/root/.hermes", container_base, 1)
         files.append((entry["host_path"], remote))
     for entry in iter_skills_files(container_base=container_base):
         files.append((entry["host_path"], entry["container_path"]))
@@ -94,7 +96,9 @@ class FileSyncManager:
         self._upload_fn = upload_fn
         self._bulk_upload_fn = bulk_upload_fn
         self._delete_fn = delete_fn
-        self._synced_files: dict[str, tuple[float, int]] = {}  # remote_path -> (mtime, size)
+        self._synced_files: dict[
+            str, tuple[float, int]
+        ] = {}  # remote_path -> (mtime, size)
         self._last_sync_time: float = 0.0  # monotonic; 0 ensures first sync runs
         self._sync_interval = sync_interval
 

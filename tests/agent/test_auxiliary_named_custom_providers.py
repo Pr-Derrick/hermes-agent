@@ -30,6 +30,7 @@ def _isolate(tmp_path, monkeypatch):
 def _write_config(tmp_path, config_dict):
     """Write a config.yaml to the test HERMES_HOME."""
     import yaml
+
     config_path = tmp_path / ".hermes" / "config.yaml"
     config_path.write_text(yaml.dump(config_dict))
 
@@ -38,43 +39,64 @@ class TestNormalizeVisionProvider:
     """_normalize_vision_provider should resolve 'main' to actual main provider."""
 
     def test_main_resolves_to_named_custom(self, tmp_path):
-        _write_config(tmp_path, {
-            "model": {"default": "my-model", "provider": "custom:beans"},
-            "custom_providers": [{"name": "beans", "base_url": "http://localhost/v1"}],
-        })
+        _write_config(
+            tmp_path,
+            {
+                "model": {"default": "my-model", "provider": "custom:beans"},
+                "custom_providers": [
+                    {"name": "beans", "base_url": "http://localhost/v1"}
+                ],
+            },
+        )
         from agent.auxiliary_client import _normalize_vision_provider
+
         assert _normalize_vision_provider("main") == "custom:beans"
 
     def test_main_resolves_to_openrouter(self, tmp_path):
-        _write_config(tmp_path, {
-            "model": {"default": "anthropic/claude-sonnet-4", "provider": "openrouter"},
-        })
+        _write_config(
+            tmp_path,
+            {
+                "model": {
+                    "default": "anthropic/claude-sonnet-4",
+                    "provider": "openrouter",
+                },
+            },
+        )
         from agent.auxiliary_client import _normalize_vision_provider
+
         assert _normalize_vision_provider("main") == "openrouter"
 
     def test_main_resolves_to_deepseek(self, tmp_path):
-        _write_config(tmp_path, {
-            "model": {"default": "deepseek-chat", "provider": "deepseek"},
-        })
+        _write_config(
+            tmp_path,
+            {
+                "model": {"default": "deepseek-chat", "provider": "deepseek"},
+            },
+        )
         from agent.auxiliary_client import _normalize_vision_provider
+
         assert _normalize_vision_provider("main") == "deepseek"
 
     def test_main_falls_back_to_custom_when_no_provider(self, tmp_path):
         _write_config(tmp_path, {"model": {"default": "gpt-4o"}})
         from agent.auxiliary_client import _normalize_vision_provider
+
         assert _normalize_vision_provider("main") == "custom"
 
     def test_bare_provider_name_unchanged(self):
         from agent.auxiliary_client import _normalize_vision_provider
+
         assert _normalize_vision_provider("beans") == "beans"
         assert _normalize_vision_provider("deepseek") == "deepseek"
 
     def test_codex_alias_still_works(self):
         from agent.auxiliary_client import _normalize_vision_provider
+
         assert _normalize_vision_provider("codex") == "openai-codex"
 
     def test_auto_unchanged(self):
         from agent.auxiliary_client import _normalize_vision_provider
+
         assert _normalize_vision_provider("auto") == "auto"
         assert _normalize_vision_provider(None) == "auto"
 
@@ -83,26 +105,42 @@ class TestResolveProviderClientMainAlias:
     """resolve_provider_client('main', ...) should resolve to actual main provider."""
 
     def test_main_resolves_to_named_custom_provider(self, tmp_path):
-        _write_config(tmp_path, {
-            "model": {"default": "my-model", "provider": "beans"},
-            "custom_providers": [
-                {"name": "beans", "base_url": "http://beans.local/v1", "api_key": "k"},
-            ],
-        })
+        _write_config(
+            tmp_path,
+            {
+                "model": {"default": "my-model", "provider": "beans"},
+                "custom_providers": [
+                    {
+                        "name": "beans",
+                        "base_url": "http://beans.local/v1",
+                        "api_key": "k",
+                    },
+                ],
+            },
+        )
         from agent.auxiliary_client import resolve_provider_client
+
         client, model = resolve_provider_client("main", "override-model")
         assert client is not None
         assert model == "override-model"
         assert "beans.local" in str(client.base_url)
 
     def test_main_with_custom_colon_prefix(self, tmp_path):
-        _write_config(tmp_path, {
-            "model": {"default": "my-model", "provider": "custom:beans"},
-            "custom_providers": [
-                {"name": "beans", "base_url": "http://beans.local/v1", "api_key": "k"},
-            ],
-        })
+        _write_config(
+            tmp_path,
+            {
+                "model": {"default": "my-model", "provider": "custom:beans"},
+                "custom_providers": [
+                    {
+                        "name": "beans",
+                        "base_url": "http://beans.local/v1",
+                        "api_key": "k",
+                    },
+                ],
+            },
+        )
         from agent.auxiliary_client import resolve_provider_client
+
         client, model = resolve_provider_client("main", "test")
         assert client is not None
         assert "beans.local" in str(client.base_url)
@@ -112,51 +150,75 @@ class TestResolveProviderClientNamedCustom:
     """resolve_provider_client should resolve named custom providers directly."""
 
     def test_named_custom_provider(self, tmp_path):
-        _write_config(tmp_path, {
-            "model": {"default": "test-model"},
-            "custom_providers": [
-                {"name": "beans", "base_url": "http://beans.local/v1", "api_key": "k"},
-            ],
-        })
+        _write_config(
+            tmp_path,
+            {
+                "model": {"default": "test-model"},
+                "custom_providers": [
+                    {
+                        "name": "beans",
+                        "base_url": "http://beans.local/v1",
+                        "api_key": "k",
+                    },
+                ],
+            },
+        )
         from agent.auxiliary_client import resolve_provider_client
+
         client, model = resolve_provider_client("beans", "my-model")
         assert client is not None
         assert model == "my-model"
         assert "beans.local" in str(client.base_url)
 
     def test_named_custom_provider_default_model(self, tmp_path):
-        _write_config(tmp_path, {
-            "model": {"default": "main-model"},
-            "custom_providers": [
-                {"name": "beans", "base_url": "http://beans.local/v1", "api_key": "k"},
-            ],
-        })
+        _write_config(
+            tmp_path,
+            {
+                "model": {"default": "main-model"},
+                "custom_providers": [
+                    {
+                        "name": "beans",
+                        "base_url": "http://beans.local/v1",
+                        "api_key": "k",
+                    },
+                ],
+            },
+        )
         from agent.auxiliary_client import resolve_provider_client
+
         client, model = resolve_provider_client("beans")
         assert client is not None
         # Should use _read_main_model() fallback
         assert model == "main-model"
 
     def test_named_custom_no_api_key_uses_fallback(self, tmp_path):
-        _write_config(tmp_path, {
-            "model": {"default": "test"},
-            "custom_providers": [
-                {"name": "local", "base_url": "http://localhost:8080/v1"},
-            ],
-        })
+        _write_config(
+            tmp_path,
+            {
+                "model": {"default": "test"},
+                "custom_providers": [
+                    {"name": "local", "base_url": "http://localhost:8080/v1"},
+                ],
+            },
+        )
         from agent.auxiliary_client import resolve_provider_client
+
         client, model = resolve_provider_client("local", "test")
         assert client is not None
         # no-key-required should be used
 
     def test_nonexistent_named_custom_falls_through(self, tmp_path):
-        _write_config(tmp_path, {
-            "model": {"default": "test"},
-            "custom_providers": [
-                {"name": "beans", "base_url": "http://beans.local/v1"},
-            ],
-        })
+        _write_config(
+            tmp_path,
+            {
+                "model": {"default": "test"},
+                "custom_providers": [
+                    {"name": "beans", "base_url": "http://beans.local/v1"},
+                ],
+            },
+        )
         from agent.auxiliary_client import resolve_provider_client
+
         # "coffee" doesn't exist in custom_providers
         client, model = resolve_provider_client("coffee", "test")
         assert client is None
@@ -166,14 +228,20 @@ class TestResolveProviderClientModelNormalization:
     """Direct-provider auxiliary routing should normalize models like main runtime."""
 
     def test_matching_native_prefix_is_stripped_for_main_provider(self, tmp_path):
-        _write_config(tmp_path, {
-            "model": {"default": "zai/glm-5.1", "provider": "zai"},
-        })
+        _write_config(
+            tmp_path,
+            {
+                "model": {"default": "zai/glm-5.1", "provider": "zai"},
+            },
+        )
         with (
-            patch("hermes_cli.auth.resolve_api_key_provider_credentials", return_value={
-                "api_key": "glm-key",
-                "base_url": "https://api.z.ai/api/paas/v4",
-            }),
+            patch(
+                "hermes_cli.auth.resolve_api_key_provider_credentials",
+                return_value={
+                    "api_key": "glm-key",
+                    "base_url": "https://api.z.ai/api/paas/v4",
+                },
+            ),
             patch("agent.auxiliary_client.OpenAI") as mock_openai,
         ):
             mock_openai.return_value = MagicMock()
@@ -185,14 +253,20 @@ class TestResolveProviderClientModelNormalization:
         assert model == "glm-5.1"
 
     def test_non_matching_prefix_is_preserved_for_direct_provider(self, tmp_path):
-        _write_config(tmp_path, {
-            "model": {"default": "zai/glm-5.1", "provider": "zai"},
-        })
+        _write_config(
+            tmp_path,
+            {
+                "model": {"default": "zai/glm-5.1", "provider": "zai"},
+            },
+        )
         with (
-            patch("hermes_cli.auth.resolve_api_key_provider_credentials", return_value={
-                "api_key": "glm-key",
-                "base_url": "https://api.z.ai/api/paas/v4",
-            }),
+            patch(
+                "hermes_cli.auth.resolve_api_key_provider_credentials",
+                return_value={
+                    "api_key": "glm-key",
+                    "base_url": "https://api.z.ai/api/paas/v4",
+                },
+            ),
             patch("agent.auxiliary_client.OpenAI") as mock_openai,
         ):
             mock_openai.return_value = MagicMock()
@@ -221,15 +295,21 @@ class TestResolveVisionProviderClientModelNormalization:
     """Vision auto-routing should reuse the same provider-specific normalization."""
 
     def test_vision_auto_strips_matching_main_provider_prefix(self, tmp_path):
-        _write_config(tmp_path, {
-            "model": {"default": "zai/glm-5.1", "provider": "zai"},
-        })
+        _write_config(
+            tmp_path,
+            {
+                "model": {"default": "zai/glm-5.1", "provider": "zai"},
+            },
+        )
         with (
             patch("agent.auxiliary_client._read_nous_auth", return_value=None),
-            patch("hermes_cli.auth.resolve_api_key_provider_credentials", return_value={
-                "api_key": "glm-key",
-                "base_url": "https://api.z.ai/api/paas/v4",
-            }),
+            patch(
+                "hermes_cli.auth.resolve_api_key_provider_credentials",
+                return_value={
+                    "api_key": "glm-key",
+                    "base_url": "https://api.z.ai/api/paas/v4",
+                },
+            ),
             patch("agent.auxiliary_client.OpenAI") as mock_openai,
         ):
             mock_openai.return_value = MagicMock()

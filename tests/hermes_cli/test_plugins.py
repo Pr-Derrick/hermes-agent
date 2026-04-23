@@ -27,8 +27,13 @@ from hermes_cli.plugins import (
 # ── Helpers ────────────────────────────────────────────────────────────────
 
 
-def _make_plugin_dir(base: Path, name: str, *, register_body: str = "pass",
-                     manifest_extra: dict | None = None) -> Path:
+def _make_plugin_dir(
+    base: Path,
+    name: str,
+    *,
+    register_body: str = "pass",
+    manifest_extra: dict | None = None,
+) -> Path:
     """Create a minimal plugin directory with plugin.yaml + __init__.py."""
     plugin_dir = base / name
     plugin_dir.mkdir(parents=True, exist_ok=True)
@@ -204,7 +209,8 @@ class TestPluginHooks:
         """Registered hooks are called on invoke_hook()."""
         plugins_dir = tmp_path / "hermes_test" / "plugins"
         _make_plugin_dir(
-            plugins_dir, "hook_plugin",
+            plugins_dir,
+            "hook_plugin",
             register_body='ctx.register_hook("pre_tool_call", lambda **kw: None)',
         )
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes_test"))
@@ -219,7 +225,8 @@ class TestPluginHooks:
         """A hook callback that raises does NOT crash the caller."""
         plugins_dir = tmp_path / "hermes_test" / "plugins"
         _make_plugin_dir(
-            plugins_dir, "bad_hook",
+            plugins_dir,
+            "bad_hook",
             register_body='ctx.register_hook("post_tool_call", lambda **kw: 1/0)',
         )
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes_test"))
@@ -228,13 +235,16 @@ class TestPluginHooks:
         mgr.discover_and_load()
 
         # Should not raise despite 1/0
-        mgr.invoke_hook("post_tool_call", tool_name="x", args={}, result="r", task_id="")
+        mgr.invoke_hook(
+            "post_tool_call", tool_name="x", args={}, result="r", task_id=""
+        )
 
     def test_hook_return_values_collected(self, tmp_path, monkeypatch):
         """invoke_hook() collects non-None return values from callbacks."""
         plugins_dir = tmp_path / "hermes_test" / "plugins"
         _make_plugin_dir(
-            plugins_dir, "ctx_plugin",
+            plugins_dir,
+            "ctx_plugin",
             register_body=(
                 'ctx.register_hook("pre_llm_call", '
                 'lambda **kw: {"context": "memory from plugin"})'
@@ -245,8 +255,14 @@ class TestPluginHooks:
         mgr = PluginManager()
         mgr.discover_and_load()
 
-        results = mgr.invoke_hook("pre_llm_call", session_id="s1", user_message="hi",
-                                  conversation_history=[], is_first_turn=True, model="test")
+        results = mgr.invoke_hook(
+            "pre_llm_call",
+            session_id="s1",
+            user_message="hi",
+            conversation_history=[],
+            is_first_turn=True,
+            model="test",
+        )
         assert len(results) == 1
         assert results[0] == {"context": "memory from plugin"}
 
@@ -254,7 +270,8 @@ class TestPluginHooks:
         """invoke_hook() excludes None returns from the result list."""
         plugins_dir = tmp_path / "hermes_test" / "plugins"
         _make_plugin_dir(
-            plugins_dir, "none_hook",
+            plugins_dir,
+            "none_hook",
             register_body='ctx.register_hook("post_llm_call", lambda **kw: None)',
         )
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes_test"))
@@ -262,14 +279,20 @@ class TestPluginHooks:
         mgr = PluginManager()
         mgr.discover_and_load()
 
-        results = mgr.invoke_hook("post_llm_call", session_id="s1",
-                                  user_message="hi", assistant_response="bye", model="test")
+        results = mgr.invoke_hook(
+            "post_llm_call",
+            session_id="s1",
+            user_message="hi",
+            assistant_response="bye",
+            model="test",
+        )
         assert results == []
 
     def test_request_hooks_are_invokeable(self, tmp_path, monkeypatch):
         plugins_dir = tmp_path / "hermes_test" / "plugins"
         _make_plugin_dir(
-            plugins_dir, "request_hook",
+            plugins_dir,
+            "request_hook",
             register_body=(
                 'ctx.register_hook("pre_api_request", '
                 'lambda **kw: {"seen": kw.get("api_call_count"), '
@@ -299,7 +322,8 @@ class TestPluginHooks:
         """Registering an unknown hook name logs a warning."""
         plugins_dir = tmp_path / "hermes_test" / "plugins"
         _make_plugin_dir(
-            plugins_dir, "warn_plugin",
+            plugins_dir,
+            "warn_plugin",
             register_body='ctx.register_hook("on_banana", lambda **kw: None)',
         )
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes_test"))
@@ -324,13 +348,13 @@ class TestPluginContext:
         plugin_dir.mkdir(parents=True)
         (plugin_dir / "plugin.yaml").write_text(yaml.dump({"name": "tool_plugin"}))
         (plugin_dir / "__init__.py").write_text(
-            'def register(ctx):\n'
-            '    ctx.register_tool(\n'
+            "def register(ctx):\n"
+            "    ctx.register_tool(\n"
             '        name="plugin_echo",\n'
             '        toolset="plugin_tool_plugin",\n'
             '        schema={"name": "plugin_echo", "description": "Echo", "parameters": {"type": "object", "properties": {}}},\n'
             '        handler=lambda args, **kw: "echo",\n'
-            '    )\n'
+            "    )\n"
         )
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes_test"))
 
@@ -340,6 +364,7 @@ class TestPluginContext:
         assert "plugin_echo" in mgr._plugin_tool_names
 
         from tools.registry import registry
+
         assert "plugin_echo" in registry._tools
 
 
@@ -358,13 +383,13 @@ class TestPluginToolVisibility:
         plugin_dir.mkdir(parents=True)
         (plugin_dir / "plugin.yaml").write_text(yaml.dump({"name": "vis_plugin"}))
         (plugin_dir / "__init__.py").write_text(
-            'def register(ctx):\n'
-            '    ctx.register_tool(\n'
+            "def register(ctx):\n"
+            "    ctx.register_tool(\n"
             '        name="vis_tool",\n'
             '        toolset="plugin_vis_plugin",\n'
             '        schema={"name": "vis_tool", "description": "Visible", "parameters": {"type": "object", "properties": {}}},\n'
             '        handler=lambda args, **kw: "ok",\n'
-            '    )\n'
+            "    )\n"
         )
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes_test"))
 
@@ -375,7 +400,9 @@ class TestPluginToolVisibility:
         from model_tools import get_tool_definitions
 
         # Plugin tools are included when their toolset is explicitly enabled
-        tools = get_tool_definitions(enabled_toolsets=["terminal", "plugin_vis_plugin"], quiet_mode=True)
+        tools = get_tool_definitions(
+            enabled_toolsets=["terminal", "plugin_vis_plugin"], quiet_mode=True
+        )
         tool_names = [t["function"]["name"] for t in tools]
         assert "vis_tool" in tool_names
 
@@ -435,7 +462,6 @@ class TestPluginManagerList:
             assert "hooks" in p
 
 
-
 class TestPreLlmCallTargetRouting:
     """Tests for pre_llm_call hook return format with target-aware routing.
 
@@ -447,7 +473,8 @@ class TestPreLlmCallTargetRouting:
     def _make_pre_llm_plugin(self, plugins_dir, name, return_expr):
         """Create a plugin that returns a specific value from pre_llm_call."""
         _make_plugin_dir(
-            plugins_dir, name,
+            plugins_dir,
+            name,
             register_body=(
                 f'ctx.register_hook("pre_llm_call", lambda **kw: {return_expr})'
             ),
@@ -457,7 +484,8 @@ class TestPreLlmCallTargetRouting:
         """Plugin returning a context dict is collected by invoke_hook."""
         plugins_dir = tmp_path / "hermes_test" / "plugins"
         self._make_pre_llm_plugin(
-            plugins_dir, "basic_plugin",
+            plugins_dir,
+            "basic_plugin",
             '{"context": "basic context"}',
         )
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes_test"))
@@ -466,8 +494,12 @@ class TestPreLlmCallTargetRouting:
         mgr.discover_and_load()
 
         results = mgr.invoke_hook(
-            "pre_llm_call", session_id="s1", user_message="hi",
-            conversation_history=[], is_first_turn=True, model="test",
+            "pre_llm_call",
+            session_id="s1",
+            user_message="hi",
+            conversation_history=[],
+            is_first_turn=True,
+            model="test",
         )
         assert len(results) == 1
         assert results[0]["context"] == "basic context"
@@ -477,7 +509,8 @@ class TestPreLlmCallTargetRouting:
         """Plain string returns are collected as-is (routing treats them as user_message)."""
         plugins_dir = tmp_path / "hermes_test" / "plugins"
         self._make_pre_llm_plugin(
-            plugins_dir, "str_plugin",
+            plugins_dir,
+            "str_plugin",
             '"plain string context"',
         )
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes_test"))
@@ -486,8 +519,12 @@ class TestPreLlmCallTargetRouting:
         mgr.discover_and_load()
 
         results = mgr.invoke_hook(
-            "pre_llm_call", session_id="s1", user_message="hi",
-            conversation_history=[], is_first_turn=True, model="test",
+            "pre_llm_call",
+            session_id="s1",
+            user_message="hi",
+            conversation_history=[],
+            is_first_turn=True,
+            model="test",
         )
         assert len(results) == 1
         assert results[0] == "plain string context"
@@ -496,11 +533,13 @@ class TestPreLlmCallTargetRouting:
         """Multiple plugins returning context are all collected."""
         plugins_dir = tmp_path / "hermes_test" / "plugins"
         self._make_pre_llm_plugin(
-            plugins_dir, "aaa_memory",
+            plugins_dir,
+            "aaa_memory",
             '{"context": "memory context"}',
         )
         self._make_pre_llm_plugin(
-            plugins_dir, "bbb_guardrail",
+            plugins_dir,
+            "bbb_guardrail",
             '{"context": "guardrail text"}',
         )
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes_test"))
@@ -509,8 +548,12 @@ class TestPreLlmCallTargetRouting:
         mgr.discover_and_load()
 
         results = mgr.invoke_hook(
-            "pre_llm_call", session_id="s1", user_message="hi",
-            conversation_history=[], is_first_turn=True, model="test",
+            "pre_llm_call",
+            session_id="s1",
+            user_message="hi",
+            conversation_history=[],
+            is_first_turn=True,
+            model="test",
         )
         assert len(results) == 2
         contexts = [r["context"] for r in results]
@@ -525,15 +568,18 @@ class TestPreLlmCallTargetRouting:
         """
         plugins_dir = tmp_path / "hermes_test" / "plugins"
         self._make_pre_llm_plugin(
-            plugins_dir, "aaa_mem",
+            plugins_dir,
+            "aaa_mem",
             '{"context": "memory A"}',
         )
         self._make_pre_llm_plugin(
-            plugins_dir, "bbb_guard",
+            plugins_dir,
+            "bbb_guard",
             '{"context": "rule B"}',
         )
         self._make_pre_llm_plugin(
-            plugins_dir, "ccc_plain",
+            plugins_dir,
+            "ccc_plain",
             '"plain text C"',
         )
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes_test"))
@@ -542,8 +588,12 @@ class TestPreLlmCallTargetRouting:
         mgr.discover_and_load()
 
         results = mgr.invoke_hook(
-            "pre_llm_call", session_id="s1", user_message="hi",
-            conversation_history=[], is_first_turn=True, model="test",
+            "pre_llm_call",
+            session_id="s1",
+            user_message="hi",
+            conversation_history=[],
+            is_first_turn=True,
+            model="test",
         )
 
         # Replicate run_agent.py routing logic — everything goes to user msg

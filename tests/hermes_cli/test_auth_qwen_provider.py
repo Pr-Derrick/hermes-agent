@@ -32,6 +32,7 @@ from hermes_cli.auth import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_qwen_tokens(
     access_token="test-access-token",
     refresh_token="test-refresh-token",
@@ -68,15 +69,14 @@ def _write_qwen_creds(tmp_path, tokens=None):
 def qwen_env(tmp_path, monkeypatch):
     """Redirect _qwen_cli_auth_path to tmp_path/.qwen/oauth_creds.json."""
     creds_path = tmp_path / ".qwen" / "oauth_creds.json"
-    monkeypatch.setattr(
-        "hermes_cli.auth._qwen_cli_auth_path", lambda: creds_path
-    )
+    monkeypatch.setattr("hermes_cli.auth._qwen_cli_auth_path", lambda: creds_path)
     return tmp_path
 
 
 # ---------------------------------------------------------------------------
 # _qwen_cli_auth_path
 # ---------------------------------------------------------------------------
+
 
 def test_qwen_cli_auth_path_returns_expected_location():
     path = _qwen_cli_auth_path()
@@ -86,6 +86,7 @@ def test_qwen_cli_auth_path_returns_expected_location():
 # ---------------------------------------------------------------------------
 # _read_qwen_cli_tokens
 # ---------------------------------------------------------------------------
+
 
 def test_read_qwen_cli_tokens_success(qwen_env):
     tokens = _make_qwen_tokens(access_token="my-access")
@@ -123,6 +124,7 @@ def test_read_qwen_cli_tokens_non_dict(qwen_env):
 # _save_qwen_cli_tokens
 # ---------------------------------------------------------------------------
 
+
 def test_save_qwen_cli_tokens_roundtrip(qwen_env):
     tokens = _make_qwen_tokens(access_token="saved-token")
     saved_path = _save_qwen_cli_tokens(tokens)
@@ -150,6 +152,7 @@ def test_save_qwen_cli_tokens_permissions(qwen_env):
 # ---------------------------------------------------------------------------
 # _qwen_access_token_is_expiring
 # ---------------------------------------------------------------------------
+
 
 def test_expiring_token_not_expired():
     # 1 hour from now in milliseconds
@@ -180,6 +183,7 @@ def test_expiring_token_non_numeric_returns_true():
 # ---------------------------------------------------------------------------
 # _refresh_qwen_cli_tokens
 # ---------------------------------------------------------------------------
+
 
 def test_refresh_qwen_cli_tokens_success(qwen_env):
     tokens = _make_qwen_tokens(refresh_token="old-refresh")
@@ -320,6 +324,7 @@ def test_refresh_qwen_cli_tokens_saves_to_disk(qwen_env):
 # resolve_qwen_runtime_credentials
 # ---------------------------------------------------------------------------
 
+
 def test_resolve_qwen_runtime_credentials_fresh_token(qwen_env):
     tokens = _make_qwen_tokens(access_token="fresh-at")
     _write_qwen_creds(qwen_env, tokens)
@@ -382,6 +387,7 @@ def test_resolve_qwen_runtime_credentials_base_url_env_override(qwen_env, monkey
 # ---------------------------------------------------------------------------
 # get_qwen_auth_status
 # ---------------------------------------------------------------------------
+
 
 def test_get_qwen_auth_status_logged_in(qwen_env):
     tokens = _make_qwen_tokens(access_token="status-at")

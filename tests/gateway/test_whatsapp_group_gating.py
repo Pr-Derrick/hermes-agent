@@ -4,7 +4,9 @@ from unittest.mock import AsyncMock
 from gateway.config import Platform, PlatformConfig, load_gateway_config
 
 
-def _make_adapter(require_mention=None, mention_patterns=None, free_response_chats=None):
+def _make_adapter(
+    require_mention=None, mention_patterns=None, free_response_chats=None
+):
     from gateway.platforms.whatsapp import WhatsAppAdapter
 
     extra = {}
@@ -46,18 +48,24 @@ def test_group_messages_can_require_direct_trigger_via_config():
     adapter = _make_adapter(require_mention=True)
 
     assert adapter._should_process_message(_group_message("hello everyone")) is False
-    assert adapter._should_process_message(
-        _group_message(
-            "hi there",
-            mentionedIds=["15551230000@s.whatsapp.net"],
+    assert (
+        adapter._should_process_message(
+            _group_message(
+                "hi there",
+                mentionedIds=["15551230000@s.whatsapp.net"],
+            )
         )
-    ) is True
-    assert adapter._should_process_message(
-        _group_message(
-            "replying",
-            quotedParticipant="15551230000@lid",
+        is True
+    )
+    assert (
+        adapter._should_process_message(
+            _group_message(
+                "replying",
+                quotedParticipant="15551230000@lid",
+            )
         )
-    ) is True
+        is True
+    )
     assert adapter._should_process_message(_group_message("/status")) is True
 
 
@@ -70,7 +78,9 @@ def test_regex_mention_patterns_allow_custom_wake_words():
 
 
 def test_invalid_regex_patterns_are_ignored():
-    adapter = _make_adapter(require_mention=True, mention_patterns=[r"(", r"^\s*chompy\b"])
+    adapter = _make_adapter(
+        require_mention=True, mention_patterns=[r"(", r"^\s*chompy\b"]
+    )
 
     assert adapter._should_process_message(_group_message("chompy status")) is True
     assert adapter._should_process_message(_group_message("hello everyone")) is False
@@ -83,7 +93,7 @@ def test_config_bridges_whatsapp_group_settings(monkeypatch, tmp_path):
         "whatsapp:\n"
         "  require_mention: true\n"
         "  mention_patterns:\n"
-        "    - \"^\\\\s*chompy\\\\b\"\n",
+        '    - "^\\\\s*chompy\\\\b"\n',
         encoding="utf-8",
     )
 
@@ -95,9 +105,13 @@ def test_config_bridges_whatsapp_group_settings(monkeypatch, tmp_path):
 
     assert config is not None
     assert config.platforms[Platform.WHATSAPP].extra["require_mention"] is True
-    assert config.platforms[Platform.WHATSAPP].extra["mention_patterns"] == [r"^\s*chompy\b"]
+    assert config.platforms[Platform.WHATSAPP].extra["mention_patterns"] == [
+        r"^\s*chompy\b"
+    ]
     assert __import__("os").environ["WHATSAPP_REQUIRE_MENTION"] == "true"
-    assert json.loads(__import__("os").environ["WHATSAPP_MENTION_PATTERNS"]) == [r"^\s*chompy\b"]
+    assert json.loads(__import__("os").environ["WHATSAPP_MENTION_PATTERNS"]) == [
+        r"^\s*chompy\b"
+    ]
 
 
 def test_free_response_chats_bypass_mention_gating():

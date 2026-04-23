@@ -142,12 +142,15 @@ class TestMem0UserIdScoping:
 
         provider = Mem0MemoryProvider()
         # Mock _load_config to return a config with default user_id
-        with patch("plugins.memory.mem0._load_config", return_value={
-            "api_key": "test-key",
-            "user_id": "hermes-user",
-            "agent_id": "hermes",
-            "rerank": True,
-        }):
+        with patch(
+            "plugins.memory.mem0._load_config",
+            return_value={
+                "api_key": "test-key",
+                "user_id": "hermes-user",
+                "agent_id": "hermes",
+                "rerank": True,
+            },
+        ):
             provider.initialize(session_id="test-sess", user_id="tg_user_99")
 
         assert provider._user_id == "tg_user_99"
@@ -157,12 +160,15 @@ class TestMem0UserIdScoping:
         from plugins.memory.mem0 import Mem0MemoryProvider
 
         provider = Mem0MemoryProvider()
-        with patch("plugins.memory.mem0._load_config", return_value={
-            "api_key": "test-key",
-            "user_id": "custom-default",
-            "agent_id": "hermes",
-            "rerank": True,
-        }):
+        with patch(
+            "plugins.memory.mem0._load_config",
+            return_value={
+                "api_key": "test-key",
+                "user_id": "custom-default",
+                "agent_id": "hermes",
+                "rerank": True,
+            },
+        ):
             provider.initialize(session_id="test-sess")
 
         assert provider._user_id == "custom-default"
@@ -172,11 +178,14 @@ class TestMem0UserIdScoping:
         from plugins.memory.mem0 import Mem0MemoryProvider
 
         provider = Mem0MemoryProvider()
-        with patch("plugins.memory.mem0._load_config", return_value={
-            "api_key": "test-key",
-            "agent_id": "hermes",
-            "rerank": True,
-        }):
+        with patch(
+            "plugins.memory.mem0._load_config",
+            return_value={
+                "api_key": "test-key",
+                "agent_id": "hermes",
+                "rerank": True,
+            },
+        ):
             provider.initialize(session_id="test-sess")
 
         assert provider._user_id == "hermes-user"
@@ -188,12 +197,15 @@ class TestMem0UserIdScoping:
         p1 = Mem0MemoryProvider()
         p2 = Mem0MemoryProvider()
 
-        with patch("plugins.memory.mem0._load_config", return_value={
-            "api_key": "test-key",
-            "user_id": "hermes-user",
-            "agent_id": "hermes",
-            "rerank": True,
-        }):
+        with patch(
+            "plugins.memory.mem0._load_config",
+            return_value={
+                "api_key": "test-key",
+                "user_id": "hermes-user",
+                "agent_id": "hermes",
+                "rerank": True,
+            },
+        ):
             p1.initialize(session_id="sess-1", user_id="alice_123")
             p2.initialize(session_id="sess-2", user_id="bob_456")
 
@@ -275,6 +287,7 @@ class TestAIAgentUserIdPropagation:
         """AIAgent should store user_id as instance attribute."""
         with patch.dict(os.environ, {"HERMES_HOME": "/tmp/test_hermes"}):
             from run_agent import AIAgent
+
             agent = object.__new__(AIAgent)
             # Manually set the attribute as __init__ does
             agent._user_id = "test_user_42"
@@ -284,6 +297,7 @@ class TestAIAgentUserIdPropagation:
         """AIAgent should have None user_id when not provided (CLI mode)."""
         with patch.dict(os.environ, {"HERMES_HOME": "/tmp/test_hermes"}):
             from run_agent import AIAgent
+
             agent = object.__new__(AIAgent)
             agent._user_id = None
             assert agent._user_id is None

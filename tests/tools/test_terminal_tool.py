@@ -48,7 +48,9 @@ def test_actual_sudo_command_uses_configured_password(monkeypatch):
     monkeypatch.setenv("SUDO_PASSWORD", "testpass")
     monkeypatch.delenv("HERMES_INTERACTIVE", raising=False)
 
-    transformed, sudo_stdin = terminal_tool._transform_sudo_command("sudo apt install -y ripgrep")
+    transformed, sudo_stdin = terminal_tool._transform_sudo_command(
+        "sudo apt install -y ripgrep"
+    )
 
     assert transformed == "sudo -S -p '' apt install -y ripgrep"
     assert sudo_stdin == "testpass\n"
@@ -58,7 +60,9 @@ def test_actual_sudo_after_leading_env_assignment_is_rewritten(monkeypatch):
     monkeypatch.setenv("SUDO_PASSWORD", "testpass")
     monkeypatch.delenv("HERMES_INTERACTIVE", raising=False)
 
-    transformed, sudo_stdin = terminal_tool._transform_sudo_command("DEBUG=1 sudo whoami")
+    transformed, sudo_stdin = terminal_tool._transform_sudo_command(
+        "DEBUG=1 sudo whoami"
+    )
 
     assert transformed == "DEBUG=1 sudo -S -p '' whoami"
     assert sudo_stdin == "testpass\n"
@@ -69,7 +73,9 @@ def test_explicit_empty_sudo_password_tries_empty_without_prompt(monkeypatch):
     monkeypatch.setenv("HERMES_INTERACTIVE", "1")
 
     def _fail_prompt(*_args, **_kwargs):
-        raise AssertionError("interactive sudo prompt should not run for explicit empty password")
+        raise AssertionError(
+            "interactive sudo prompt should not run for explicit empty password"
+        )
 
     monkeypatch.setattr(terminal_tool, "_prompt_for_sudo_password", _fail_prompt)
 
@@ -84,7 +90,9 @@ def test_cached_sudo_password_is_used_when_env_is_unset(monkeypatch):
     monkeypatch.delenv("HERMES_INTERACTIVE", raising=False)
     terminal_tool._cached_sudo_password = "cached-pass"
 
-    transformed, sudo_stdin = terminal_tool._transform_sudo_command("echo ok && sudo whoami")
+    transformed, sudo_stdin = terminal_tool._transform_sudo_command(
+        "echo ok && sudo whoami"
+    )
 
     assert transformed == "echo ok && sudo -S -p '' whoami"
     assert sudo_stdin == "cached-pass\n"

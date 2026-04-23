@@ -30,6 +30,8 @@ def _force_local_terminal(monkeypatch):
     ensures each test starts (and ends) with the correct value.
     """
     monkeypatch.setenv("TERMINAL_ENV", "local")
+
+
 import sys
 import time
 import threading
@@ -48,19 +50,33 @@ from tools.code_execution_tool import (
 )
 
 
-def _mock_handle_function_call(function_name, function_args, task_id=None, user_task=None):
+def _mock_handle_function_call(
+    function_name, function_args, task_id=None, user_task=None
+):
     """Mock dispatcher that returns canned responses for each tool."""
     if function_name == "terminal":
         cmd = function_args.get("command", "")
         return json.dumps({"output": f"mock output for: {cmd}", "exit_code": 0})
     if function_name == "web_search":
-        return json.dumps({"results": [{"url": "https://example.com", "title": "Example", "description": "A test result"}]})
+        return json.dumps(
+            {
+                "results": [
+                    {
+                        "url": "https://example.com",
+                        "title": "Example",
+                        "description": "A test result",
+                    }
+                ]
+            }
+        )
     if function_name == "read_file":
         return json.dumps({"content": "line 1\nline 2\nline 3\n", "total_lines": 3})
     if function_name == "write_file":
         return json.dumps({"status": "ok", "path": function_args.get("path", "")})
     if function_name == "search_files":
-        return json.dumps({"matches": [{"file": "test.py", "line": 1, "text": "match"}]})
+        return json.dumps(
+            {"matches": [{"file": "test.py", "line": 1, "text": "match"}]}
+        )
     if function_name == "patch":
         return json.dumps({"status": "ok", "replacements": 1})
     if function_name == "web_extract":
@@ -119,7 +135,7 @@ class TestHermesToolsGeneration(unittest.TestCase):
     def test_file_transport_uses_tempfile_fallback_for_rpc_dir(self):
         src = generate_hermes_tools_module(["terminal"], transport="file")
         self.assertIn("import json, os, shlex, tempfile, time", src)
-        self.assertIn("os.path.join(tempfile.gettempdir(), \"hermes_rpc\")", src)
+        self.assertIn('os.path.join(tempfile.gettempdir(), "hermes_rpc")', src)
         self.assertNotIn('os.environ.get("HERMES_RPC_DIR", "/tmp/hermes_rpc")', src)
 
 
@@ -143,19 +159,37 @@ class TestExecuteCodeRemoteTempDir(unittest.TestCase):
         env = FakeEnv()
         fake_thread = MagicMock()
 
-        with patch("tools.code_execution_tool._load_config", return_value={"timeout": 30, "max_tool_calls": 5}), \
-             patch("tools.code_execution_tool._get_or_create_env", return_value=(env, "ssh")), \
-             patch("tools.code_execution_tool._ship_file_to_remote"), \
-             patch("tools.code_execution_tool.threading.Thread", return_value=fake_thread):
-            result = json.loads(_execute_remote("print('hello')", "task-1", ["terminal"]))
+        with (
+            patch(
+                "tools.code_execution_tool._load_config",
+                return_value={"timeout": 30, "max_tool_calls": 5},
+            ),
+            patch(
+                "tools.code_execution_tool._get_or_create_env",
+                return_value=(env, "ssh"),
+            ),
+            patch("tools.code_execution_tool._ship_file_to_remote"),
+            patch(
+                "tools.code_execution_tool.threading.Thread", return_value=fake_thread
+            ),
+        ):
+            result = json.loads(
+                _execute_remote("print('hello')", "task-1", ["terminal"])
+            )
 
         self.assertEqual(result["status"], "success")
         mkdir_cmd = env.commands[1][0]
         run_cmd = next(cmd for cmd, _, _ in env.commands if "python3 script.py" in cmd)
         cleanup_cmd = env.commands[-1][0]
-        self.assertIn("mkdir -p /data/data/com.termux/files/usr/tmp/hermes_exec_", mkdir_cmd)
-        self.assertIn("HERMES_RPC_DIR=/data/data/com.termux/files/usr/tmp/hermes_exec_", run_cmd)
-        self.assertIn("rm -rf /data/data/com.termux/files/usr/tmp/hermes_exec_", cleanup_cmd)
+        self.assertIn(
+            "mkdir -p /data/data/com.termux/files/usr/tmp/hermes_exec_", mkdir_cmd
+        )
+        self.assertIn(
+            "HERMES_RPC_DIR=/data/data/com.termux/files/usr/tmp/hermes_exec_", run_cmd
+        )
+        self.assertIn(
+            "rm -rf /data/data/com.termux/files/usr/tmp/hermes_exec_", cleanup_cmd
+        )
         self.assertNotIn("mkdir -p /tmp/hermes_exec_", mkdir_cmd)
 
 
@@ -169,7 +203,9 @@ class TestExecuteCode(unittest.TestCase):
             # Use real execution but mock the tool dispatcher
             pass
         # Actually run with full integration, mocking at the model_tools level
-        with patch("model_tools.handle_function_call", side_effect=_mock_handle_function_call):
+        with patch(
+            "model_tools.handle_function_call", side_effect=_mock_handle_function_call
+        ):
             result = execute_code(
                 code=code,
                 task_id="test-task",
@@ -186,7 +222,7 @@ class TestExecuteCode(unittest.TestCase):
 
     def test_repo_root_modules_are_importable(self):
         """Sandboxed scripts can import modules that live at the repo root."""
-        result = self._run('import hermes_constants; print(hermes_constants.__file__)')
+        result = self._run("import hermes_constants; print(hermes_constants.__file__)")
         self.assertEqual(result["status"], "success")
         self.assertIn("hermes_constants.py", result["output"])
 
@@ -264,19 +300,28 @@ raise RuntimeError("deliberate crash")
         result = self._run(code)
         self.assertEqual(result["status"], "error")
         self.assertIn("before error", result["output"])
-        self.assertIn("RuntimeError", result.get("error", "") + result.get("output", ""))
+        self.assertIn(
+            "RuntimeError", result.get("error", "") + result.get("output", "")
+        )
 
     def test_timeout_enforcement(self):
         """Script that sleeps too long is killed."""
         code = "import time; time.sleep(999)"
-        with patch("model_tools.handle_function_call", side_effect=_mock_handle_function_call):
+        with patch(
+            "model_tools.handle_function_call", side_effect=_mock_handle_function_call
+        ):
             # Override config to use a very short timeout
-            with patch("tools.code_execution_tool._load_config", return_value={"timeout": 2, "max_tool_calls": 50}):
-                result = json.loads(execute_code(
-                    code=code,
-                    task_id="test-task",
-                    enabled_tools=list(SANDBOX_ALLOWED_TOOLS),
-                ))
+            with patch(
+                "tools.code_execution_tool._load_config",
+                return_value={"timeout": 2, "max_tool_calls": 50},
+            ):
+                result = json.loads(
+                    execute_code(
+                        code=code,
+                        task_id="test-task",
+                        enabled_tools=list(SANDBOX_ALLOWED_TOOLS),
+                    )
+                )
         self.assertEqual(result["status"], "timeout")
         self.assertIn("timed out", result.get("error", ""))
 
@@ -407,14 +452,15 @@ class TestStubSchemaDrift(unittest.TestCase):
 
             # Extract parameter names from the stub signature string
             # Match word before colon: "pattern: str, target: str = ..."
-            stub_params = set(re.findall(r'(\w+)\s*:', sig))
+            stub_params = set(re.findall(r"(\w+)\s*:", sig))
 
             missing = schema_params - stub_params
             self.assertEqual(
-                missing, set(),
+                missing,
+                set(),
                 f"Stub for '{tool_name}' is missing parameters that exist in "
                 f"the real schema: {missing}. Update _TOOL_STUBS in "
-                f"code_execution_tool.py to include them."
+                f"code_execution_tool.py to include them.",
             )
 
     def test_stubs_pass_all_params_to_rpc(self):
@@ -424,26 +470,34 @@ class TestStubSchemaDrift(unittest.TestCase):
         from tools.code_execution_tool import _TOOL_STUBS
 
         for tool_name, (func_name, sig, doc, args_expr) in _TOOL_STUBS.items():
-            stub_params = set(re.findall(r'(\w+)\s*:', sig))
+            stub_params = set(re.findall(r"(\w+)\s*:", sig))
             # Check that each param name appears in the args dict expression
             for param in stub_params:
                 self.assertIn(
                     f'"{param}"',
                     args_expr,
                     f"Stub for '{tool_name}' has parameter '{param}' in its "
-                    f"signature but doesn't pass it in the args dict: {args_expr}"
+                    f"signature but doesn't pass it in the args dict: {args_expr}",
                 )
 
     def test_search_files_target_uses_current_values(self):
         """search_files stub should use 'content'/'files', not old 'grep'/'find'."""
         from tools.code_execution_tool import _TOOL_STUBS
+
         _, sig, doc, _ = _TOOL_STUBS["search_files"]
-        self.assertIn('"content"', sig,
-                      "search_files stub should default target to 'content', not 'grep'")
-        self.assertNotIn('"grep"', sig,
-                         "search_files stub still uses obsolete 'grep' target value")
-        self.assertNotIn('"find"', doc,
-                         "search_files stub docstring still uses obsolete 'find' target value")
+        self.assertIn(
+            '"content"',
+            sig,
+            "search_files stub should default target to 'content', not 'grep'",
+        )
+        self.assertNotIn(
+            '"grep"', sig, "search_files stub still uses obsolete 'grep' target value"
+        )
+        self.assertNotIn(
+            '"find"',
+            doc,
+            "search_files stub docstring still uses obsolete 'find' target value",
+        )
 
     def test_generated_module_accepts_all_params(self):
         """The generated hermes_tools.py module should accept all current params
@@ -466,6 +520,7 @@ class TestStubSchemaDrift(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # build_execute_code_schema
 # ---------------------------------------------------------------------------
+
 
 class TestBuildExecuteCodeSchema(unittest.TestCase):
     """Tests for build_execute_code_schema — the dynamic schema generator."""
@@ -521,8 +576,11 @@ class TestBuildExecuteCodeSchema(unittest.TestCase):
         in the code property description."""
         schema = build_execute_code_schema(set())
         code_desc = schema["parameters"]["properties"]["code"]["description"]
-        self.assertNotIn("import , ...", code_desc,
-                         "Empty enabled set produces broken import syntax in description")
+        self.assertNotIn(
+            "import , ...",
+            code_desc,
+            "Empty enabled set produces broken import syntax in description",
+        )
 
     def test_real_scenario_all_sandbox_tools_disabled(self):
         """Reproduce the exact code path from model_tools.py:231-234.
@@ -543,13 +601,17 @@ class TestBuildExecuteCodeSchema(unittest.TestCase):
         tools_to_include = {"execute_code"}
         sandbox_enabled = SANDBOX_ALLOWED_TOOLS & tools_to_include
 
-        self.assertEqual(sandbox_enabled, set(),
-                         "Intersection should be empty when only execute_code is enabled")
+        self.assertEqual(
+            sandbox_enabled,
+            set(),
+            "Intersection should be empty when only execute_code is enabled",
+        )
 
         schema = build_execute_code_schema(sandbox_enabled)
         code_desc = schema["parameters"]["properties"]["code"]["description"]
-        self.assertNotIn("import , ...", code_desc,
-                         "Bug: broken import syntax sent to the model")
+        self.assertNotIn(
+            "import , ...", code_desc, "Bug: broken import syntax sent to the model"
+        )
 
     def test_real_scenario_only_vision_enabled(self):
         """Another real path: user runs `hermes tools code_execution,vision`.
@@ -590,6 +652,7 @@ class TestBuildExecuteCodeSchema(unittest.TestCase):
 # Environment variable filtering (security critical)
 # ---------------------------------------------------------------------------
 
+
 @unittest.skipIf(sys.platform == "win32", "UDS not available on Windows")
 class TestEnvVarFiltering(unittest.TestCase):
     """Verify that execute_code filters environment variables correctly.
@@ -600,19 +663,21 @@ class TestEnvVarFiltering(unittest.TestCase):
 
     def _get_child_env(self, extra_env=None):
         """Run a script that dumps its environment and return the env dict."""
-        code = (
-            "import os, json\n"
-            "print(json.dumps(dict(os.environ)))\n"
-        )
+        code = "import os, json\nprint(json.dumps(dict(os.environ)))\n"
         env_backup = os.environ.copy()
         try:
             if extra_env:
                 os.environ.update(extra_env)
-            with patch("model_tools.handle_function_call", return_value='{}'), \
-                 patch("tools.code_execution_tool._load_config",
-                       return_value={"timeout": 10, "max_tool_calls": 50}):
-                raw = execute_code(code, task_id="test-env",
-                                   enabled_tools=list(SANDBOX_ALLOWED_TOOLS))
+            with (
+                patch("model_tools.handle_function_call", return_value="{}"),
+                patch(
+                    "tools.code_execution_tool._load_config",
+                    return_value={"timeout": 10, "max_tool_calls": 50},
+                ),
+            ):
+                raw = execute_code(
+                    code, task_id="test-env", enabled_tools=list(SANDBOX_ALLOWED_TOOLS)
+                )
         finally:
             os.environ.clear()
             os.environ.update(env_backup)
@@ -622,31 +687,37 @@ class TestEnvVarFiltering(unittest.TestCase):
         return json.loads(result["output"].strip())
 
     def test_api_keys_excluded(self):
-        child_env = self._get_child_env({
-            "OPENAI_API_KEY": "sk-secret123",
-            "ANTHROPIC_API_KEY": "sk-ant-secret",
-            "FIRECRAWL_API_KEY": "fc-secret",
-        })
+        child_env = self._get_child_env(
+            {
+                "OPENAI_API_KEY": "sk-secret123",
+                "ANTHROPIC_API_KEY": "sk-ant-secret",
+                "FIRECRAWL_API_KEY": "fc-secret",
+            }
+        )
         self.assertNotIn("OPENAI_API_KEY", child_env)
         self.assertNotIn("ANTHROPIC_API_KEY", child_env)
         self.assertNotIn("FIRECRAWL_API_KEY", child_env)
 
     def test_tokens_excluded(self):
-        child_env = self._get_child_env({
-            "GITHUB_TOKEN": "ghp_secret",
-            "MODAL_TOKEN_ID": "tok-123",
-            "MODAL_TOKEN_SECRET": "tok-sec",
-        })
+        child_env = self._get_child_env(
+            {
+                "GITHUB_TOKEN": "ghp_secret",
+                "MODAL_TOKEN_ID": "tok-123",
+                "MODAL_TOKEN_SECRET": "tok-sec",
+            }
+        )
         self.assertNotIn("GITHUB_TOKEN", child_env)
         self.assertNotIn("MODAL_TOKEN_ID", child_env)
         self.assertNotIn("MODAL_TOKEN_SECRET", child_env)
 
     def test_password_vars_excluded(self):
-        child_env = self._get_child_env({
-            "DB_PASSWORD": "hunter2",
-            "MY_PASSWD": "secret",
-            "AUTH_CREDENTIAL": "cred",
-        })
+        child_env = self._get_child_env(
+            {
+                "DB_PASSWORD": "hunter2",
+                "MY_PASSWD": "secret",
+                "AUTH_CREDENTIAL": "cred",
+            }
+        )
         self.assertNotIn("DB_PASSWORD", child_env)
         self.assertNotIn("MY_PASSWD", child_env)
         self.assertNotIn("AUTH_CREDENTIAL", child_env)
@@ -693,8 +764,8 @@ class TestEnvVarFiltering(unittest.TestCase):
 # execute_code edge cases
 # ---------------------------------------------------------------------------
 
-class TestExecuteCodeEdgeCases(unittest.TestCase):
 
+class TestExecuteCodeEdgeCases(unittest.TestCase):
     def test_windows_returns_error(self):
         """On Windows (or when SANDBOX_AVAILABLE is False), returns error JSON."""
         with patch("tools.code_execution_tool.SANDBOX_AVAILABLE", False):
@@ -714,24 +785,25 @@ class TestExecuteCodeEdgeCases(unittest.TestCase):
             "from hermes_tools import terminal, web_search, read_file\n"
             "print('all imports ok')\n"
         )
-        with patch("model_tools.handle_function_call",
-                    return_value=json.dumps({"ok": True})):
-            result = json.loads(execute_code(code, task_id="test-none",
-                                             enabled_tools=None))
+        with patch(
+            "model_tools.handle_function_call", return_value=json.dumps({"ok": True})
+        ):
+            result = json.loads(
+                execute_code(code, task_id="test-none", enabled_tools=None)
+            )
         self.assertEqual(result["status"], "success")
         self.assertIn("all imports ok", result["output"])
 
     @unittest.skipIf(sys.platform == "win32", "UDS not available on Windows")
     def test_empty_enabled_tools_uses_all(self):
         """When enabled_tools is [] (empty), all sandbox tools should be available."""
-        code = (
-            "from hermes_tools import terminal, web_search\n"
-            "print('imports ok')\n"
-        )
-        with patch("model_tools.handle_function_call",
-                    return_value=json.dumps({"ok": True})):
-            result = json.loads(execute_code(code, task_id="test-empty",
-                                             enabled_tools=[]))
+        code = "from hermes_tools import terminal, web_search\nprint('imports ok')\n"
+        with patch(
+            "model_tools.handle_function_call", return_value=json.dumps({"ok": True})
+        ):
+            result = json.loads(
+                execute_code(code, task_id="test-empty", enabled_tools=[])
+            )
         self.assertEqual(result["status"], "success")
         self.assertIn("imports ok", result["output"])
 
@@ -739,16 +811,17 @@ class TestExecuteCodeEdgeCases(unittest.TestCase):
     def test_nonoverlapping_tools_fallback(self):
         """When enabled_tools has no overlap with SANDBOX_ALLOWED_TOOLS,
         should fall back to all allowed tools."""
-        code = (
-            "from hermes_tools import terminal\n"
-            "print('fallback ok')\n"
-        )
-        with patch("model_tools.handle_function_call",
-                    return_value=json.dumps({"ok": True})):
-            result = json.loads(execute_code(
-                code, task_id="test-nonoverlap",
-                enabled_tools=["vision_analyze", "browser_snapshot"],
-            ))
+        code = "from hermes_tools import terminal\nprint('fallback ok')\n"
+        with patch(
+            "model_tools.handle_function_call", return_value=json.dumps({"ok": True})
+        ):
+            result = json.loads(
+                execute_code(
+                    code,
+                    task_id="test-nonoverlap",
+                    enabled_tools=["vision_analyze", "browser_snapshot"],
+                )
+            )
         self.assertEqual(result["status"], "success")
         self.assertIn("fallback ok", result["output"])
 
@@ -757,15 +830,18 @@ class TestExecuteCodeEdgeCases(unittest.TestCase):
 # _load_config
 # ---------------------------------------------------------------------------
 
+
 class TestLoadConfig(unittest.TestCase):
     def test_returns_empty_dict_when_cli_config_unavailable(self):
         from tools.code_execution_tool import _load_config
+
         with patch.dict("sys.modules", {"cli": None}):
             result = _load_config()
             self.assertIsInstance(result, dict)
 
     def test_returns_code_execution_section(self):
         from tools.code_execution_tool import _load_config
+
         mock_cli = MagicMock()
         mock_cli.CLI_CONFIG = {"code_execution": {"timeout": 120, "max_tool_calls": 10}}
         with patch.dict("sys.modules", {"cli": mock_cli}):
@@ -776,6 +852,7 @@ class TestLoadConfig(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Interrupt event
 # ---------------------------------------------------------------------------
+
 
 @unittest.skipIf(sys.platform == "win32", "UDS not available on Windows")
 class TestInterruptHandling(unittest.TestCase):
@@ -790,6 +867,7 @@ class TestInterruptHandling(unittest.TestCase):
 
         def set_interrupt_after_delay():
             import time as _t
+
             _t.sleep(1)
             set_interrupt(True, main_tid)
 
@@ -797,14 +875,23 @@ class TestInterruptHandling(unittest.TestCase):
         t.start()
 
         try:
-            with patch("model_tools.handle_function_call",
-                        return_value=json.dumps({"ok": True})), \
-                 patch("tools.code_execution_tool._load_config",
-                       return_value={"timeout": 30, "max_tool_calls": 50}):
-                result = json.loads(execute_code(
-                    code, task_id="test-interrupt",
-                    enabled_tools=list(SANDBOX_ALLOWED_TOOLS),
-                ))
+            with (
+                patch(
+                    "model_tools.handle_function_call",
+                    return_value=json.dumps({"ok": True}),
+                ),
+                patch(
+                    "tools.code_execution_tool._load_config",
+                    return_value={"timeout": 30, "max_tool_calls": 50},
+                ),
+            ):
+                result = json.loads(
+                    execute_code(
+                        code,
+                        task_id="test-interrupt",
+                        enabled_tools=list(SANDBOX_ALLOWED_TOOLS),
+                    )
+                )
             self.assertEqual(result["status"], "interrupted")
             self.assertIn("interrupted", result["output"])
         finally:
@@ -816,7 +903,9 @@ class TestHeadTailTruncation(unittest.TestCase):
     """Tests for head+tail truncation of large stdout in execute_code."""
 
     def _run(self, code):
-        with patch("model_tools.handle_function_call", side_effect=_mock_handle_function_call):
+        with patch(
+            "model_tools.handle_function_call", side_effect=_mock_handle_function_call
+        ):
             result = execute_code(
                 code=code,
                 task_id="test-task",
@@ -833,13 +922,13 @@ class TestHeadTailTruncation(unittest.TestCase):
 
     def test_large_output_preserves_head_and_tail(self):
         """Output exceeding MAX_STDOUT_BYTES keeps both head and tail."""
-        code = '''
+        code = """
 # Print HEAD marker, then filler, then TAIL marker
 print("HEAD_MARKER_START")
 for i in range(15000):
     print(f"filler_line_{i:06d}_padding_to_fill_buffer")
 print("TAIL_MARKER_END")
-'''
+"""
         result = self._run(code)
         self.assertEqual(result["status"], "success")
         output = result["output"]
@@ -852,10 +941,10 @@ print("TAIL_MARKER_END")
 
     def test_truncation_notice_format(self):
         """Truncation notice includes character counts."""
-        code = '''
+        code = """
 for i in range(15000):
     print(f"padding_line_{i:06d}_xxxxxxxxxxxxxxxxxxxxxxxxxx")
-'''
+"""
         result = self._run(code)
         output = result["output"]
         if "TRUNCATED" in output:

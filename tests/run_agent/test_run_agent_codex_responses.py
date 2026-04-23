@@ -284,7 +284,9 @@ def test_build_api_kwargs_copilot_responses_omits_openai_only_fields(monkeypatch
     assert "include" not in kwargs
 
 
-def test_build_api_kwargs_copilot_responses_omits_reasoning_for_non_reasoning_model(monkeypatch):
+def test_build_api_kwargs_copilot_responses_omits_reasoning_for_non_reasoning_model(
+    monkeypatch,
+):
     agent = _build_copilot_agent(monkeypatch, model="gpt-4.1")
     kwargs = agent._build_api_kwargs([{"role": "user", "content": "hi"}])
 
@@ -317,7 +319,9 @@ def test_run_codex_stream_retries_when_completed_event_missing(monkeypatch):
     assert response.output[0].content[0].text == "stream ok"
 
 
-def test_run_codex_stream_falls_back_to_create_after_stream_completion_error(monkeypatch):
+def test_run_codex_stream_falls_back_to_create_after_stream_completion_error(
+    monkeypatch,
+):
     agent = _build_agent(monkeypatch)
     calls = {"stream": 0, "create": 0}
 
@@ -351,7 +355,10 @@ def test_run_codex_stream_fallback_parses_create_stream_events(monkeypatch):
         [
             SimpleNamespace(type="response.created"),
             SimpleNamespace(type="response.in_progress"),
-            SimpleNamespace(type="response.completed", response=_codex_message_response("streamed create ok")),
+            SimpleNamespace(
+                type="response.completed",
+                response=_codex_message_response("streamed create ok"),
+            ),
         ]
     )
 
@@ -382,7 +389,11 @@ def test_run_codex_stream_fallback_parses_create_stream_events(monkeypatch):
 
 def test_run_conversation_codex_plain_text(monkeypatch):
     agent = _build_agent(monkeypatch)
-    monkeypatch.setattr(agent, "_interruptible_api_call", lambda api_kwargs: _codex_message_response("OK"))
+    monkeypatch.setattr(
+        agent,
+        "_interruptible_api_call",
+        lambda api_kwargs: _codex_message_response("OK"),
+    )
 
     result = agent.run_conversation("Say OK")
 
@@ -511,7 +522,9 @@ def test_try_refresh_codex_client_credentials_rebuilds_client(monkeypatch):
 def test_run_conversation_codex_tool_round_trip(monkeypatch):
     agent = _build_agent(monkeypatch)
     responses = [_codex_tool_call_response(), _codex_message_response("done")]
-    monkeypatch.setattr(agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0))
+    monkeypatch.setattr(
+        agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0)
+    )
 
     def _fake_execute_tool_calls(assistant_message, messages, effective_task_id):
         for call in assistant_message.tool_calls:
@@ -529,8 +542,15 @@ def test_run_conversation_codex_tool_round_trip(monkeypatch):
 
     assert result["completed"] is True
     assert result["final_response"] == "done"
-    assert any(msg.get("tool_calls") for msg in result["messages"] if msg.get("role") == "assistant")
-    assert any(msg.get("role") == "tool" and msg.get("tool_call_id") == "call_1" for msg in result["messages"])
+    assert any(
+        msg.get("tool_calls")
+        for msg in result["messages"]
+        if msg.get("role") == "assistant"
+    )
+    assert any(
+        msg.get("role") == "tool" and msg.get("tool_call_id") == "call_1"
+        for msg in result["messages"]
+    )
 
 
 def test_chat_messages_to_responses_input_uses_call_id_for_function_call(monkeypatch):
@@ -554,7 +574,9 @@ def test_chat_messages_to_responses_input_uses_call_id_for_function_call(monkeyp
     )
 
     function_call = next(item for item in items if item.get("type") == "function_call")
-    function_output = next(item for item in items if item.get("type") == "function_call_output")
+    function_output = next(
+        item for item in items if item.get("type") == "function_call_output"
+    )
 
     assert function_call["call_id"] == "call_abc123"
     assert "id" not in function_call
@@ -577,12 +599,18 @@ def test_chat_messages_to_responses_input_accepts_call_pipe_fc_ids(monkeypatch):
                     }
                 ],
             },
-            {"role": "tool", "tool_call_id": "call_pair123|fc_pair123", "content": '{"ok":true}'},
+            {
+                "role": "tool",
+                "tool_call_id": "call_pair123|fc_pair123",
+                "content": '{"ok":true}',
+            },
         ]
     )
 
     function_call = next(item for item in items if item.get("type") == "function_call")
-    function_output = next(item for item in items if item.get("type") == "function_call_output")
+    function_output = next(
+        item for item in items if item.get("type") == "function_call_output"
+    )
 
     assert function_call["call_id"] == "call_pair123"
     assert "id" not in function_call
@@ -610,12 +638,16 @@ def test_preflight_codex_api_kwargs_strips_optional_function_call_id(monkeypatch
         }
     )
 
-    fn_call = next(item for item in preflight["input"] if item.get("type") == "function_call")
+    fn_call = next(
+        item for item in preflight["input"] if item.get("type") == "function_call"
+    )
     assert fn_call["call_id"] == "call_good"
     assert "id" not in fn_call
 
 
-def test_preflight_codex_api_kwargs_rejects_function_call_output_without_call_id(monkeypatch):
+def test_preflight_codex_api_kwargs_rejects_function_call_output_without_call_id(
+    monkeypatch,
+):
     agent = _build_agent(monkeypatch)
 
     with pytest.raises(ValueError, match="function_call_output is missing call_id"):
@@ -693,8 +725,12 @@ def test_run_conversation_codex_replay_payload_keeps_call_id(monkeypatch):
     assert len(requests) >= 2
 
     replay_input = requests[1]["input"]
-    function_call = next(item for item in replay_input if item.get("type") == "function_call")
-    function_output = next(item for item in replay_input if item.get("type") == "function_call_output")
+    function_call = next(
+        item for item in replay_input if item.get("type") == "function_call"
+    )
+    function_output = next(
+        item for item in replay_input if item.get("type") == "function_call_output"
+    )
     assert function_call["call_id"] == "call_1"
     assert "id" not in function_call
     assert function_output["call_id"] == "call_1"
@@ -707,7 +743,9 @@ def test_run_conversation_codex_continues_after_incomplete_interim_message(monke
         _codex_tool_call_response(),
         _codex_message_response("Architecture summary complete."),
     ]
-    monkeypatch.setattr(agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0))
+    monkeypatch.setattr(
+        agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0)
+    )
 
     def _fake_execute_tool_calls(assistant_message, messages, effective_task_id):
         for call in assistant_message.tool_calls:
@@ -731,10 +769,15 @@ def test_run_conversation_codex_continues_after_incomplete_interim_message(monke
         and "inspect the repo structure" in (msg.get("content") or "")
         for msg in result["messages"]
     )
-    assert any(msg.get("role") == "tool" and msg.get("tool_call_id") == "call_1" for msg in result["messages"])
+    assert any(
+        msg.get("role") == "tool" and msg.get("tool_call_id") == "call_1"
+        for msg in result["messages"]
+    )
 
 
-def test_normalize_codex_response_marks_commentary_only_message_as_incomplete(monkeypatch):
+def test_normalize_codex_response_marks_commentary_only_message_as_incomplete(
+    monkeypatch,
+):
     agent = _build_agent(monkeypatch)
     assistant_message, finish_reason = agent._normalize_codex_response(
         _codex_commentary_message_response("I'll inspect the repository first.")
@@ -744,16 +787,20 @@ def test_normalize_codex_response_marks_commentary_only_message_as_incomplete(mo
     assert "inspect the repository" in (assistant_message.content or "")
 
 
-def test_interim_commentary_is_not_marked_already_streamed_without_callbacks(monkeypatch):
+def test_interim_commentary_is_not_marked_already_streamed_without_callbacks(
+    monkeypatch,
+):
     agent = _build_agent(monkeypatch)
     observed = {}
 
     agent._fire_stream_delta("short version: yes")
-    agent.interim_assistant_callback = lambda text, *, already_streamed=False: observed.update(
-        {"text": text, "already_streamed": already_streamed}
+    agent.interim_assistant_callback = lambda text, *, already_streamed=False: (
+        observed.update({"text": text, "already_streamed": already_streamed})
     )
 
-    agent._emit_interim_assistant_message({"role": "assistant", "content": "short version: yes"})
+    agent._emit_interim_assistant_message(
+        {"role": "assistant", "content": "short version: yes"}
+    )
 
     assert observed == {
         "text": "short version: yes",
@@ -761,7 +808,9 @@ def test_interim_commentary_is_not_marked_already_streamed_without_callbacks(mon
     }
 
 
-def test_interim_commentary_is_not_marked_already_streamed_when_stream_callback_fails(monkeypatch):
+def test_interim_commentary_is_not_marked_already_streamed_when_stream_callback_fails(
+    monkeypatch,
+):
     agent = _build_agent(monkeypatch)
     observed = {}
 
@@ -770,11 +819,13 @@ def test_interim_commentary_is_not_marked_already_streamed_when_stream_callback_
 
     agent.stream_delta_callback = failing_callback
     agent._fire_stream_delta("short version: yes")
-    agent.interim_assistant_callback = lambda text, *, already_streamed=False: observed.update(
-        {"text": text, "already_streamed": already_streamed}
+    agent.interim_assistant_callback = lambda text, *, already_streamed=False: (
+        observed.update({"text": text, "already_streamed": already_streamed})
     )
 
-    agent._emit_interim_assistant_message({"role": "assistant", "content": "short version: yes"})
+    agent._emit_interim_assistant_message(
+        {"role": "assistant", "content": "short version: yes"}
+    )
 
     assert observed == {
         "text": "short version: yes",
@@ -789,7 +840,9 @@ def test_run_conversation_codex_continues_after_commentary_phase_message(monkeyp
         _codex_tool_call_response(),
         _codex_message_response("Architecture summary complete."),
     ]
-    monkeypatch.setattr(agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0))
+    monkeypatch.setattr(
+        agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0)
+    )
 
     def _fake_execute_tool_calls(assistant_message, messages, effective_task_id):
         for call in assistant_message.tool_calls:
@@ -813,7 +866,10 @@ def test_run_conversation_codex_continues_after_commentary_phase_message(monkeyp
         and "inspect the repo structure" in (msg.get("content") or "")
         for msg in result["messages"]
     )
-    assert any(msg.get("role") == "tool" and msg.get("tool_call_id") == "call_1" for msg in result["messages"])
+    assert any(
+        msg.get("role") == "tool" and msg.get("tool_call_id") == "call_1"
+        for msg in result["messages"]
+    )
 
 
 def test_run_conversation_codex_continues_after_ack_stop_message(monkeypatch):
@@ -825,7 +881,9 @@ def test_run_conversation_codex_continues_after_ack_stop_message(monkeypatch):
         _codex_tool_call_response(),
         _codex_message_response("Architecture summary complete."),
     ]
-    monkeypatch.setattr(agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0))
+    monkeypatch.setattr(
+        agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0)
+    )
 
     def _fake_execute_tool_calls(assistant_message, messages, effective_task_id):
         for call in assistant_message.tool_calls:
@@ -839,7 +897,9 @@ def test_run_conversation_codex_continues_after_ack_stop_message(monkeypatch):
 
     monkeypatch.setattr(agent, "_execute_tool_calls", _fake_execute_tool_calls)
 
-    result = agent.run_conversation("look into ~/openclaw-studio and tell me how it works")
+    result = agent.run_conversation(
+        "look into ~/openclaw-studio and tell me how it works"
+    )
 
     assert result["completed"] is True
     assert result["final_response"] == "Architecture summary complete."
@@ -851,13 +911,19 @@ def test_run_conversation_codex_continues_after_ack_stop_message(monkeypatch):
     )
     assert any(
         msg.get("role") == "user"
-        and "Continue now. Execute the required tool calls" in (msg.get("content") or "")
+        and "Continue now. Execute the required tool calls"
+        in (msg.get("content") or "")
         for msg in result["messages"]
     )
-    assert any(msg.get("role") == "tool" and msg.get("tool_call_id") == "call_1" for msg in result["messages"])
+    assert any(
+        msg.get("role") == "tool" and msg.get("tool_call_id") == "call_1"
+        for msg in result["messages"]
+    )
 
 
-def test_run_conversation_codex_continues_after_ack_for_directory_listing_prompt(monkeypatch):
+def test_run_conversation_codex_continues_after_ack_for_directory_listing_prompt(
+    monkeypatch,
+):
     agent = _build_agent(monkeypatch)
     responses = [
         _codex_ack_message_response(
@@ -866,7 +932,9 @@ def test_run_conversation_codex_continues_after_ack_for_directory_listing_prompt
         _codex_tool_call_response(),
         _codex_message_response("Directory summary complete."),
     ]
-    monkeypatch.setattr(agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0))
+    monkeypatch.setattr(
+        agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0)
+    )
 
     def _fake_execute_tool_calls(assistant_message, messages, effective_task_id):
         for call in assistant_message.tool_calls:
@@ -880,7 +948,9 @@ def test_run_conversation_codex_continues_after_ack_for_directory_listing_prompt
 
     monkeypatch.setattr(agent, "_execute_tool_calls", _fake_execute_tool_calls)
 
-    result = agent.run_conversation("look at current directory and list 3 notable things")
+    result = agent.run_conversation(
+        "look at current directory and list 3 notable things"
+    )
 
     assert result["completed"] is True
     assert result["final_response"] == "Directory summary complete."
@@ -892,20 +962,27 @@ def test_run_conversation_codex_continues_after_ack_for_directory_listing_prompt
     )
     assert any(
         msg.get("role") == "user"
-        and "Continue now. Execute the required tool calls" in (msg.get("content") or "")
+        and "Continue now. Execute the required tool calls"
+        in (msg.get("content") or "")
         for msg in result["messages"]
     )
-    assert any(msg.get("role") == "tool" and msg.get("tool_call_id") == "call_1" for msg in result["messages"])
+    assert any(
+        msg.get("role") == "tool" and msg.get("tool_call_id") == "call_1"
+        for msg in result["messages"]
+    )
 
 
 def test_dump_api_request_debug_uses_responses_url(monkeypatch, tmp_path):
     """Debug dumps should show /responses URL when in codex_responses mode."""
     import json
+
     agent = _build_agent(monkeypatch)
     agent.base_url = "http://127.0.0.1:9208/v1"
     agent.logs_dir = tmp_path
 
-    dump_file = agent._dump_api_request_debug(_codex_request_kwargs(), reason="preflight")
+    dump_file = agent._dump_api_request_debug(
+        _codex_request_kwargs(), reason="preflight"
+    )
 
     payload = json.loads(dump_file.read_text())
     assert payload["request"]["url"] == "http://127.0.0.1:9208/v1/responses"
@@ -914,6 +991,7 @@ def test_dump_api_request_debug_uses_responses_url(monkeypatch, tmp_path):
 def test_dump_api_request_debug_uses_chat_completions_url(monkeypatch, tmp_path):
     """Debug dumps should show /chat/completions URL for chat_completions mode."""
     import json
+
     _patch_agent_bootstrap(monkeypatch)
     agent = run_agent.AIAgent(
         model="gpt-4o",
@@ -938,7 +1016,9 @@ def test_dump_api_request_debug_uses_chat_completions_url(monkeypatch, tmp_path)
 # --- Reasoning-only response tests (fix for empty content retry loop) ---
 
 
-def _codex_reasoning_only_response(*, encrypted_content="enc_abc123", summary_text="Thinking..."):
+def _codex_reasoning_only_response(
+    *, encrypted_content="enc_abc123", summary_text="Thinking..."
+):
     """Codex response containing only reasoning items — no message text, no tool calls."""
     return SimpleNamespace(
         output=[
@@ -971,7 +1051,9 @@ def test_normalize_codex_response_marks_reasoning_only_as_incomplete(monkeypatch
     assert assistant_message.content == ""
     assert assistant_message.codex_reasoning_items is not None
     assert len(assistant_message.codex_reasoning_items) == 1
-    assert assistant_message.codex_reasoning_items[0]["encrypted_content"] == "enc_abc123"
+    assert (
+        assistant_message.codex_reasoning_items[0]["encrypted_content"] == "enc_abc123"
+    )
 
 
 def test_normalize_codex_response_reasoning_with_content_is_stop(monkeypatch):
@@ -988,7 +1070,9 @@ def test_normalize_codex_response_reasoning_with_content_is_stop(monkeypatch):
             ),
             SimpleNamespace(
                 type="message",
-                content=[SimpleNamespace(type="output_text", text="Here is the answer.")],
+                content=[
+                    SimpleNamespace(type="output_text", text="Here is the answer.")
+                ],
                 status="completed",
             ),
         ],
@@ -1009,7 +1093,9 @@ def test_run_conversation_codex_continues_after_reasoning_only_response(monkeypa
         _codex_reasoning_only_response(),
         _codex_message_response("The final answer is 42."),
     ]
-    monkeypatch.setattr(agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0))
+    monkeypatch.setattr(
+        agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0)
+    )
 
     result = agent.run_conversation("what is the answer?")
 
@@ -1047,7 +1133,9 @@ def test_run_conversation_codex_preserves_encrypted_reasoning_in_interim(monkeyp
         reasoning_response,
         _codex_message_response("Done thinking."),
     ]
-    monkeypatch.setattr(agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0))
+    monkeypatch.setattr(
+        agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0)
+    )
 
     result = agent.run_conversation("think hard")
 
@@ -1055,16 +1143,21 @@ def test_run_conversation_codex_preserves_encrypted_reasoning_in_interim(monkeyp
     assert result["final_response"] == "Done thinking."
     # The interim message must have codex_reasoning_items preserved
     interim_msgs = [
-        msg for msg in result["messages"]
-        if msg.get("role") == "assistant"
-        and msg.get("finish_reason") == "incomplete"
+        msg
+        for msg in result["messages"]
+        if msg.get("role") == "assistant" and msg.get("finish_reason") == "incomplete"
     ]
     assert len(interim_msgs) >= 1
     assert interim_msgs[0].get("codex_reasoning_items") is not None
-    assert interim_msgs[0]["codex_reasoning_items"][0]["encrypted_content"] == "enc_opaque_blob"
+    assert (
+        interim_msgs[0]["codex_reasoning_items"][0]["encrypted_content"]
+        == "enc_opaque_blob"
+    )
 
 
-def test_chat_messages_to_responses_input_reasoning_only_has_following_item(monkeypatch):
+def test_chat_messages_to_responses_input_reasoning_only_has_following_item(
+    monkeypatch,
+):
     """When converting a reasoning-only interim message to Responses API input,
     the reasoning items must be followed by an assistant message (even if empty)
     to satisfy the API's 'required following item' constraint."""
@@ -1077,19 +1170,28 @@ def test_chat_messages_to_responses_input_reasoning_only_has_following_item(monk
             "reasoning": None,
             "finish_reason": "incomplete",
             "codex_reasoning_items": [
-                {"type": "reasoning", "id": "rs_001", "encrypted_content": "enc_abc", "summary": []},
+                {
+                    "type": "reasoning",
+                    "id": "rs_001",
+                    "encrypted_content": "enc_abc",
+                    "summary": [],
+                },
             ],
         },
     ]
     items = agent._chat_messages_to_responses_input(messages)
 
     # Find the reasoning item
-    reasoning_indices = [i for i, it in enumerate(items) if it.get("type") == "reasoning"]
+    reasoning_indices = [
+        i for i, it in enumerate(items) if it.get("type") == "reasoning"
+    ]
     assert len(reasoning_indices) == 1
     ri_idx = reasoning_indices[0]
 
     # There must be a following item after the reasoning
-    assert ri_idx < len(items) - 1, "Reasoning item must not be the last item (missing_following_item)"
+    assert ri_idx < len(items) - 1, (
+        "Reasoning item must not be the last item (missing_following_item)"
+    )
     following = items[ri_idx + 1]
     assert following.get("role") == "assistant"
 
@@ -1103,27 +1205,37 @@ def test_duplicate_detection_distinguishes_different_codex_reasoning(monkeypatch
         SimpleNamespace(
             output=[
                 SimpleNamespace(
-                    type="reasoning", id="rs_001",
-                    encrypted_content="enc_first", summary=[], status="completed",
+                    type="reasoning",
+                    id="rs_001",
+                    encrypted_content="enc_first",
+                    summary=[],
+                    status="completed",
                 )
             ],
             usage=SimpleNamespace(input_tokens=50, output_tokens=100, total_tokens=150),
-            status="completed", model="gpt-5-codex",
+            status="completed",
+            model="gpt-5-codex",
         ),
         # Second reasoning-only response (different encrypted content)
         SimpleNamespace(
             output=[
                 SimpleNamespace(
-                    type="reasoning", id="rs_002",
-                    encrypted_content="enc_second", summary=[], status="completed",
+                    type="reasoning",
+                    id="rs_002",
+                    encrypted_content="enc_second",
+                    summary=[],
+                    status="completed",
                 )
             ],
             usage=SimpleNamespace(input_tokens=50, output_tokens=100, total_tokens=150),
-            status="completed", model="gpt-5-codex",
+            status="completed",
+            model="gpt-5-codex",
         ),
         _codex_message_response("Final answer after thinking."),
     ]
-    monkeypatch.setattr(agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0))
+    monkeypatch.setattr(
+        agent, "_interruptible_api_call", lambda api_kwargs: responses.pop(0)
+    )
 
     result = agent.run_conversation("think very hard")
 
@@ -1131,14 +1243,13 @@ def test_duplicate_detection_distinguishes_different_codex_reasoning(monkeypatch
     assert result["final_response"] == "Final answer after thinking."
     # Both reasoning-only interim messages should be in history (not collapsed)
     interim_msgs = [
-        msg for msg in result["messages"]
-        if msg.get("role") == "assistant"
-        and msg.get("finish_reason") == "incomplete"
+        msg
+        for msg in result["messages"]
+        if msg.get("role") == "assistant" and msg.get("finish_reason") == "incomplete"
     ]
     assert len(interim_msgs) == 2
     encrypted_contents = [
-        msg["codex_reasoning_items"][0]["encrypted_content"]
-        for msg in interim_msgs
+        msg["codex_reasoning_items"][0]["encrypted_content"] for msg in interim_msgs
     ]
     assert "enc_first" in encrypted_contents
     assert "enc_second" in encrypted_contents

@@ -14,6 +14,7 @@ from cli import _detect_file_drop
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture()
 def tmp_image(tmp_path):
     """Create a temporary .png file and return its path."""
@@ -41,6 +42,7 @@ def tmp_image_with_spaces(tmp_path):
 # ---------------------------------------------------------------------------
 # Tests: returns None for non-file inputs
 # ---------------------------------------------------------------------------
+
 
 class TestNonFileInputs:
     def test_regular_slash_command(self):
@@ -73,6 +75,7 @@ class TestNonFileInputs:
 # Tests: image file detection
 # ---------------------------------------------------------------------------
 
+
 class TestImageFileDrop:
     def test_simple_image_path(self, tmp_image):
         result = _detect_file_drop(str(tmp_image))
@@ -89,8 +92,21 @@ class TestImageFileDrop:
         assert result["is_image"] is True
         assert result["remainder"] == "analyze this please"
 
-    @pytest.mark.parametrize("ext", [".png", ".jpg", ".jpeg", ".gif", ".webp",
-                                      ".bmp", ".tiff", ".tif", ".svg", ".ico"])
+    @pytest.mark.parametrize(
+        "ext",
+        [
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".webp",
+            ".bmp",
+            ".tiff",
+            ".tif",
+            ".svg",
+            ".ico",
+        ],
+    )
     def test_all_image_extensions(self, tmp_path, ext):
         img = tmp_path / f"test{ext}"
         img.write_bytes(b"fake")
@@ -109,6 +125,7 @@ class TestImageFileDrop:
 # ---------------------------------------------------------------------------
 # Tests: non-image file detection
 # ---------------------------------------------------------------------------
+
 
 class TestNonImageFileDrop:
     def test_python_file(self, tmp_text):
@@ -130,17 +147,18 @@ class TestNonImageFileDrop:
 # Tests: backslash-escaped spaces (macOS drag-and-drop)
 # ---------------------------------------------------------------------------
 
+
 class TestEscapedSpaces:
     def test_escaped_spaces_in_path(self, tmp_image_with_spaces):
         r"""macOS drags produce paths like /path/to/my\ file.png"""
-        escaped = str(tmp_image_with_spaces).replace(' ', '\\ ')
+        escaped = str(tmp_image_with_spaces).replace(" ", "\\ ")
         result = _detect_file_drop(escaped)
         assert result is not None
         assert result["path"] == tmp_image_with_spaces
         assert result["is_image"] is True
 
     def test_escaped_spaces_with_trailing_text(self, tmp_image_with_spaces):
-        escaped = str(tmp_image_with_spaces).replace(' ', '\\ ')
+        escaped = str(tmp_image_with_spaces).replace(" ", "\\ ")
         user_input = f"{escaped} what is this?"
         result = _detect_file_drop(user_input)
         assert result is not None
@@ -165,6 +183,7 @@ class TestEscapedSpaces:
 # ---------------------------------------------------------------------------
 # Tests: edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestEdgeCases:
     def test_path_with_no_extension(self, tmp_path):

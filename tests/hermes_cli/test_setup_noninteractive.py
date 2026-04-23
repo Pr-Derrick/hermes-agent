@@ -75,8 +75,14 @@ class TestNonInteractiveSetup:
             patch("hermes_cli.setup.ensure_hermes_home"),
             patch("hermes_cli.setup.load_config", return_value={}),
             patch("hermes_cli.setup.get_hermes_home", return_value="/tmp/.hermes"),
-            patch("hermes_cli.auth.get_active_provider", side_effect=AssertionError("wizard continued")),
-            patch("builtins.input", side_effect=AssertionError("input should not be called")),
+            patch(
+                "hermes_cli.auth.get_active_provider",
+                side_effect=AssertionError("wizard continued"),
+            ),
+            patch(
+                "builtins.input",
+                side_effect=AssertionError("input should not be called"),
+            ),
         ):
             run_setup_wizard(args)
 
@@ -93,9 +99,15 @@ class TestNonInteractiveSetup:
             patch("hermes_cli.setup.ensure_hermes_home"),
             patch("hermes_cli.setup.load_config", return_value={}),
             patch("hermes_cli.setup.get_hermes_home", return_value="/tmp/.hermes"),
-            patch("hermes_cli.auth.get_active_provider", side_effect=AssertionError("wizard continued")),
+            patch(
+                "hermes_cli.auth.get_active_provider",
+                side_effect=AssertionError("wizard continued"),
+            ),
             patch("sys.stdin") as mock_stdin,
-            patch("builtins.input", side_effect=AssertionError("input should not be called")),
+            patch(
+                "builtins.input",
+                side_effect=AssertionError("input should not be called"),
+            ),
         ):
             mock_stdin.isatty.return_value = False
             run_setup_wizard(args)
@@ -103,13 +115,19 @@ class TestNonInteractiveSetup:
         out = capsys.readouterr().out
         assert "hermes config set model.provider custom" in out
 
-    def test_reset_flag_rewrites_config_before_noninteractive_exit(self, tmp_path, monkeypatch, capsys):
+    def test_reset_flag_rewrites_config_before_noninteractive_exit(
+        self, tmp_path, monkeypatch, capsys
+    ):
         """--reset should rewrite config.yaml even when the wizard cannot run interactively."""
         from hermes_cli.setup import run_setup_wizard
 
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         cfg = load_config()
-        cfg["model"] = {"provider": "custom", "base_url": "http://localhost:8080/v1", "default": "llama3"}
+        cfg["model"] = {
+            "provider": "custom",
+            "base_url": "http://localhost:8080/v1",
+            "default": "llama3",
+        }
         cfg["agent"]["max_turns"] = 12
         save_config(cfg)
 
@@ -133,7 +151,10 @@ class TestNonInteractiveSetup:
             patch("hermes_cli.main._has_any_provider_configured", return_value=False),
             patch("hermes_cli.main.cmd_setup") as mock_setup,
             patch("sys.stdin") as mock_stdin,
-            patch("builtins.input", side_effect=AssertionError("input should not be called")),
+            patch(
+                "builtins.input",
+                side_effect=AssertionError("input should not be called"),
+            ),
         ):
             mock_stdin.isatty.return_value = False
             with pytest.raises(SystemExit) as exc:
@@ -144,7 +165,9 @@ class TestNonInteractiveSetup:
         out = capsys.readouterr().out
         assert "hermes config set model.provider custom" in out
 
-    def test_returning_user_terminal_menu_choice_dispatches_terminal_section(self, tmp_path):
+    def test_returning_user_terminal_menu_choice_dispatches_terminal_section(
+        self, tmp_path
+    ):
         """Returning-user menu should map Terminal Backend to the terminal setup, not TTS."""
         from hermes_cli import setup as setup_mod
 
@@ -165,7 +188,9 @@ class TestNonInteractiveSetup:
             patch.object(
                 setup_mod,
                 "get_env_value",
-                side_effect=lambda key: "sk-test" if key == "OPENROUTER_API_KEY" else "",
+                side_effect=lambda key: (
+                    "sk-test" if key == "OPENROUTER_API_KEY" else ""
+                ),
             ),
             patch("hermes_cli.auth.get_active_provider", return_value=None),
             patch.object(setup_mod, "prompt_choice", return_value=3),
@@ -209,7 +234,9 @@ class TestNonInteractiveSetup:
             patch.object(
                 setup_mod,
                 "get_env_value",
-                side_effect=lambda key: "sk-test" if key == "OPENROUTER_API_KEY" else "",
+                side_effect=lambda key: (
+                    "sk-test" if key == "OPENROUTER_API_KEY" else ""
+                ),
             ),
             patch("hermes_cli.auth.get_active_provider", return_value=None),
             patch.object(setup_mod, "prompt_choice", side_effect=fake_prompt_choice),

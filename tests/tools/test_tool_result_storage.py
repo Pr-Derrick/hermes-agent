@@ -26,6 +26,7 @@ from tools.tool_result_storage import (
 
 # ── generate_preview ──────────────────────────────────────────────────
 
+
 class TestGeneratePreview:
     def test_short_content_unchanged(self):
         text = "short result"
@@ -67,6 +68,7 @@ class TestGeneratePreview:
 
 # ── _heredoc_marker ───────────────────────────────────────────────────
 
+
 class TestHeredocMarker:
     def test_default_marker_when_no_collision(self):
         assert _heredoc_marker("normal content") == HEREDOC_MARKER
@@ -80,6 +82,7 @@ class TestHeredocMarker:
 
 
 # ── _write_to_sandbox ─────────────────────────────────────────────────
+
 
 class TestWriteToSandbox:
     def test_success(self):
@@ -160,10 +163,14 @@ class TestResolveStorageDir:
     def test_uses_env_temp_dir_when_available(self):
         env = MagicMock()
         env.get_temp_dir.return_value = "/data/data/com.termux/files/usr/tmp"
-        assert _resolve_storage_dir(env) == "/data/data/com.termux/files/usr/tmp/hermes-results"
+        assert (
+            _resolve_storage_dir(env)
+            == "/data/data/com.termux/files/usr/tmp/hermes-results"
+        )
 
 
 # ── _build_persisted_message ──────────────────────────────────────────
+
 
 class TestBuildPersistedMessage:
     def test_structure(self):
@@ -204,6 +211,7 @@ class TestBuildPersistedMessage:
 
 # ── maybe_persist_tool_result ─────────────────────────────────────────
 
+
 class TestMaybePersistToolResult:
     def test_below_threshold_returns_unchanged(self):
         content = "small result"
@@ -235,6 +243,7 @@ class TestMaybePersistToolResult:
     def test_persists_full_content_as_is(self):
         """Content is persisted verbatim — no JSON extraction."""
         import json
+
         env = MagicMock()
         env.execute.return_value = {"output": "", "returncode": 0}
         raw = "line1\nline2\n" * 5_000
@@ -400,7 +409,9 @@ class TestMaybePersistToolResult:
             env=env,
             threshold=30_000,
         )
-        assert "/data/data/com.termux/files/usr/tmp/hermes-results/tc_termux.txt" in result
+        assert (
+            "/data/data/com.termux/files/usr/tmp/hermes-results/tc_termux.txt" in result
+        )
         cmd = env.execute.call_args[0][0]
         assert "mkdir -p /data/data/com.termux/files/usr/tmp/hermes-results" in cmd
 
@@ -421,13 +432,16 @@ class TestMaybePersistToolResult:
 
 # ── enforce_turn_budget ───────────────────────────────────────────────
 
+
 class TestEnforceTurnBudget:
     def test_under_budget_no_changes(self):
         msgs = [
             {"role": "tool", "tool_call_id": "t1", "content": "small"},
             {"role": "tool", "tool_call_id": "t2", "content": "also small"},
         ]
-        result = enforce_turn_budget(msgs, env=None, config=BudgetConfig(turn_budget=200_000))
+        result = enforce_turn_budget(
+            msgs, env=None, config=BudgetConfig(turn_budget=200_000)
+        )
         assert result[0]["content"] == "small"
         assert result[1]["content"] == "also small"
 
@@ -447,8 +461,11 @@ class TestEnforceTurnBudget:
         env = MagicMock()
         env.execute.return_value = {"output": "", "returncode": 0}
         msgs = [
-            {"role": "tool", "tool_call_id": "t1",
-             "content": f"{PERSISTED_OUTPUT_TAG}\nalready persisted\n{PERSISTED_OUTPUT_CLOSING_TAG}"},
+            {
+                "role": "tool",
+                "tool_call_id": "t1",
+                "content": f"{PERSISTED_OUTPUT_TAG}\nalready persisted\n{PERSISTED_OUTPUT_CLOSING_TAG}",
+            },
             {"role": "tool", "tool_call_id": "t2", "content": "x" * 250_000},
         ]
         enforce_turn_budget(msgs, env=env, config=BudgetConfig(turn_budget=200_000))
@@ -468,9 +485,7 @@ class TestEnforceTurnBudget:
         ]
         enforce_turn_budget(msgs, env=env, config=BudgetConfig(turn_budget=200_000))
         # At least some results should be persisted to get under 200K
-        persisted_count = sum(
-            1 for m in msgs if PERSISTED_OUTPUT_TAG in m["content"]
-        )
+        persisted_count = sum(1 for m in msgs if PERSISTED_OUTPUT_TAG in m["content"])
         assert persisted_count >= 2  # Need to shed at least ~52K
 
     def test_no_env_falls_back_to_truncation(self):
@@ -479,38 +494,50 @@ class TestEnforceTurnBudget:
         ]
         enforce_turn_budget(msgs, env=None, config=BudgetConfig(turn_budget=200_000))
         # Should be truncated (no sandbox available)
-        assert "Truncated" in msgs[0]["content"] or PERSISTED_OUTPUT_TAG in msgs[0]["content"]
+        assert (
+            "Truncated" in msgs[0]["content"]
+            or PERSISTED_OUTPUT_TAG in msgs[0]["content"]
+        )
 
     def test_returns_same_list(self):
         msgs = [{"role": "tool", "tool_call_id": "t1", "content": "ok"}]
-        result = enforce_turn_budget(msgs, env=None, config=BudgetConfig(turn_budget=200_000))
+        result = enforce_turn_budget(
+            msgs, env=None, config=BudgetConfig(turn_budget=200_000)
+        )
         assert result is msgs
 
     def test_empty_messages(self):
-        result = enforce_turn_budget([], env=None, config=BudgetConfig(turn_budget=200_000))
+        result = enforce_turn_budget(
+            [], env=None, config=BudgetConfig(turn_budget=200_000)
+        )
         assert result == []
 
 
 # ── Per-tool threshold integration ────────────────────────────────────
+
 
 class TestPerToolThresholds:
     """Verify registry wiring for per-tool thresholds."""
 
     def test_registry_has_get_max_result_size(self):
         from tools.registry import registry
+
         assert hasattr(registry, "get_max_result_size")
 
     def test_default_threshold(self):
         from tools.registry import registry
+
         # Unknown tool should return the default
         val = registry.get_max_result_size("nonexistent_tool_xyz")
         assert val == DEFAULT_RESULT_SIZE_CHARS
 
     def test_terminal_threshold(self):
         from tools.registry import registry
+
         # Trigger import of terminal_tool to register the tool
         try:
             import tools.terminal_tool  # noqa: F401
+
             val = registry.get_max_result_size("terminal")
             assert val == 100_000
         except ImportError:
@@ -518,8 +545,10 @@ class TestPerToolThresholds:
 
     def test_read_file_never_persisted(self):
         from tools.registry import registry
+
         try:
             import tools.file_tools  # noqa: F401
+
             val = registry.get_max_result_size("read_file")
             assert val == float("inf")
         except ImportError:
@@ -527,8 +556,10 @@ class TestPerToolThresholds:
 
     def test_search_files_threshold(self):
         from tools.registry import registry
+
         try:
             import tools.file_tools  # noqa: F401
+
             val = registry.get_max_result_size("search_files")
             assert val == 100_000
         except ImportError:

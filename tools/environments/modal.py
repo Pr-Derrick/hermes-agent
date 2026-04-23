@@ -102,8 +102,9 @@ def _resolve_modal_image(image_spec: Any) -> Any:
         "python -m ensurepip --upgrade --default-pip 2>/dev/null || true",
     ]
     if add_python:
-        setup_commands.insert(0,
-            "RUN apt-get update -qq && apt-get install -y -qq python3 python3-venv > /dev/null 2>&1 || true"
+        setup_commands.insert(
+            0,
+            "RUN apt-get update -qq && apt-get install -y -qq python3 python3-venv > /dev/null 2>&1 || true",
         )
 
     return _modal.Image.from_registry(
@@ -170,18 +171,22 @@ class ModalEnvironment(BaseEnvironment):
         self._sandbox = None
         self._app = None
         self._worker = _AsyncWorker()
-        self._sync_manager: FileSyncManager | None = None  # initialized after sandbox creation
+        self._sync_manager: FileSyncManager | None = (
+            None  # initialized after sandbox creation
+        )
 
         sandbox_kwargs = dict(modal_sandbox_kwargs or {})
 
         restored_snapshot_id = None
         restored_from_legacy_key = False
         if self._persistent:
-            restored_snapshot_id, restored_from_legacy_key = _get_snapshot_restore_candidate(
-                self._task_id
+            restored_snapshot_id, restored_from_legacy_key = (
+                _get_snapshot_restore_candidate(self._task_id)
             )
             if restored_snapshot_id:
-                logger.info("Modal: restoring from snapshot %s", restored_snapshot_id[:20])
+                logger.info(
+                    "Modal: restoring from snapshot %s", restored_snapshot_id[:20]
+                )
 
         import modal as _modal
 
@@ -228,7 +233,8 @@ class ModalEnvironment(BaseEnvironment):
                 existing_mounts.extend(cred_mounts)
                 create_kwargs["mounts"] = existing_mounts
             sandbox = await _modal.Sandbox.create.aio(
-                "sleep", "infinity",
+                "sleep",
+                "infinity",
                 image=image_spec,
                 app=app,
                 timeout=int(create_kwargs.pop("timeout", 3600)),
@@ -241,19 +247,22 @@ class ModalEnvironment(BaseEnvironment):
             try:
                 effective_image = _resolve_modal_image(target_image_spec)
                 self._app, self._sandbox = self._worker.run_coroutine(
-                    _create_sandbox(effective_image), timeout=300,
+                    _create_sandbox(effective_image),
+                    timeout=300,
                 )
             except Exception as exc:
                 if not restored_snapshot_id:
                     raise
                 logger.warning(
                     "Modal: failed to restore snapshot %s, retrying with base image: %s",
-                    restored_snapshot_id[:20], exc,
+                    restored_snapshot_id[:20],
+                    exc,
                 )
                 _delete_direct_snapshot(self._task_id, restored_snapshot_id)
                 base_image = _resolve_modal_image(image)
                 self._app, self._sandbox = self._worker.run_coroutine(
-                    _create_sandbox(base_image), timeout=300,
+                    _create_sandbox(base_image),
+                    timeout=300,
                 )
             else:
                 if restored_snapshot_id and restored_from_legacy_key:
@@ -288,7 +297,7 @@ class ModalEnvironment(BaseEnvironment):
             offset = 0
             chunk_size = self._STDIN_CHUNK_SIZE
             while offset < len(b64):
-                proc.stdin.write(b64[offset:offset + chunk_size])
+                proc.stdin.write(b64[offset : offset + chunk_size])
                 await proc.stdin.drain.aio()
                 offset += chunk_size
             proc.stdin.write_eof()
@@ -331,7 +340,7 @@ class ModalEnvironment(BaseEnvironment):
             offset = 0
             chunk_size = self._STDIN_CHUNK_SIZE
             while offset < len(payload):
-                proc.stdin.write(payload[offset:offset + chunk_size])
+                proc.stdin.write(payload[offset : offset + chunk_size])
                 await proc.stdin.drain.aio()
                 offset += chunk_size
 
@@ -365,9 +374,14 @@ class ModalEnvironment(BaseEnvironment):
     # Execution
     # ------------------------------------------------------------------
 
-    def _run_bash(self, cmd_string: str, *, login: bool = False,
-                  timeout: int = 120,
-                  stdin_data: str | None = None):
+    def _run_bash(
+        self,
+        cmd_string: str,
+        *,
+        login: bool = False,
+        timeout: int = 120,
+        stdin_data: str | None = None,
+    ):
         """Return a _ThreadedProcessHandle wrapping an async Modal sandbox exec."""
         sandbox = self._sandbox
         worker = self._worker
@@ -406,6 +420,7 @@ class ModalEnvironment(BaseEnvironment):
 
         if self._persistent:
             try:
+
                 async def _snapshot():
                     img = await self._sandbox.snapshot_filesystem.aio()
                     return img.object_id
@@ -419,7 +434,8 @@ class ModalEnvironment(BaseEnvironment):
                     _store_direct_snapshot(self._task_id, snapshot_id)
                     logger.info(
                         "Modal: saved filesystem snapshot %s for task %s",
-                        snapshot_id[:20], self._task_id,
+                        snapshot_id[:20],
+                        self._task_id,
                     )
             except Exception as e:
                 logger.warning("Modal: filesystem snapshot failed: %s", e)

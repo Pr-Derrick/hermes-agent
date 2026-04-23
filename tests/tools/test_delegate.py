@@ -36,7 +36,7 @@ def _make_mock_parent(depth=0):
     """Create a mock parent agent with the fields delegate_task expects."""
     parent = MagicMock()
     parent.base_url = "https://openrouter.ai/api/v1"
-    parent.api_key="***"
+    parent.api_key = "***"
     parent.provider = "openrouter"
     parent.api_mode = "chat_completions"
     parent.model = "anthropic/claude-sonnet-4"
@@ -67,7 +67,9 @@ class TestDelegateRequirements(unittest.TestCase):
         self.assertIn("context", props)
         self.assertIn("toolsets", props)
         self.assertIn("max_iterations", props)
-        self.assertNotIn("maxItems", props["tasks"])  # removed — limit is now runtime-configurable
+        self.assertNotIn(
+            "maxItems", props["tasks"]
+        )  # removed — limit is now runtime-configurable
 
 
 class TestChildSystemPrompt(unittest.TestCase):
@@ -78,7 +80,9 @@ class TestChildSystemPrompt(unittest.TestCase):
         self.assertNotIn("CONTEXT", prompt)
 
     def test_goal_with_context(self):
-        prompt = _build_child_system_prompt("Fix the tests", "Error: assertion failed in test_foo.py line 42")
+        prompt = _build_child_system_prompt(
+            "Fix the tests", "Error: assertion failed in test_foo.py line 42"
+        )
         self.assertIn("Fix the tests", prompt)
         self.assertIn("CONTEXT", prompt)
         self.assertIn("assertion failed", prompt)
@@ -90,7 +94,9 @@ class TestChildSystemPrompt(unittest.TestCase):
 
 class TestStripBlockedTools(unittest.TestCase):
     def test_removes_blocked_toolsets(self):
-        result = _strip_blocked_tools(["terminal", "file", "delegation", "clarify", "memory", "code_execution"])
+        result = _strip_blocked_tools(
+            ["terminal", "file", "delegation", "clarify", "memory", "code_execution"]
+        )
         self.assertEqual(sorted(result), ["file", "terminal"])
 
     def test_preserves_allowed_toolsets(self):
@@ -126,17 +132,24 @@ class TestDelegateTask(unittest.TestCase):
 
     def test_task_missing_goal(self):
         parent = _make_mock_parent()
-        result = json.loads(delegate_task(tasks=[{"context": "no goal here"}], parent_agent=parent))
+        result = json.loads(
+            delegate_task(tasks=[{"context": "no goal here"}], parent_agent=parent)
+        )
         self.assertIn("error", result)
 
     @patch("tools.delegate_tool._run_single_child")
     def test_single_task_mode(self, mock_run):
         mock_run.return_value = {
-            "task_index": 0, "status": "completed",
-            "summary": "Done!", "api_calls": 3, "duration_seconds": 5.0
+            "task_index": 0,
+            "status": "completed",
+            "summary": "Done!",
+            "api_calls": 3,
+            "duration_seconds": 5.0,
         }
         parent = _make_mock_parent()
-        result = json.loads(delegate_task(goal="Fix tests", context="error log...", parent_agent=parent))
+        result = json.loads(
+            delegate_task(goal="Fix tests", context="error log...", parent_agent=parent)
+        )
         self.assertIn("results", result)
         self.assertEqual(len(result["results"]), 1)
         self.assertEqual(result["results"][0]["status"], "completed")
@@ -146,8 +159,20 @@ class TestDelegateTask(unittest.TestCase):
     @patch("tools.delegate_tool._run_single_child")
     def test_batch_mode(self, mock_run):
         mock_run.side_effect = [
-            {"task_index": 0, "status": "completed", "summary": "Result A", "api_calls": 2, "duration_seconds": 3.0},
-            {"task_index": 1, "status": "completed", "summary": "Result B", "api_calls": 4, "duration_seconds": 6.0},
+            {
+                "task_index": 0,
+                "status": "completed",
+                "summary": "Result A",
+                "api_calls": 2,
+                "duration_seconds": 3.0,
+            },
+            {
+                "task_index": 1,
+                "status": "completed",
+                "summary": "Result B",
+                "api_calls": 4,
+                "duration_seconds": 6.0,
+            },
         ]
         parent = _make_mock_parent()
         tasks = [
@@ -164,8 +189,11 @@ class TestDelegateTask(unittest.TestCase):
     @patch("tools.delegate_tool._run_single_child")
     def test_batch_capped_at_3(self, mock_run):
         mock_run.return_value = {
-            "task_index": 0, "status": "completed",
-            "summary": "Done", "api_calls": 1, "duration_seconds": 1.0
+            "task_index": 0,
+            "status": "completed",
+            "summary": "Done",
+            "api_calls": 1,
+            "duration_seconds": 1.0,
         }
         parent = _make_mock_parent()
         limit = _get_max_concurrent_children()
@@ -180,25 +208,39 @@ class TestDelegateTask(unittest.TestCase):
     def test_batch_ignores_toplevel_goal(self, mock_run):
         """When tasks array is provided, top-level goal/context/toolsets are ignored."""
         mock_run.return_value = {
-            "task_index": 0, "status": "completed",
-            "summary": "Done", "api_calls": 1, "duration_seconds": 1.0
+            "task_index": 0,
+            "status": "completed",
+            "summary": "Done",
+            "api_calls": 1,
+            "duration_seconds": 1.0,
         }
         parent = _make_mock_parent()
-        result = json.loads(delegate_task(
-            goal="This should be ignored",
-            tasks=[{"goal": "Actual task"}],
-            parent_agent=parent,
-        ))
+        result = json.loads(
+            delegate_task(
+                goal="This should be ignored",
+                tasks=[{"goal": "Actual task"}],
+                parent_agent=parent,
+            )
+        )
         # The mock was called with the tasks array item, not the top-level goal
         call_args = mock_run.call_args
-        self.assertEqual(call_args.kwargs.get("goal") or call_args[1].get("goal", call_args[0][1] if len(call_args[0]) > 1 else None), "Actual task")
+        self.assertEqual(
+            call_args.kwargs.get("goal")
+            or call_args[1].get(
+                "goal", call_args[0][1] if len(call_args[0]) > 1 else None
+            ),
+            "Actual task",
+        )
 
     @patch("tools.delegate_tool._run_single_child")
     def test_failed_child_included_in_results(self, mock_run):
         mock_run.return_value = {
-            "task_index": 0, "status": "error",
-            "summary": None, "error": "Something broke",
-            "api_calls": 0, "duration_seconds": 0.5
+            "task_index": 0,
+            "status": "error",
+            "summary": None,
+            "error": "Something broke",
+            "api_calls": 0,
+            "duration_seconds": 0.5,
         }
         parent = _make_mock_parent()
         result = json.loads(delegate_task(goal="Break things", parent_agent=parent))
@@ -212,7 +254,9 @@ class TestDelegateTask(unittest.TestCase):
         with patch("run_agent.AIAgent") as MockAgent:
             mock_child = MagicMock()
             mock_child.run_conversation.return_value = {
-                "final_response": "done", "completed": True, "api_calls": 1
+                "final_response": "done",
+                "completed": True,
+                "api_calls": 1,
             }
             MockAgent.return_value = mock_child
 
@@ -226,7 +270,9 @@ class TestDelegateTask(unittest.TestCase):
         with patch("run_agent.AIAgent") as MockAgent:
             mock_child = MagicMock()
             mock_child.run_conversation.return_value = {
-                "final_response": "done", "completed": True, "api_calls": 1
+                "final_response": "done",
+                "completed": True,
+                "api_calls": 1,
             }
             MockAgent.return_value = mock_child
 
@@ -236,7 +282,7 @@ class TestDelegateTask(unittest.TestCase):
     def test_child_inherits_runtime_credentials(self):
         parent = _make_mock_parent(depth=0)
         parent.base_url = "https://chatgpt.com/backend-api/codex"
-        parent.api_key="***"
+        parent.api_key = "***"
         parent.provider = "openai-codex"
         parent.api_mode = "codex_responses"
 
@@ -311,13 +357,21 @@ class TestToolNamePreservation(unittest.TestCase):
         import model_tools
 
         parent = _make_mock_parent(depth=0)
-        original_tools = ["terminal", "read_file", "web_search", "execute_code", "delegate_task"]
+        original_tools = [
+            "terminal",
+            "read_file",
+            "web_search",
+            "execute_code",
+            "delegate_task",
+        ]
         model_tools._last_resolved_tool_names = list(original_tools)
 
         with patch("run_agent.AIAgent") as MockAgent:
             mock_child = MagicMock()
             mock_child.run_conversation.return_value = {
-                "final_response": "done", "completed": True, "api_calls": 1,
+                "final_response": "done",
+                "completed": True,
+                "api_calls": 1,
             }
             MockAgent.return_value = mock_child
 
@@ -415,16 +469,31 @@ class TestDelegateObservability(unittest.TestCase):
                 "api_calls": 3,
                 "messages": [
                     {"role": "user", "content": "do something"},
-                    {"role": "assistant", "tool_calls": [
-                        {"id": "tc_1", "function": {"name": "web_search", "arguments": '{"query": "test"}'}}
-                    ]},
-                    {"role": "tool", "tool_call_id": "tc_1", "content": '{"results": [1,2,3]}'},
+                    {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "tc_1",
+                                "function": {
+                                    "name": "web_search",
+                                    "arguments": '{"query": "test"}',
+                                },
+                            }
+                        ],
+                    },
+                    {
+                        "role": "tool",
+                        "tool_call_id": "tc_1",
+                        "content": '{"results": [1,2,3]}',
+                    },
                     {"role": "assistant", "content": "done"},
                 ],
             }
             MockAgent.return_value = mock_child
 
-            result = json.loads(delegate_task(goal="Test observability", parent_agent=parent))
+            result = json.loads(
+                delegate_task(goal="Test observability", parent_agent=parent)
+            )
             entry = result["results"][0]
 
             # Core observability fields
@@ -455,15 +524,30 @@ class TestDelegateObservability(unittest.TestCase):
                 "interrupted": False,
                 "api_calls": 1,
                 "messages": [
-                    {"role": "assistant", "tool_calls": [
-                        {"id": "tc_1", "function": {"name": "terminal", "arguments": '{"cmd": "ls"}'}}
-                    ]},
-                    {"role": "tool", "tool_call_id": "tc_1", "content": "Error: command not found"},
+                    {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "tc_1",
+                                "function": {
+                                    "name": "terminal",
+                                    "arguments": '{"cmd": "ls"}',
+                                },
+                            }
+                        ],
+                    },
+                    {
+                        "role": "tool",
+                        "tool_call_id": "tc_1",
+                        "content": "Error: command not found",
+                    },
                 ],
             }
             MockAgent.return_value = mock_child
 
-            result = json.loads(delegate_task(goal="Test error trace", parent_agent=parent))
+            result = json.loads(
+                delegate_task(goal="Test error trace", parent_agent=parent)
+            )
             trace = result["results"][0]["tool_trace"]
             self.assertEqual(trace[0]["status"], "error")
 
@@ -482,20 +566,51 @@ class TestDelegateObservability(unittest.TestCase):
                 "interrupted": False,
                 "api_calls": 1,
                 "messages": [
-                    {"role": "assistant", "tool_calls": [
-                        {"id": "tc_a", "function": {"name": "web_search", "arguments": '{"q": "a"}'}},
-                        {"id": "tc_b", "function": {"name": "web_search", "arguments": '{"q": "b"}'}},
-                        {"id": "tc_c", "function": {"name": "terminal", "arguments": '{"cmd": "ls"}'}},
-                    ]},
+                    {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "tc_a",
+                                "function": {
+                                    "name": "web_search",
+                                    "arguments": '{"q": "a"}',
+                                },
+                            },
+                            {
+                                "id": "tc_b",
+                                "function": {
+                                    "name": "web_search",
+                                    "arguments": '{"q": "b"}',
+                                },
+                            },
+                            {
+                                "id": "tc_c",
+                                "function": {
+                                    "name": "terminal",
+                                    "arguments": '{"cmd": "ls"}',
+                                },
+                            },
+                        ],
+                    },
                     {"role": "tool", "tool_call_id": "tc_a", "content": '{"ok": true}'},
-                    {"role": "tool", "tool_call_id": "tc_b", "content": "Error: rate limited"},
-                    {"role": "tool", "tool_call_id": "tc_c", "content": "file1.txt\nfile2.txt"},
+                    {
+                        "role": "tool",
+                        "tool_call_id": "tc_b",
+                        "content": "Error: rate limited",
+                    },
+                    {
+                        "role": "tool",
+                        "tool_call_id": "tc_c",
+                        "content": "file1.txt\nfile2.txt",
+                    },
                     {"role": "assistant", "content": "done"},
                 ],
             }
             MockAgent.return_value = mock_child
 
-            result = json.loads(delegate_task(goal="Test parallel", parent_agent=parent))
+            result = json.loads(
+                delegate_task(goal="Test parallel", parent_agent=parent)
+            )
             trace = result["results"][0]["tool_trace"]
 
             # All three tool calls should have results
@@ -534,7 +649,9 @@ class TestDelegateObservability(unittest.TestCase):
             }
             MockAgent.return_value = mock_child
 
-            result = json.loads(delegate_task(goal="Test interrupt", parent_agent=parent))
+            result = json.loads(
+                delegate_task(goal="Test interrupt", parent_agent=parent)
+            )
             self.assertEqual(result["results"][0]["exit_reason"], "interrupted")
 
     def test_exit_reason_max_iterations(self):
@@ -555,13 +672,21 @@ class TestDelegateObservability(unittest.TestCase):
             }
             MockAgent.return_value = mock_child
 
-            result = json.loads(delegate_task(goal="Test max iter", parent_agent=parent))
+            result = json.loads(
+                delegate_task(goal="Test max iter", parent_agent=parent)
+            )
             self.assertEqual(result["results"][0]["exit_reason"], "max_iterations")
 
 
 class TestBlockedTools(unittest.TestCase):
     def test_blocked_tools_constant(self):
-        for tool in ["delegate_task", "clarify", "memory", "send_message", "execute_code"]:
+        for tool in [
+            "delegate_task",
+            "clarify",
+            "memory",
+            "send_message",
+            "execute_code",
+        ]:
             self.assertIn(tool, DELEGATE_BLOCKED_TOOLS)
 
     def test_constants(self):
@@ -732,7 +857,9 @@ class TestDelegationProviderIntegration(unittest.TestCase):
         with patch("run_agent.AIAgent") as MockAgent:
             mock_child = MagicMock()
             mock_child.run_conversation.return_value = {
-                "final_response": "done", "completed": True, "api_calls": 1
+                "final_response": "done",
+                "completed": True,
+                "api_calls": 1,
             }
             MockAgent.return_value = mock_child
 
@@ -769,7 +896,9 @@ class TestDelegationProviderIntegration(unittest.TestCase):
         with patch("run_agent.AIAgent") as MockAgent:
             mock_child = MagicMock()
             mock_child.run_conversation.return_value = {
-                "final_response": "done", "completed": True, "api_calls": 1
+                "final_response": "done",
+                "completed": True,
+                "api_calls": 1,
             }
             MockAgent.return_value = mock_child
 
@@ -804,7 +933,9 @@ class TestDelegationProviderIntegration(unittest.TestCase):
         with patch("run_agent.AIAgent") as MockAgent:
             mock_child = MagicMock()
             mock_child.run_conversation.return_value = {
-                "final_response": "done", "completed": True, "api_calls": 1
+                "final_response": "done",
+                "completed": True,
+                "api_calls": 1,
             }
             MockAgent.return_value = mock_child
 
@@ -834,7 +965,9 @@ class TestDelegationProviderIntegration(unittest.TestCase):
         with patch("run_agent.AIAgent") as MockAgent:
             mock_child = MagicMock()
             mock_child.run_conversation.return_value = {
-                "final_response": "done", "completed": True, "api_calls": 1
+                "final_response": "done",
+                "completed": True,
+                "api_calls": 1,
             }
             MockAgent.return_value = mock_child
 
@@ -880,13 +1013,18 @@ class TestDelegationProviderIntegration(unittest.TestCase):
 
         # Patch _build_child_agent since credentials are now passed there
         # (agents are built in the main thread before being handed to workers)
-        with patch("tools.delegate_tool._build_child_agent") as mock_build, \
-             patch("tools.delegate_tool._run_single_child") as mock_run:
+        with (
+            patch("tools.delegate_tool._build_child_agent") as mock_build,
+            patch("tools.delegate_tool._run_single_child") as mock_run,
+        ):
             mock_child = MagicMock()
             mock_build.return_value = mock_child
             mock_run.return_value = {
-                "task_index": 0, "status": "completed",
-                "summary": "Done", "api_calls": 1, "duration_seconds": 1.0
+                "task_index": 0,
+                "status": "completed",
+                "summary": "Done",
+                "api_calls": 1,
+                "duration_seconds": 1.0,
             }
 
             tasks = [{"goal": "Task A"}, {"goal": "Task B"}]
@@ -896,13 +1034,19 @@ class TestDelegationProviderIntegration(unittest.TestCase):
             for call in mock_build.call_args_list:
                 self.assertEqual(call.kwargs.get("model"), "meta-llama/llama-4-scout")
                 self.assertEqual(call.kwargs.get("override_provider"), "openrouter")
-                self.assertEqual(call.kwargs.get("override_base_url"), "https://openrouter.ai/api/v1")
+                self.assertEqual(
+                    call.kwargs.get("override_base_url"), "https://openrouter.ai/api/v1"
+                )
                 self.assertEqual(call.kwargs.get("override_api_key"), "sk-or-batch")
-                self.assertEqual(call.kwargs.get("override_api_mode"), "chat_completions")
+                self.assertEqual(
+                    call.kwargs.get("override_api_mode"), "chat_completions"
+                )
 
     @patch("tools.delegate_tool._load_config")
     @patch("tools.delegate_tool._resolve_delegation_credentials")
-    def test_model_only_no_provider_inherits_parent_credentials(self, mock_creds, mock_cfg):
+    def test_model_only_no_provider_inherits_parent_credentials(
+        self, mock_creds, mock_cfg
+    ):
         """Setting only model (no provider) changes model but keeps parent credentials."""
         mock_cfg.return_value = {
             "max_iterations": 45,
@@ -921,7 +1065,9 @@ class TestDelegationProviderIntegration(unittest.TestCase):
         with patch("run_agent.AIAgent") as MockAgent:
             mock_child = MagicMock()
             mock_child.run_conversation.return_value = {
-                "final_response": "done", "completed": True, "api_calls": 1
+                "final_response": "done",
+                "completed": True,
+                "api_calls": 1,
             }
             MockAgent.return_value = mock_child
 
@@ -978,7 +1124,9 @@ class TestChildCredentialPoolResolution(unittest.TestCase):
         parent = _make_mock_parent()
         parent._credential_pool = MagicMock()
 
-        with patch("agent.credential_pool.load_pool", side_effect=Exception("disk error")):
+        with patch(
+            "agent.credential_pool.load_pool", side_effect=Exception("disk error")
+        ):
             result = _resolve_child_credential_pool("anthropic", parent)
 
         self.assertIsNone(result)
@@ -1096,12 +1244,14 @@ class TestDelegateHeartbeat(unittest.TestCase):
             )
 
         # Heartbeat should have fired at least once during the 0.25s sleep
-        self.assertGreater(len(touch_calls), 0,
-                           "Heartbeat did not propagate activity to parent")
+        self.assertGreater(
+            len(touch_calls), 0, "Heartbeat did not propagate activity to parent"
+        )
         # Verify the description includes child's current tool detail
         self.assertTrue(
             any("terminal" in desc for desc in touch_calls),
-            f"Heartbeat descriptions should include child tool info: {touch_calls}")
+            f"Heartbeat descriptions should include child tool info: {touch_calls}",
+        )
 
     def test_heartbeat_stops_after_child_completes(self):
         """Heartbeat thread is cleaned up when the child finishes."""
@@ -1119,7 +1269,9 @@ class TestDelegateHeartbeat(unittest.TestCase):
             "last_activity_desc": "done",
         }
         child.run_conversation.return_value = {
-            "final_response": "done", "completed": True, "api_calls": 1,
+            "final_response": "done",
+            "completed": True,
+            "api_calls": 1,
         }
 
         with patch("tools.delegate_tool._HEARTBEAT_INTERVAL", 0.05):
@@ -1133,8 +1285,11 @@ class TestDelegateHeartbeat(unittest.TestCase):
         # Record count after completion, wait, and verify no more calls
         count_after = len(touch_calls)
         time.sleep(0.15)
-        self.assertEqual(len(touch_calls), count_after,
-                         "Heartbeat continued firing after child completed")
+        self.assertEqual(
+            len(touch_calls),
+            count_after,
+            "Heartbeat continued firing after child completed",
+        )
 
     def test_heartbeat_stops_after_child_error(self):
         """Heartbeat thread is cleaned up even when the child raises."""
@@ -1171,8 +1326,11 @@ class TestDelegateHeartbeat(unittest.TestCase):
         # Verify heartbeat stopped
         count_after = len(touch_calls)
         time.sleep(0.15)
-        self.assertEqual(len(touch_calls), count_after,
-                         "Heartbeat continued firing after child error")
+        self.assertEqual(
+            len(touch_calls),
+            count_after,
+            "Heartbeat continued firing after child error",
+        )
 
     def test_heartbeat_includes_child_activity_desc_when_no_tool(self):
         """When child has no current_tool, heartbeat uses last_activity_desc."""
@@ -1207,7 +1365,8 @@ class TestDelegateHeartbeat(unittest.TestCase):
         self.assertGreater(len(touch_calls), 0)
         self.assertTrue(
             any("API call #5 completed" in desc for desc in touch_calls),
-            f"Heartbeat should include last_activity_desc: {touch_calls}")
+            f"Heartbeat should include last_activity_desc: {touch_calls}",
+        )
 
 
 class TestDelegationReasoningEffort(unittest.TestCase):
@@ -1223,11 +1382,18 @@ class TestDelegationReasoningEffort(unittest.TestCase):
         parent.reasoning_config = {"enabled": True, "effort": "xhigh"}
 
         _build_child_agent(
-            task_index=0, goal="test", context=None, toolsets=None,
-            model=None, max_iterations=50, parent_agent=parent,
+            task_index=0,
+            goal="test",
+            context=None,
+            toolsets=None,
+            model=None,
+            max_iterations=50,
+            parent_agent=parent,
         )
         call_kwargs = MockAgent.call_args[1]
-        self.assertEqual(call_kwargs["reasoning_config"], {"enabled": True, "effort": "xhigh"})
+        self.assertEqual(
+            call_kwargs["reasoning_config"], {"enabled": True, "effort": "xhigh"}
+        )
 
     @patch("tools.delegate_tool._load_config")
     @patch("run_agent.AIAgent")
@@ -1239,11 +1405,18 @@ class TestDelegationReasoningEffort(unittest.TestCase):
         parent.reasoning_config = {"enabled": True, "effort": "xhigh"}
 
         _build_child_agent(
-            task_index=0, goal="test", context=None, toolsets=None,
-            model=None, max_iterations=50, parent_agent=parent,
+            task_index=0,
+            goal="test",
+            context=None,
+            toolsets=None,
+            model=None,
+            max_iterations=50,
+            parent_agent=parent,
         )
         call_kwargs = MockAgent.call_args[1]
-        self.assertEqual(call_kwargs["reasoning_config"], {"enabled": True, "effort": "low"})
+        self.assertEqual(
+            call_kwargs["reasoning_config"], {"enabled": True, "effort": "low"}
+        )
 
     @patch("tools.delegate_tool._load_config")
     @patch("run_agent.AIAgent")
@@ -1255,8 +1428,13 @@ class TestDelegationReasoningEffort(unittest.TestCase):
         parent.reasoning_config = {"enabled": True, "effort": "high"}
 
         _build_child_agent(
-            task_index=0, goal="test", context=None, toolsets=None,
-            model=None, max_iterations=50, parent_agent=parent,
+            task_index=0,
+            goal="test",
+            context=None,
+            toolsets=None,
+            model=None,
+            max_iterations=50,
+            parent_agent=parent,
         )
         call_kwargs = MockAgent.call_args[1]
         self.assertEqual(call_kwargs["reasoning_config"], {"enabled": False})
@@ -1271,11 +1449,18 @@ class TestDelegationReasoningEffort(unittest.TestCase):
         parent.reasoning_config = {"enabled": True, "effort": "medium"}
 
         _build_child_agent(
-            task_index=0, goal="test", context=None, toolsets=None,
-            model=None, max_iterations=50, parent_agent=parent,
+            task_index=0,
+            goal="test",
+            context=None,
+            toolsets=None,
+            model=None,
+            max_iterations=50,
+            parent_agent=parent,
         )
         call_kwargs = MockAgent.call_args[1]
-        self.assertEqual(call_kwargs["reasoning_config"], {"enabled": True, "effort": "medium"})
+        self.assertEqual(
+            call_kwargs["reasoning_config"], {"enabled": True, "effort": "medium"}
+        )
 
 
 if __name__ == "__main__":

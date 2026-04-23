@@ -49,10 +49,7 @@ class TestSanitizeMessagesNonAscii:
         assert messages[0]["content"] == "hello  world"
 
     def test_sanitizes_content_list(self):
-        messages = [{
-            "role": "user",
-            "content": [{"type": "text", "text": "hello 🤖"}]
-        }]
+        messages = [{"role": "user", "content": [{"type": "text", "text": "hello 🤖"}]}]
         assert _sanitize_messages_non_ascii(messages) is True
         assert messages[0]["content"][0]["text"] == "hello "
 
@@ -62,20 +59,27 @@ class TestSanitizeMessagesNonAscii:
         assert messages[0]["name"] == "tool"
 
     def test_sanitizes_tool_calls(self):
-        messages = [{
-            "role": "assistant",
-            "content": None,
-            "tool_calls": [{
-                "id": "call_1",
-                "type": "function",
-                "function": {
-                    "name": "read_file",
-                    "arguments": '{"path": "⚕test.txt"}'
-                }
-            }]
-        }]
+        messages = [
+            {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": "call_1",
+                        "type": "function",
+                        "function": {
+                            "name": "read_file",
+                            "arguments": '{"path": "⚕test.txt"}',
+                        },
+                    }
+                ],
+            }
+        ]
         assert _sanitize_messages_non_ascii(messages) is True
-        assert messages[0]["tool_calls"][0]["function"]["arguments"] == '{"path": "test.txt"}'
+        assert (
+            messages[0]["tool_calls"][0]["function"]["arguments"]
+            == '{"path": "test.txt"}'
+        )
 
     def test_handles_non_dict_messages(self):
         messages = ["not a dict", {"role": "user", "content": "hello"}]
@@ -108,19 +112,23 @@ class TestSurrogateVsAsciiSanitization:
         assert "\ufffd" in messages[0]["content"]
 
     def test_surrogates_in_name_and_tool_calls_are_sanitized(self):
-        messages = [{
-            "role": "assistant",
-            "name": "bad\ud800name",
-            "content": None,
-            "tool_calls": [{
-                "id": "call_\ud800",
-                "type": "function",
-                "function": {
-                    "name": "read\ud800_file",
-                    "arguments": '{"path": "bad\ud800.txt"}'
-                }
-            }],
-        }]
+        messages = [
+            {
+                "role": "assistant",
+                "name": "bad\ud800name",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": "call_\ud800",
+                        "type": "function",
+                        "function": {
+                            "name": "read\ud800_file",
+                            "arguments": '{"path": "bad\ud800.txt"}',
+                        },
+                    }
+                ],
+            }
+        ]
         assert _sanitize_messages_surrogates(messages) is True
         assert "\ud800" not in messages[0]["name"]
         assert "\ud800" not in messages[0]["tool_calls"][0]["id"]

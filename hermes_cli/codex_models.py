@@ -56,6 +56,7 @@ def _fetch_models_from_api(access_token: str) -> List[str]:
     """Fetch available models from the Codex API. Returns visible models sorted by priority."""
     try:
         import httpx
+
         resp = httpx.get(
             "https://chatgpt.com/backend-api/codex/models?client_version=1.0.0",
             headers={"Authorization": f"Bearer {access_token}"},
@@ -80,7 +81,10 @@ def _fetch_models_from_api(access_token: str) -> List[str]:
         if item.get("supported_in_api") is False:
             continue
         visibility = item.get("visibility", "")
-        if isinstance(visibility, str) and visibility.strip().lower() in ("hide", "hidden"):
+        if isinstance(visibility, str) and visibility.strip().lower() in (
+            "hide",
+            "hidden",
+        ):
             continue
         priority = item.get("priority")
         rank = int(priority) if isinstance(priority, (int, float)) else 10_000
@@ -130,7 +134,10 @@ def _read_cache_models(codex_home: Path) -> List[str]:
             if item.get("supported_in_api") is False:
                 continue
             visibility = item.get("visibility")
-            if isinstance(visibility, str) and visibility.strip().lower() in ("hide", "hidden"):
+            if isinstance(visibility, str) and visibility.strip().lower() in (
+                "hide",
+                "hidden",
+            ):
                 continue
             priority = item.get("priority")
             rank = int(priority) if isinstance(priority, (int, float)) else 10_000
@@ -146,7 +153,7 @@ def _read_cache_models(codex_home: Path) -> List[str]:
 
 def get_codex_model_ids(access_token: Optional[str] = None) -> List[str]:
     """Return available Codex model IDs, trying API first, then local sources.
-    
+
     Resolution order: API (live, if token provided) > config.toml default >
     local cache > hardcoded defaults.
     """

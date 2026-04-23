@@ -92,8 +92,10 @@ class TestCheckLintBracePaths:
 
     def test_normal_path(self, ops):
         """Normal path without braces should work as before."""
-        with patch.object(ops, "_has_command", return_value=True), \
-             patch.object(ops, "_exec") as mock_exec:
+        with (
+            patch.object(ops, "_has_command", return_value=True),
+            patch.object(ops, "_exec") as mock_exec,
+        ):
             mock_exec.return_value = MagicMock(exit_code=0, stdout="")
             result = ops._check_lint("/tmp/test_file.py")
 
@@ -104,8 +106,10 @@ class TestCheckLintBracePaths:
 
     def test_path_with_curly_braces(self, ops):
         """Path containing ``{`` and ``}`` must not raise KeyError/ValueError."""
-        with patch.object(ops, "_has_command", return_value=True), \
-             patch.object(ops, "_exec") as mock_exec:
+        with (
+            patch.object(ops, "_has_command", return_value=True),
+            patch.object(ops, "_exec") as mock_exec,
+        ):
             mock_exec.return_value = MagicMock(exit_code=0, stdout="")
             # This would raise KeyError with .format() but works with .replace()
             result = ops._check_lint("/tmp/{test}_file.py")
@@ -116,8 +120,10 @@ class TestCheckLintBracePaths:
 
     def test_path_with_nested_braces(self, ops):
         """Path with complex brace patterns like ``{{var}}`` should be safe."""
-        with patch.object(ops, "_has_command", return_value=True), \
-             patch.object(ops, "_exec") as mock_exec:
+        with (
+            patch.object(ops, "_has_command", return_value=True),
+            patch.object(ops, "_exec") as mock_exec,
+        ):
             mock_exec.return_value = MagicMock(exit_code=0, stdout="")
             result = ops._check_lint("/tmp/{{var}}.py")
 
@@ -136,8 +142,10 @@ class TestCheckLintBracePaths:
 
     def test_lint_failure_returns_output(self, ops):
         """When the linter exits non-zero, result should capture output."""
-        with patch.object(ops, "_has_command", return_value=True), \
-             patch.object(ops, "_exec") as mock_exec:
+        with (
+            patch.object(ops, "_has_command", return_value=True),
+            patch.object(ops, "_exec") as mock_exec,
+        ):
             mock_exec.return_value = MagicMock(
                 exit_code=1,
                 stdout="SyntaxError: invalid syntax",

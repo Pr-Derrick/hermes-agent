@@ -25,11 +25,12 @@ from gateway.session import SessionEntry, SessionSource, build_session_key
 
 # Platform library mocks
 
+
 # Ensure telegram module is available (mock it if not installed)
 def _ensure_telegram_mock():
     """Install mock telegram modules so TelegramAdapter can be imported."""
     if "telegram" in sys.modules and hasattr(sys.modules["telegram"], "__file__"):
-        return # Real library installed
+        return  # Real library installed
 
     telegram_mod = MagicMock()
     telegram_mod.Update = MagicMock()
@@ -58,7 +59,7 @@ def _ensure_telegram_mock():
 def _ensure_discord_mock():
     """Install mock discord modules so DiscordAdapter can be imported."""
     if "discord" in sys.modules and hasattr(sys.modules["discord"], "__file__"):
-        return # Real library installed
+        return  # Real library installed
 
     discord_mod = MagicMock()
     discord_mod.Intents.default.return_value = MagicMock()
@@ -67,8 +68,8 @@ def _ensure_discord_mock():
     discord_mod.ForumChannel = type("ForumChannel", (), {})
     discord_mod.Interaction = object
     discord_mod.app_commands = SimpleNamespace(
-        describe=lambda **kwargs: (lambda fn: fn),
-        choices=lambda **kwargs: (lambda fn: fn),
+        describe=lambda **kwargs: lambda fn: fn,
+        choices=lambda **kwargs: lambda fn: fn,
         Choice=lambda **kwargs: SimpleNamespace(**kwargs),
     )
     discord_mod.opus.is_loaded.return_value = True
@@ -101,7 +102,10 @@ def _ensure_slack_mock():
         ("slack_bolt.async_app", slack_bolt.async_app),
         ("slack_bolt.adapter", slack_bolt.adapter),
         ("slack_bolt.adapter.socket_mode", slack_bolt.adapter.socket_mode),
-        ("slack_bolt.adapter.socket_mode.async_handler", slack_bolt.adapter.socket_mode.async_handler),
+        (
+            "slack_bolt.adapter.socket_mode.async_handler",
+            slack_bolt.adapter.socket_mode.async_handler,
+        ),
         ("slack_sdk", slack_sdk),
         ("slack_sdk.web", slack_sdk.web),
         ("slack_sdk.web.async_client", slack_sdk.web.async_client),
@@ -113,17 +117,21 @@ _ensure_telegram_mock()
 _ensure_discord_mock()
 _ensure_slack_mock()
 
-from gateway.platforms.discord import DiscordAdapter   # noqa: E402
+from gateway.platforms.discord import DiscordAdapter  # noqa: E402
 from gateway.platforms.telegram import TelegramAdapter  # noqa: E402
 
 import gateway.platforms.slack as _slack_mod  # noqa: E402
+
 _slack_mod.SLACK_AVAILABLE = True
 from gateway.platforms.slack import SlackAdapter  # noqa: E402
 
 
 # Platform-generic factories
 
-def make_source(platform: Platform, chat_id: str = "e2e-chat-1", user_id: str = "e2e-user-1") -> SessionSource:
+
+def make_source(
+    platform: Platform, chat_id: str = "e2e-chat-1", user_id: str = "e2e-user-1"
+) -> SessionSource:
     return SessionSource(
         platform=platform,
         chat_id=chat_id,
@@ -133,7 +141,9 @@ def make_source(platform: Platform, chat_id: str = "e2e-chat-1", user_id: str = 
     )
 
 
-def make_session_entry(platform: Platform, source: SessionSource = None) -> SessionEntry:
+def make_session_entry(
+    platform: Platform, source: SessionSource = None
+) -> SessionEntry:
     source = source or make_source(platform)
     return SessionEntry(
         session_key=build_session_key(source),
@@ -145,7 +155,12 @@ def make_session_entry(platform: Platform, source: SessionSource = None) -> Sess
     )
 
 
-def make_event(platform: Platform, text: str = "/help", chat_id: str = "e2e-chat-1", user_id: str = "e2e-user-1") -> MessageEvent:
+def make_event(
+    platform: Platform,
+    text: str = "/help",
+    chat_id: str = "e2e-chat-1",
+    user_id: str = "e2e-user-1",
+) -> MessageEvent:
     return MessageEvent(
         text=text,
         source=make_source(platform, chat_id, user_id),
@@ -153,7 +168,9 @@ def make_event(platform: Platform, text: str = "/help", chat_id: str = "e2e-chat
     )
 
 
-def make_runner(platform: Platform, session_entry: SessionEntry = None) -> "GatewayRunner":
+def make_runner(
+    platform: Platform, session_entry: SessionEntry = None
+) -> "GatewayRunner":
     """Create a GatewayRunner with mocked internals for e2e testing.
 
     Skips __init__ to avoid filesystem/network side effects.
@@ -212,6 +229,7 @@ def make_adapter(platform: Platform, runner=None):
 
     if platform == Platform.DISCORD:
         from gateway.platforms.helpers import ThreadParticipationTracker
+
         with patch.object(ThreadParticipationTracker, "_load", return_value=set()):
             adapter = DiscordAdapter(config)
         platform_key = Platform.DISCORD
@@ -222,7 +240,9 @@ def make_adapter(platform: Platform, runner=None):
         adapter = TelegramAdapter(config)
         platform_key = Platform.TELEGRAM
 
-    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="e2e-resp-1"))
+    adapter.send = AsyncMock(
+        return_value=SendResult(success=True, message_id="e2e-resp-1")
+    )
     adapter.send_typing = AsyncMock()
 
     adapter.set_message_handler(runner._handle_message)
@@ -231,7 +251,9 @@ def make_adapter(platform: Platform, runner=None):
     return adapter
 
 
-async def send_and_capture(adapter, text: str, platform: Platform, **event_kwargs) -> AsyncMock:
+async def send_and_capture(
+    adapter, text: str, platform: Platform, **event_kwargs
+) -> AsyncMock:
     """Send a message through the full e2e flow and return the send mock."""
     event = make_event(platform, text, **event_kwargs)
     adapter.send.reset_mock()
@@ -241,7 +263,10 @@ async def send_and_capture(adapter, text: str, platform: Platform, **event_kwarg
 
 
 # Parametrized fixtures for platform-generic tests
-@pytest.fixture(params=[Platform.TELEGRAM, Platform.DISCORD, Platform.SLACK], ids=["telegram", "discord", "slack"])
+@pytest.fixture(
+    params=[Platform.TELEGRAM, Platform.DISCORD, Platform.SLACK],
+    ids=["telegram", "discord", "slack"],
+)
 def platform(request):
     return request.param
 

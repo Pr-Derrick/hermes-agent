@@ -9,7 +9,12 @@ from types import SimpleNamespace
 import pytest
 
 from gateway.config import Platform, PlatformConfig, StreamingConfig
-from gateway.platforms.base import BasePlatformAdapter, MessageEvent, MessageType, SendResult
+from gateway.platforms.base import (
+    BasePlatformAdapter,
+    MessageEvent,
+    MessageType,
+    SendResult,
+)
 from gateway.session import SessionSource
 
 
@@ -62,7 +67,9 @@ class FakeAgent:
     def run_conversation(self, message, conversation_history=None, task_id=None):
         self.tool_progress_callback("tool.started", "terminal", "pwd", {})
         time.sleep(0.35)
-        self.tool_progress_callback("tool.started", "browser_navigate", "https://example.com", {})
+        self.tool_progress_callback(
+            "tool.started", "browser_navigate", "https://example.com", {}
+        )
         time.sleep(0.35)
         return {
             "final_response": "done",
@@ -73,6 +80,7 @@ class FakeAgent:
 
 class LongPreviewAgent:
     """Agent that emits a tool call with a very long preview string."""
+
     LONG_CMD = "cd /home/teknium/.hermes/hermes-agent/.worktrees/hermes-d8860339 && source .venv/bin/activate && python -m pytest tests/gateway/test_run_progress_topics.py -n0 -q"
 
     def __init__(self, **kwargs):
@@ -129,7 +137,9 @@ async def test_run_agent_progress_stays_in_originating_topic(monkeypatch, tmp_pa
     runner = _make_runner(adapter)
     gateway_run = importlib.import_module("gateway.run")
     monkeypatch.setattr(gateway_run, "_hermes_home", tmp_path)
-    monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "fake"})
+    monkeypatch.setattr(
+        gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "fake"}
+    )
     source = SessionSource(
         platform=Platform.TELEGRAM,
         chat_id="-1001",
@@ -160,7 +170,9 @@ async def test_run_agent_progress_stays_in_originating_topic(monkeypatch, tmp_pa
 
 
 @pytest.mark.asyncio
-async def test_run_agent_progress_does_not_use_event_message_id_for_telegram_dm(monkeypatch, tmp_path):
+async def test_run_agent_progress_does_not_use_event_message_id_for_telegram_dm(
+    monkeypatch, tmp_path
+):
     """Telegram DM progress must not reuse event message id as thread metadata."""
     monkeypatch.setenv("HERMES_TOOL_PROGRESS_MODE", "all")
 
@@ -176,7 +188,9 @@ async def test_run_agent_progress_does_not_use_event_message_id_for_telegram_dm(
     runner = _make_runner(adapter)
     gateway_run = importlib.import_module("gateway.run")
     monkeypatch.setattr(gateway_run, "_hermes_home", tmp_path)
-    monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"})
+    monkeypatch.setattr(
+        gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"}
+    )
 
     source = SessionSource(
         platform=Platform.TELEGRAM,
@@ -202,7 +216,9 @@ async def test_run_agent_progress_does_not_use_event_message_id_for_telegram_dm(
 
 
 @pytest.mark.asyncio
-async def test_run_agent_progress_uses_event_message_id_for_slack_dm(monkeypatch, tmp_path):
+async def test_run_agent_progress_uses_event_message_id_for_slack_dm(
+    monkeypatch, tmp_path
+):
     """Slack DM progress should keep event ts fallback threading."""
     monkeypatch.setenv("HERMES_TOOL_PROGRESS_MODE", "all")
 
@@ -218,7 +234,9 @@ async def test_run_agent_progress_uses_event_message_id_for_slack_dm(monkeypatch
     runner = _make_runner(adapter)
     gateway_run = importlib.import_module("gateway.run")
     monkeypatch.setattr(gateway_run, "_hermes_home", tmp_path)
-    monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"})
+    monkeypatch.setattr(
+        gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"}
+    )
 
     source = SessionSource(
         platform=Platform.SLACK,
@@ -240,7 +258,10 @@ async def test_run_agent_progress_uses_event_message_id_for_slack_dm(monkeypatch
     assert result["final_response"] == "done"
     assert adapter.sent
     assert adapter.sent[0]["metadata"] == {"thread_id": "1234567890.000001"}
-    assert all(call["metadata"] == {"thread_id": "1234567890.000001"} for call in adapter.typing)
+    assert all(
+        call["metadata"] == {"thread_id": "1234567890.000001"}
+        for call in adapter.typing
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -276,7 +297,9 @@ def _run_long_preview_helper(monkeypatch, tmp_path, preview_length=0):
     runner = _make_runner(adapter)
     gateway_run = importlib.import_module("gateway.run")
     monkeypatch.setattr(gateway_run, "_hermes_home", tmp_path)
-    monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"})
+    monkeypatch.setattr(
+        gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"}
+    )
 
     source = SessionSource(
         platform=Platform.TELEGRAM,
@@ -308,38 +331,52 @@ def test_all_mode_default_truncation_40_chars(monkeypatch, tmp_path):
     assert "..." in content
     # Extract the preview part between quotes
     import re
+
     match = re.search(r'"(.+)"', content)
     assert match, f"No quoted preview found in: {content}"
     preview_text = match.group(1)
-    assert len(preview_text) <= 40, f"Preview too long ({len(preview_text)}): {preview_text}"
+    assert len(preview_text) <= 40, (
+        f"Preview too long ({len(preview_text)}): {preview_text}"
+    )
 
 
 def test_all_mode_respects_custom_preview_length(monkeypatch, tmp_path):
     """When tool_preview_length is explicitly set (e.g. 120), all/new mode uses that."""
-    adapter, result = _run_long_preview_helper(monkeypatch, tmp_path, preview_length=120)
+    adapter, result = _run_long_preview_helper(
+        monkeypatch, tmp_path, preview_length=120
+    )
     assert result["final_response"] == "done"
     assert adapter.sent
     content = adapter.sent[0]["content"]
     # With 120-char cap, the command (165 chars) should still be truncated but longer
     import re
+
     match = re.search(r'"(.+)"', content)
     assert match, f"No quoted preview found in: {content}"
     preview_text = match.group(1)
     # Should be longer than the 40-char default
-    assert len(preview_text) > 40, f"Preview suspiciously short ({len(preview_text)}): {preview_text}"
+    assert len(preview_text) > 40, (
+        f"Preview suspiciously short ({len(preview_text)}): {preview_text}"
+    )
     # But still capped at 120
-    assert len(preview_text) <= 120, f"Preview too long ({len(preview_text)}): {preview_text}"
+    assert len(preview_text) <= 120, (
+        f"Preview too long ({len(preview_text)}): {preview_text}"
+    )
 
 
 def test_all_mode_no_truncation_when_preview_fits(monkeypatch, tmp_path):
     """Short previews (under the cap) are not truncated."""
     # Set a generous cap — the LongPreviewAgent's command is ~165 chars
-    adapter, result = _run_long_preview_helper(monkeypatch, tmp_path, preview_length=200)
+    adapter, result = _run_long_preview_helper(
+        monkeypatch, tmp_path, preview_length=200
+    )
     assert result["final_response"] == "done"
     assert adapter.sent
     content = adapter.sent[0]["content"]
     # With a 200-char cap, the 165-char command should NOT be truncated
-    assert "..." not in content, f"Preview was truncated when it shouldn't be: {content}"
+    assert "..." not in content, (
+        f"Preview was truncated when it shouldn't be: {content}"
+    )
 
 
 class CommentaryAgent:
@@ -351,7 +388,9 @@ class CommentaryAgent:
 
     def run_conversation(self, message, conversation_history=None, task_id=None):
         if self.interim_assistant_callback:
-            self.interim_assistant_callback("I'll inspect the repo first.", already_streamed=False)
+            self.interim_assistant_callback(
+                "I'll inspect the repo first.", already_streamed=False
+            )
         time.sleep(0.1)
         if self.stream_delta_callback:
             self.stream_delta_callback("done")
@@ -388,7 +427,9 @@ class QueuedCommentaryAgent:
     def run_conversation(self, message, conversation_history=None, task_id=None):
         type(self).calls += 1
         if type(self).calls == 1 and self.interim_assistant_callback:
-            self.interim_assistant_callback("I'll inspect the repo first.", already_streamed=False)
+            self.interim_assistant_callback(
+                "I'll inspect the repo first.", already_streamed=False
+            )
         return {
             "final_response": f"final response {type(self).calls}",
             "messages": [],
@@ -424,7 +465,9 @@ async def _run_with_agent(
     if config_data and "streaming" in config_data:
         runner.config.streaming = StreamingConfig.from_dict(config_data["streaming"])
     monkeypatch.setattr(gateway_run, "_hermes_home", tmp_path)
-    monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"})
+    monkeypatch.setattr(
+        gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"}
+    )
     source = SessionSource(
         platform=Platform.TELEGRAM,
         chat_id="-1001",
@@ -462,7 +505,9 @@ async def test_run_agent_surfaces_real_interim_commentary(monkeypatch, tmp_path)
     )
 
     assert result.get("already_sent") is not True
-    assert any(call["content"] == "I'll inspect the repo first." for call in adapter.sent)
+    assert any(
+        call["content"] == "I'll inspect the repo first." for call in adapter.sent
+    )
 
 
 @pytest.mark.asyncio
@@ -474,11 +519,15 @@ async def test_run_agent_surfaces_interim_commentary_by_default(monkeypatch, tmp
         session_id="sess-commentary-default-on",
     )
 
-    assert any(call["content"] == "I'll inspect the repo first." for call in adapter.sent)
+    assert any(
+        call["content"] == "I'll inspect the repo first." for call in adapter.sent
+    )
 
 
 @pytest.mark.asyncio
-async def test_run_agent_suppresses_interim_commentary_when_disabled(monkeypatch, tmp_path):
+async def test_run_agent_suppresses_interim_commentary_when_disabled(
+    monkeypatch, tmp_path
+):
     adapter, result = await _run_with_agent(
         monkeypatch,
         tmp_path,
@@ -488,22 +537,30 @@ async def test_run_agent_suppresses_interim_commentary_when_disabled(monkeypatch
     )
 
     assert result.get("already_sent") is not True
-    assert not any(call["content"] == "I'll inspect the repo first." for call in adapter.sent)
+    assert not any(
+        call["content"] == "I'll inspect the repo first." for call in adapter.sent
+    )
 
 
 @pytest.mark.asyncio
-async def test_run_agent_tool_progress_does_not_control_interim_commentary(monkeypatch, tmp_path):
+async def test_run_agent_tool_progress_does_not_control_interim_commentary(
+    monkeypatch, tmp_path
+):
     """tool_progress=all with interim_assistant_messages=false should not surface commentary."""
     adapter, result = await _run_with_agent(
         monkeypatch,
         tmp_path,
         CommentaryAgent,
         session_id="sess-commentary-tool-progress",
-        config_data={"display": {"tool_progress": "all", "interim_assistant_messages": False}},
+        config_data={
+            "display": {"tool_progress": "all", "interim_assistant_messages": False}
+        },
     )
 
     assert result.get("already_sent") is not True
-    assert not any(call["content"] == "I'll inspect the repo first." for call in adapter.sent)
+    assert not any(
+        call["content"] == "I'll inspect the repo first." for call in adapter.sent
+    )
 
 
 @pytest.mark.asyncio
@@ -523,11 +580,15 @@ async def test_run_agent_streaming_does_not_enable_completed_interim_commentary(
     )
 
     assert result.get("already_sent") is True
-    assert not any(call["content"] == "I'll inspect the repo first." for call in adapter.sent)
+    assert not any(
+        call["content"] == "I'll inspect the repo first." for call in adapter.sent
+    )
 
 
 @pytest.mark.asyncio
-async def test_run_agent_interim_commentary_works_with_tool_progress_off(monkeypatch, tmp_path):
+async def test_run_agent_interim_commentary_works_with_tool_progress_off(
+    monkeypatch, tmp_path
+):
     adapter, result = await _run_with_agent(
         monkeypatch,
         tmp_path,
@@ -542,7 +603,9 @@ async def test_run_agent_interim_commentary_works_with_tool_progress_off(monkeyp
     )
 
     assert result.get("already_sent") is not True
-    assert any(call["content"] == "I'll inspect the repo first." for call in adapter.sent)
+    assert any(
+        call["content"] == "I'll inspect the repo first." for call in adapter.sent
+    )
 
 
 @pytest.mark.asyncio
@@ -560,7 +623,9 @@ async def test_run_agent_previewed_final_marks_already_sent(monkeypatch, tmp_pat
 
 
 @pytest.mark.asyncio
-async def test_run_agent_queued_message_does_not_treat_commentary_as_final(monkeypatch, tmp_path):
+async def test_run_agent_queued_message_does_not_treat_commentary_as_final(
+    monkeypatch, tmp_path
+):
     QueuedCommentaryAgent.calls = 0
     adapter, result = await _run_with_agent(
         monkeypatch,

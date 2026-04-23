@@ -16,6 +16,7 @@ import pytest
 # Mattermost: _ws_loop auth-aware retry
 # ---------------------------------------------------------------------------
 
+
 class TestMattermostWSAuthRetry:
     """gateway/platforms/mattermost.py — _ws_loop()"""
 
@@ -32,6 +33,7 @@ class TestMattermostWSAuthRetry:
         )
 
         from gateway.platforms.mattermost import MattermostAdapter
+
         adapter = MattermostAdapter.__new__(MattermostAdapter)
         adapter._closing = False
 
@@ -62,6 +64,7 @@ class TestMattermostWSAuthRetry:
         )
 
         from gateway.platforms.mattermost import MattermostAdapter
+
         adapter = MattermostAdapter.__new__(MattermostAdapter)
         adapter._closing = False
 
@@ -80,6 +83,7 @@ class TestMattermostWSAuthRetry:
     def test_transient_error_retries(self):
         """A transient ConnectionError should retry (not stop immediately)."""
         from gateway.platforms.mattermost import MattermostAdapter
+
         adapter = MattermostAdapter.__new__(MattermostAdapter)
         adapter._closing = False
 
@@ -110,12 +114,14 @@ class TestMattermostWSAuthRetry:
 # Matrix: _sync_loop auth-aware retry
 # ---------------------------------------------------------------------------
 
+
 class TestMatrixSyncAuthRetry:
     """gateway/platforms/matrix.py — _sync_loop()"""
 
     def test_unknown_token_sync_error_stops_loop(self):
         """A SyncError with M_UNKNOWN_TOKEN should stop syncing."""
         import types
+
         nio_mock = types.ModuleType("nio")
 
         class SyncError:
@@ -125,6 +131,7 @@ class TestMatrixSyncAuthRetry:
         nio_mock.SyncError = SyncError
 
         from gateway.platforms.matrix import MatrixAdapter
+
         adapter = MatrixAdapter.__new__(MatrixAdapter)
         adapter._closing = False
 
@@ -140,6 +147,7 @@ class TestMatrixSyncAuthRetry:
 
         async def run():
             import sys
+
             sys.modules["nio"] = nio_mock
             try:
                 await adapter._sync_loop()
@@ -152,6 +160,7 @@ class TestMatrixSyncAuthRetry:
     def test_exception_with_401_stops_loop(self):
         """An exception containing '401' should stop syncing."""
         from gateway.platforms.matrix import MatrixAdapter
+
         adapter = MatrixAdapter.__new__(MatrixAdapter)
         adapter._closing = False
 
@@ -167,10 +176,12 @@ class TestMatrixSyncAuthRetry:
 
         async def run():
             import types
+
             nio_mock = types.ModuleType("nio")
             nio_mock.SyncError = type("SyncError", (), {})
 
             import sys
+
             sys.modules["nio"] = nio_mock
             try:
                 await adapter._sync_loop()
@@ -183,6 +194,7 @@ class TestMatrixSyncAuthRetry:
     def test_transient_error_retries(self):
         """A transient error should retry (not stop immediately)."""
         from gateway.platforms.matrix import MatrixAdapter
+
         adapter = MatrixAdapter.__new__(MatrixAdapter)
         adapter._closing = False
 
@@ -201,10 +213,12 @@ class TestMatrixSyncAuthRetry:
 
         async def run():
             import types
+
             nio_mock = types.ModuleType("nio")
             nio_mock.SyncError = type("SyncError", (), {})
 
             import sys
+
             sys.modules["nio"] = nio_mock
             try:
                 with patch("asyncio.sleep", new_callable=AsyncMock):

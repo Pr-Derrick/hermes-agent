@@ -1,4 +1,5 @@
 """Tests for /personality none — clearing personality overlay."""
+
 import pytest
 from unittest.mock import MagicMock, patch, mock_open
 import yaml
@@ -6,10 +7,11 @@ import yaml
 
 # ── CLI tests ──────────────────────────────────────────────────────────────
 
-class TestCLIPersonalityNone:
 
+class TestCLIPersonalityNone:
     def _make_cli(self, personalities=None):
         from cli import HermesCLI
+
         cli = HermesCLI.__new__(HermesCLI)
         cli.personalities = personalities or {
             "helpful": "You are helpful.",
@@ -72,8 +74,8 @@ class TestCLIPersonalityNone:
 
 # ── Gateway tests ──────────────────────────────────────────────────────────
 
-class TestGatewayPersonalityNone:
 
+class TestGatewayPersonalityNone:
     def _make_event(self, args=""):
         event = MagicMock()
         event.get_command.return_value = "personality"
@@ -82,19 +84,23 @@ class TestGatewayPersonalityNone:
 
     def _make_runner(self, personalities=None):
         from gateway.run import GatewayRunner
+
         runner = GatewayRunner.__new__(GatewayRunner)
         runner._ephemeral_system_prompt = "You are kawaii~"
         runner.config = {
-            "agent": {
-                "personalities": personalities or {"helpful": "You are helpful."}
-            }
+            "agent": {"personalities": personalities or {"helpful": "You are helpful."}}
         }
         return runner
 
     @pytest.mark.asyncio
     async def test_none_clears_ephemeral_prompt(self, tmp_path):
         runner = self._make_runner()
-        config_data = {"agent": {"personalities": {"helpful": "You are helpful."}, "system_prompt": "kawaii"}}
+        config_data = {
+            "agent": {
+                "personalities": {"helpful": "You are helpful."},
+                "system_prompt": "kawaii",
+            }
+        }
         config_file = tmp_path / "config.yaml"
         config_file.write_text(yaml.dump(config_data))
 
@@ -150,6 +156,7 @@ class TestPersonalityDictFormat:
 
     def _make_cli(self, personalities):
         from cli import HermesCLI
+
         cli = HermesCLI.__new__(HermesCLI)
         cli.personalities = personalities
         cli.system_prompt = ""
@@ -158,36 +165,42 @@ class TestPersonalityDictFormat:
         return cli
 
     def test_dict_personality_uses_system_prompt(self):
-        cli = self._make_cli({
-            "coder": {
-                "description": "Expert programmer",
-                "system_prompt": "You are an expert programmer.",
-                "tone": "technical",
-                "style": "concise",
+        cli = self._make_cli(
+            {
+                "coder": {
+                    "description": "Expert programmer",
+                    "system_prompt": "You are an expert programmer.",
+                    "tone": "technical",
+                    "style": "concise",
+                }
             }
-        })
+        )
         with patch("cli.save_config_value", return_value=True):
             cli._handle_personality_command("/personality coder")
         assert "You are an expert programmer." in cli.system_prompt
 
     def test_dict_personality_includes_tone(self):
-        cli = self._make_cli({
-            "coder": {
-                "system_prompt": "You are an expert programmer.",
-                "tone": "technical and precise",
+        cli = self._make_cli(
+            {
+                "coder": {
+                    "system_prompt": "You are an expert programmer.",
+                    "tone": "technical and precise",
+                }
             }
-        })
+        )
         with patch("cli.save_config_value", return_value=True):
             cli._handle_personality_command("/personality coder")
         assert "Tone: technical and precise" in cli.system_prompt
 
     def test_dict_personality_includes_style(self):
-        cli = self._make_cli({
-            "coder": {
-                "system_prompt": "You are an expert programmer.",
-                "style": "use code examples",
+        cli = self._make_cli(
+            {
+                "coder": {
+                    "system_prompt": "You are an expert programmer.",
+                    "style": "use code examples",
+                }
             }
-        })
+        )
         with patch("cli.save_config_value", return_value=True):
             cli._handle_personality_command("/personality coder")
         assert "Style: use code examples" in cli.system_prompt
@@ -200,13 +213,17 @@ class TestPersonalityDictFormat:
 
     def test_resolve_prompt_dict_no_tone_no_style(self):
         from cli import HermesCLI
-        result = HermesCLI._resolve_personality_prompt({
-            "description": "A helper",
-            "system_prompt": "You are helpful.",
-        })
+
+        result = HermesCLI._resolve_personality_prompt(
+            {
+                "description": "A helper",
+                "system_prompt": "You are helpful.",
+            }
+        )
         assert result == "You are helpful."
 
     def test_resolve_prompt_string(self):
         from cli import HermesCLI
+
         result = HermesCLI._resolve_personality_prompt("You are helpful.")
         assert result == "You are helpful."

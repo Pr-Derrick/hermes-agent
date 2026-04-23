@@ -27,6 +27,7 @@ except ImportError:
 
 # ─── Registry tests ─────────────────────────────────────────────────────
 
+
 class TestParserRegistry:
     def test_list_parsers_returns_nonempty(self):
         parsers = list_parsers()
@@ -53,6 +54,7 @@ class TestParserRegistry:
 
 
 # ─── Hermes parser tests ────────────────────────────────────────────────
+
 
 class TestHermesParser:
     @pytest.fixture
@@ -111,7 +113,7 @@ class TestHermesParser:
         assert tool_calls is None
 
     def test_malformed_json_in_tool_call(self, parser):
-        text = '<tool_call>not valid json</tool_call>'
+        text = "<tool_call>not valid json</tool_call>"
         content, tool_calls = parser.parse(text)
         # Should either return None tool_calls or handle gracefully
         # (implementation may vary — some parsers return error tool calls)
@@ -125,6 +127,7 @@ class TestHermesParser:
 
 
 # ─── Parse result contract tests (applies to ALL parsers) ───────────────
+
 
 class TestParseResultContract:
     """Ensure all parsers conform to the ParseResult contract."""
@@ -161,6 +164,7 @@ class TestParseResultContract:
 
 # ─── DeepSeek V3 parser tests ───────────────────────────────────────────
 
+
 class TestDeepSeekV3Parser:
     @pytest.fixture
     def parser(self):
@@ -174,7 +178,7 @@ class TestDeepSeekV3Parser:
 
     def test_single_tool_call(self, parser):
         text = (
-            '<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>function<｜tool▁sep｜>get_weather\n'
+            "<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>function<｜tool▁sep｜>get_weather\n"
             '```json\n{"city": "London"}\n```<｜tool▁call▁end｜><｜tool▁calls▁end｜>'
         )
         content, tool_calls = parser.parse(text)
@@ -186,12 +190,12 @@ class TestDeepSeekV3Parser:
 
     def test_multiple_tool_calls(self, parser):
         text = (
-            '<｜tool▁calls▁begin｜>'
-            '<｜tool▁call▁begin｜>function<｜tool▁sep｜>get_weather\n'
+            "<｜tool▁calls▁begin｜>"
+            "<｜tool▁call▁begin｜>function<｜tool▁sep｜>get_weather\n"
             '```json\n{"city": "London"}\n```<｜tool▁call▁end｜>'
-            '<｜tool▁call▁begin｜>function<｜tool▁sep｜>get_time\n'
+            "<｜tool▁call▁begin｜>function<｜tool▁sep｜>get_time\n"
             '```json\n{"timezone": "UTC"}\n```<｜tool▁call▁end｜>'
-            '<｜tool▁calls▁end｜>'
+            "<｜tool▁calls▁end｜>"
         )
         content, tool_calls = parser.parse(text)
         assert tool_calls is not None
@@ -202,8 +206,8 @@ class TestDeepSeekV3Parser:
 
     def test_tool_call_with_preceding_text(self, parser):
         text = (
-            'Let me check that for you.\n'
-            '<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>function<｜tool▁sep｜>terminal\n'
+            "Let me check that for you.\n"
+            "<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>function<｜tool▁sep｜>terminal\n"
             '```json\n{"command": "ls"}\n```<｜tool▁call▁end｜><｜tool▁calls▁end｜>'
         )
         content, tool_calls = parser.parse(text)
@@ -212,6 +216,7 @@ class TestDeepSeekV3Parser:
 
 
 # ─── Mistral parser tests ───────────────────────────────────────────────
+
 
 class TestMistralParser:
     @pytest.fixture
@@ -234,7 +239,9 @@ class TestMistralParser:
         assert args["key"] == "val"
 
     def test_pre_v11_nested_json(self, parser):
-        text = '[TOOL_CALLS] [{"name": "func", "arguments": {"nested": {"deep": true}}}]'
+        text = (
+            '[TOOL_CALLS] [{"name": "func", "arguments": {"nested": {"deep": true}}}]'
+        )
         content, tool_calls = parser.parse(text)
         assert tool_calls is not None
         assert len(tool_calls) == 1

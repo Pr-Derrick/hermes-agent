@@ -19,7 +19,11 @@ def test_get_codex_model_ids_prioritizes_default_and_cache(tmp_path, monkeypatch
                     {"slug": "gpt-5.3-codex", "priority": 20, "supported_in_api": True},
                     {"slug": "gpt-5.1-codex", "priority": 5, "supported_in_api": True},
                     {"slug": "gpt-5.4", "priority": 1, "supported_in_api": True},
-                    {"slug": "gpt-5-hidden-codex", "priority": 2, "visibility": "hidden"},
+                    {
+                        "slug": "gpt-5-hidden-codex",
+                        "priority": 2,
+                        "visibility": "hidden",
+                    },
                 ]
             }
         )
@@ -42,6 +46,7 @@ def test_setup_wizard_codex_import_resolves():
     # This mirrors the exact import used in hermes_cli/setup.py line 873.
     # A prior bug had 'get_codex_models' (wrong) instead of 'get_codex_model_ids'.
     from hermes_cli.codex_models import get_codex_model_ids as setup_import
+
     assert callable(setup_import)
 
 
@@ -65,7 +70,13 @@ def test_get_codex_model_ids_adds_forward_compat_models_from_templates(monkeypat
 
     models = get_codex_model_ids(access_token="codex-access-token")
 
-    assert models == ["gpt-5.2-codex", "gpt-5.4-mini", "gpt-5.4", "gpt-5.3-codex", "gpt-5.3-codex-spark"]
+    assert models == [
+        "gpt-5.2-codex",
+        "gpt-5.4-mini",
+        "gpt-5.4",
+        "gpt-5.3-codex",
+        "gpt-5.3-codex-spark",
+    ]
 
 
 def test_model_command_uses_runtime_access_token_for_codex_list(monkeypatch):
@@ -211,23 +222,33 @@ class TestNormalizeModelForProvider:
     def test_default_model_replaced(self):
         """No model configured (empty default) gets swapped for codex."""
         import cli as _cli_mod
+
         _clean_config = {
             "model": {
                 "default": "",
                 "base_url": "",
                 "provider": "auto",
             },
-            "display": {"compact": False, "tool_progress": "all", "resume_display": "full"},
+            "display": {
+                "compact": False,
+                "tool_progress": "all",
+                "resume_display": "full",
+            },
             "agent": {},
             "terminal": {"env_type": "local"},
         }
         # Don't pass model= so _model_is_default is True
         with (
             patch("cli.get_tool_definitions", return_value=[]),
-            patch.dict("os.environ", {"LLM_MODEL": "", "HERMES_MAX_ITERATIONS": ""}, clear=False),
+            patch.dict(
+                "os.environ",
+                {"LLM_MODEL": "", "HERMES_MAX_ITERATIONS": ""},
+                clear=False,
+            ),
             patch.dict(_cli_mod.__dict__, {"CLI_CONFIG": _clean_config}),
         ):
             from cli import HermesCLI
+
             cli = HermesCLI()
 
         assert cli._model_is_default is True
@@ -243,22 +264,32 @@ class TestNormalizeModelForProvider:
     def test_default_fallback_when_api_fails(self):
         """No model configured falls back to gpt-5.3-codex when API unreachable."""
         import cli as _cli_mod
+
         _clean_config = {
             "model": {
                 "default": "",
                 "base_url": "",
                 "provider": "auto",
             },
-            "display": {"compact": False, "tool_progress": "all", "resume_display": "full"},
+            "display": {
+                "compact": False,
+                "tool_progress": "all",
+                "resume_display": "full",
+            },
             "agent": {},
             "terminal": {"env_type": "local"},
         }
         with (
             patch("cli.get_tool_definitions", return_value=[]),
-            patch.dict("os.environ", {"LLM_MODEL": "", "HERMES_MAX_ITERATIONS": ""}, clear=False),
+            patch.dict(
+                "os.environ",
+                {"LLM_MODEL": "", "HERMES_MAX_ITERATIONS": ""},
+                clear=False,
+            ),
             patch.dict(_cli_mod.__dict__, {"CLI_CONFIG": _clean_config}),
         ):
             from cli import HermesCLI
+
             cli = HermesCLI()
 
         with patch(

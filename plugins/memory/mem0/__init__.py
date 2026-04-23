@@ -37,6 +37,7 @@ _BREAKER_COOLDOWN_SECS = 120
 # Config
 # ---------------------------------------------------------------------------
 
+
 def _load_config() -> dict:
     """Load config from env vars, with $HERMES_HOME/mem0.json overrides.
 
@@ -58,8 +59,9 @@ def _load_config() -> dict:
     if config_path.exists():
         try:
             file_cfg = json.loads(config_path.read_text(encoding="utf-8"))
-            config.update({k: v for k, v in file_cfg.items()
-                           if v is not None and v != ""})
+            config.update(
+                {k: v for k, v in file_cfg.items() if v is not None and v != ""}
+            )
         except Exception:
             pass
 
@@ -89,8 +91,14 @@ SEARCH_SCHEMA = {
         "type": "object",
         "properties": {
             "query": {"type": "string", "description": "What to search for."},
-            "rerank": {"type": "boolean", "description": "Enable reranking for precision (default: false)."},
-            "top_k": {"type": "integer", "description": "Max results (default: 10, max: 50)."},
+            "rerank": {
+                "type": "boolean",
+                "description": "Enable reranking for precision (default: false).",
+            },
+            "top_k": {
+                "type": "integer",
+                "description": "Max results (default: 10, max: 50).",
+            },
         },
         "required": ["query"],
     },
@@ -115,6 +123,7 @@ CONCLUDE_SCHEMA = {
 # ---------------------------------------------------------------------------
 # MemoryProvider implementation
 # ---------------------------------------------------------------------------
+
 
 class Mem0MemoryProvider(MemoryProvider):
     """Mem0 Platform memory with server-side extraction and semantic search."""
@@ -147,6 +156,7 @@ class Mem0MemoryProvider(MemoryProvider):
         """Write config to $HERMES_HOME/mem0.json."""
         import json
         from pathlib import Path
+
         config_path = Path(hermes_home) / "mem0.json"
         existing = {}
         if config_path.exists():
@@ -159,10 +169,26 @@ class Mem0MemoryProvider(MemoryProvider):
 
     def get_config_schema(self):
         return [
-            {"key": "api_key", "description": "Mem0 Platform API key", "secret": True, "required": True, "env_var": "MEM0_API_KEY", "url": "https://app.mem0.ai"},
-            {"key": "user_id", "description": "User identifier", "default": "hermes-user"},
+            {
+                "key": "api_key",
+                "description": "Mem0 Platform API key",
+                "secret": True,
+                "required": True,
+                "env_var": "MEM0_API_KEY",
+                "url": "https://app.mem0.ai",
+            },
+            {
+                "key": "user_id",
+                "description": "User identifier",
+                "default": "hermes-user",
+            },
             {"key": "agent_id", "description": "Agent identifier", "default": "hermes"},
-            {"key": "rerank", "description": "Enable reranking for recall", "default": "true", "choices": ["true", "false"]},
+            {
+                "key": "rerank",
+                "description": "Enable reranking for recall",
+                "default": "true",
+                "choices": ["true", "false"],
+            },
         ]
 
     def _get_client(self):
@@ -172,10 +198,13 @@ class Mem0MemoryProvider(MemoryProvider):
                 return self._client
             try:
                 from mem0 import MemoryClient
+
                 self._client = MemoryClient(api_key=self._api_key)
                 return self._client
             except ImportError:
-                raise RuntimeError("mem0 package not installed. Run: pip install mem0ai")
+                raise RuntimeError(
+                    "mem0 package not installed. Run: pip install mem0ai"
+                )
 
     def _is_breaker_open(self) -> bool:
         """Return True if the circuit breaker is tripped (too many failures)."""
@@ -197,7 +226,8 @@ class Mem0MemoryProvider(MemoryProvider):
             logger.warning(
                 "Mem0 circuit breaker tripped after %d consecutive failures. "
                 "Pausing API calls for %ds.",
-                self._consecutive_failures, _BREAKER_COOLDOWN_SECS,
+                self._consecutive_failures,
+                _BREAKER_COOLDOWN_SECS,
             )
 
     def initialize(self, session_id: str, **kwargs) -> None:
@@ -205,7 +235,9 @@ class Mem0MemoryProvider(MemoryProvider):
         self._api_key = self._config.get("api_key", "")
         # Prefer gateway-provided user_id for per-user memory scoping;
         # fall back to config/env default for CLI (single-user) sessions.
-        self._user_id = kwargs.get("user_id") or self._config.get("user_id", "hermes-user")
+        self._user_id = kwargs.get("user_id") or self._config.get(
+            "user_id", "hermes-user"
+        )
         self._agent_id = self._config.get("agent_id", "hermes")
         self._rerank = self._config.get("rerank", True)
 
@@ -251,12 +283,14 @@ class Mem0MemoryProvider(MemoryProvider):
         def _run():
             try:
                 client = self._get_client()
-                results = self._unwrap_results(client.search(
-                    query=query,
-                    filters=self._read_filters(),
-                    rerank=self._rerank,
-                    top_k=5,
-                ))
+                results = self._unwrap_results(
+                    client.search(
+                        query=query,
+                        filters=self._read_filters(),
+                        rerank=self._rerank,
+                        top_k=5,
+                    )
+                )
                 if results:
                     lines = [r.get("memory", "") for r in results if r.get("memory")]
                     with self._prefetch_lock:
@@ -266,10 +300,14 @@ class Mem0MemoryProvider(MemoryProvider):
                 self._record_failure()
                 logger.debug("Mem0 prefetch failed: %s", e)
 
-        self._prefetch_thread = threading.Thread(target=_run, daemon=True, name="mem0-prefetch")
+        self._prefetch_thread = threading.Thread(
+            target=_run, daemon=True, name="mem0-prefetch"
+        )
         self._prefetch_thread.start()
 
-    def sync_turn(self, user_content: str, assistant_content: str, *, session_id: str = "") -> None:
+    def sync_turn(
+        self, user_content: str, assistant_content: str, *, session_id: str = ""
+    ) -> None:
         """Send the turn to Mem0 for server-side fact extraction (non-blocking)."""
         if self._is_breaker_open():
             return
@@ -291,7 +329,9 @@ class Mem0MemoryProvider(MemoryProvider):
         if self._sync_thread and self._sync_thread.is_alive():
             self._sync_thread.join(timeout=5.0)
 
-        self._sync_thread = threading.Thread(target=_sync, daemon=True, name="mem0-sync")
+        self._sync_thread = threading.Thread(
+            target=_sync, daemon=True, name="mem0-sync"
+        )
         self._sync_thread.start()
 
     def get_tool_schemas(self) -> List[Dict[str, Any]]:
@@ -299,9 +339,11 @@ class Mem0MemoryProvider(MemoryProvider):
 
     def handle_tool_call(self, tool_name: str, args: dict, **kwargs) -> str:
         if self._is_breaker_open():
-            return json.dumps({
-                "error": "Mem0 API temporarily unavailable (multiple consecutive failures). Will retry automatically."
-            })
+            return json.dumps(
+                {
+                    "error": "Mem0 API temporarily unavailable (multiple consecutive failures). Will retry automatically."
+                }
+            )
 
         try:
             client = self._get_client()
@@ -310,7 +352,9 @@ class Mem0MemoryProvider(MemoryProvider):
 
         if tool_name == "mem0_profile":
             try:
-                memories = self._unwrap_results(client.get_all(filters=self._read_filters()))
+                memories = self._unwrap_results(
+                    client.get_all(filters=self._read_filters())
+                )
                 self._record_success()
                 if not memories:
                     return json.dumps({"result": "No memories stored yet."})
@@ -327,16 +371,21 @@ class Mem0MemoryProvider(MemoryProvider):
             rerank = args.get("rerank", False)
             top_k = min(int(args.get("top_k", 10)), 50)
             try:
-                results = self._unwrap_results(client.search(
-                    query=query,
-                    filters=self._read_filters(),
-                    rerank=rerank,
-                    top_k=top_k,
-                ))
+                results = self._unwrap_results(
+                    client.search(
+                        query=query,
+                        filters=self._read_filters(),
+                        rerank=rerank,
+                        top_k=top_k,
+                    )
+                )
                 self._record_success()
                 if not results:
                     return json.dumps({"result": "No relevant memories found."})
-                items = [{"memory": r.get("memory", ""), "score": r.get("score", 0)} for r in results]
+                items = [
+                    {"memory": r.get("memory", ""), "score": r.get("score", 0)}
+                    for r in results
+                ]
                 return json.dumps({"results": items, "count": len(items)})
             except Exception as e:
                 self._record_failure()

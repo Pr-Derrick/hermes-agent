@@ -69,6 +69,7 @@ def _wait_until(predicate, timeout: float = 5.0, interval: float = 0.05) -> bool
 # Get / Poll
 # =========================================================================
 
+
 class TestGetAndPoll:
     def test_get_not_found(self, registry):
         assert registry.get("nonexistent") is None
@@ -107,6 +108,7 @@ class TestGetAndPoll:
 # Read log
 # =========================================================================
 
+
 class TestReadLog:
     def test_not_found(self, registry):
         result = registry.read_log("nonexistent")
@@ -138,6 +140,7 @@ class TestReadLog:
 # =========================================================================
 # Stdin helpers
 # =========================================================================
+
 
 class TestStdinHelpers:
     def test_close_stdin_not_found(self, registry):
@@ -197,6 +200,7 @@ class TestStdinHelpers:
 # List sessions
 # =========================================================================
 
+
 class TestListSessions:
     def test_empty(self, registry):
         assert registry.list_sessions() == []
@@ -233,6 +237,7 @@ class TestListSessions:
 # Active process queries
 # =========================================================================
 
+
 class TestActiveQueries:
     def test_has_active_processes(self, registry):
         s = _make_session(task_id="t1")
@@ -256,6 +261,7 @@ class TestActiveQueries:
 # =========================================================================
 # Pruning
 # =========================================================================
+
 
 class TestPruning:
     def test_prune_expired_finished(self, registry):
@@ -297,6 +303,7 @@ class TestPruning:
 # Spawn env sanitization
 # =========================================================================
 
+
 class TestSpawnEnvSanitization:
     def test_spawn_local_strips_blocked_vars_from_background_env(self, registry):
         captured = {}
@@ -312,17 +319,23 @@ class TestSpawnEnvSanitization:
 
         fake_thread = MagicMock()
 
-        with patch.dict(os.environ, {
-            "PATH": "/usr/bin:/bin",
-            "HOME": "/home/user",
-            "USER": "tester",
-            "TELEGRAM_BOT_TOKEN": "bot-secret",
-            "FIRECRAWL_API_KEY": "fc-secret",
-        }, clear=True), \
-            patch("tools.process_registry._find_shell", return_value="/bin/bash"), \
-            patch("subprocess.Popen", side_effect=fake_popen), \
-            patch("threading.Thread", return_value=fake_thread), \
-            patch.object(registry, "_write_checkpoint"):
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "PATH": "/usr/bin:/bin",
+                    "HOME": "/home/user",
+                    "USER": "tester",
+                    "TELEGRAM_BOT_TOKEN": "bot-secret",
+                    "FIRECRAWL_API_KEY": "fc-secret",
+                },
+                clear=True,
+            ),
+            patch("tools.process_registry._find_shell", return_value="/bin/bash"),
+            patch("subprocess.Popen", side_effect=fake_popen),
+            patch("threading.Thread", return_value=fake_thread),
+            patch.object(registry, "_write_checkpoint"),
+        ):
             registry.spawn_local(
                 "echo hello",
                 cwd="/tmp",
@@ -355,8 +368,10 @@ class TestSpawnEnvSanitization:
         env = FakeEnv()
         fake_thread = MagicMock()
 
-        with patch("tools.process_registry.threading.Thread", return_value=fake_thread), \
-            patch.object(registry, "_write_checkpoint"):
+        with (
+            patch("tools.process_registry.threading.Thread", return_value=fake_thread),
+            patch.object(registry, "_write_checkpoint"),
+        ):
             session = registry.spawn_via_env(env, "echo hello")
 
         bg_command = env.commands[0][0]
@@ -375,11 +390,13 @@ class TestSpawnEnvSanitization:
         class FakeEnv:
             def __init__(self):
                 self.commands = []
-                self._responses = iter([
-                    {"output": "hello\n"},
-                    {"output": "1\n"},
-                    {"output": "0\n"},
-                ])
+                self._responses = iter(
+                    [
+                        {"output": "hello\n"},
+                        {"output": "1\n"},
+                        {"output": "0\n"},
+                    ]
+                )
 
             def execute(self, command, timeout=None):
                 self.commands.append((command, timeout))
@@ -387,8 +404,10 @@ class TestSpawnEnvSanitization:
 
         env = FakeEnv()
 
-        with patch("tools.process_registry.time.sleep", return_value=None), \
-            patch.object(registry, "_move_to_finished"):
+        with (
+            patch("tools.process_registry.time.sleep", return_value=None),
+            patch.object(registry, "_move_to_finished"),
+        ):
             registry._env_poller_loop(
                 session,
                 env,
@@ -398,13 +417,19 @@ class TestSpawnEnvSanitization:
             )
 
         assert env.commands[0][0] == "cat '/path with spaces/hermes_bg.log' 2>/dev/null"
-        assert env.commands[1][0] == "kill -0 \"$(cat '/path with spaces/hermes_bg.pid' 2>/dev/null)\" 2>/dev/null; echo $?"
-        assert env.commands[2][0] == "cat '/path with spaces/hermes_bg.exit' 2>/dev/null"
+        assert (
+            env.commands[1][0]
+            == "kill -0 \"$(cat '/path with spaces/hermes_bg.pid' 2>/dev/null)\" 2>/dev/null; echo $?"
+        )
+        assert (
+            env.commands[2][0] == "cat '/path with spaces/hermes_bg.exit' 2>/dev/null"
+        )
 
 
 # =========================================================================
 # Checkpoint
 # =========================================================================
+
 
 class TestCheckpoint:
     def test_write_checkpoint(self, registry, tmp_path):
@@ -423,12 +448,18 @@ class TestCheckpoint:
 
     def test_recover_dead_pid(self, registry, tmp_path):
         checkpoint = tmp_path / "procs.json"
-        checkpoint.write_text(json.dumps([{
-            "session_id": "proc_dead",
-            "command": "sleep 999",
-            "pid": 999999999,  # almost certainly not running
-            "task_id": "t1",
-        }]))
+        checkpoint.write_text(
+            json.dumps(
+                [
+                    {
+                        "session_id": "proc_dead",
+                        "command": "sleep 999",
+                        "pid": 999999999,  # almost certainly not running
+                        "task_id": "t1",
+                    }
+                ]
+            )
+        )
         with patch("tools.process_registry.CHECKPOINT_PATH", checkpoint):
             recovered = registry.recover_from_checkpoint()
             assert recovered == 0
@@ -456,19 +487,25 @@ class TestCheckpoint:
 
     def test_recover_enqueues_watchers(self, registry, tmp_path):
         checkpoint = tmp_path / "procs.json"
-        checkpoint.write_text(json.dumps([{
-            "session_id": "proc_live",
-            "command": "sleep 999",
-            "pid": os.getpid(),  # current process — guaranteed alive
-            "task_id": "t1",
-            "session_key": "sk1",
-            "watcher_platform": "telegram",
-            "watcher_chat_id": "123",
-            "watcher_user_id": "u123",
-            "watcher_user_name": "alice",
-            "watcher_thread_id": "42",
-            "watcher_interval": 60,
-        }]))
+        checkpoint.write_text(
+            json.dumps(
+                [
+                    {
+                        "session_id": "proc_live",
+                        "command": "sleep 999",
+                        "pid": os.getpid(),  # current process — guaranteed alive
+                        "task_id": "t1",
+                        "session_key": "sk1",
+                        "watcher_platform": "telegram",
+                        "watcher_chat_id": "123",
+                        "watcher_user_id": "u123",
+                        "watcher_user_name": "alice",
+                        "watcher_thread_id": "42",
+                        "watcher_interval": 60,
+                    }
+                ]
+            )
+        )
         with patch("tools.process_registry.CHECKPOINT_PATH", checkpoint):
             recovered = registry.recover_from_checkpoint()
             assert recovered == 1
@@ -484,13 +521,19 @@ class TestCheckpoint:
 
     def test_recover_skips_watcher_when_no_interval(self, registry, tmp_path):
         checkpoint = tmp_path / "procs.json"
-        checkpoint.write_text(json.dumps([{
-            "session_id": "proc_live",
-            "command": "sleep 999",
-            "pid": os.getpid(),
-            "task_id": "t1",
-            "watcher_interval": 0,
-        }]))
+        checkpoint.write_text(
+            json.dumps(
+                [
+                    {
+                        "session_id": "proc_live",
+                        "command": "sleep 999",
+                        "pid": os.getpid(),
+                        "task_id": "t1",
+                        "watcher_interval": 0,
+                    }
+                ]
+            )
+        )
         with patch("tools.process_registry.CHECKPOINT_PATH", checkpoint):
             recovered = registry.recover_from_checkpoint()
             assert recovered == 1
@@ -498,13 +541,19 @@ class TestCheckpoint:
 
     def test_recovery_keeps_live_checkpoint_entries(self, registry, tmp_path):
         checkpoint = tmp_path / "procs.json"
-        checkpoint.write_text(json.dumps([{
-            "session_id": "proc_live",
-            "command": "sleep 999",
-            "pid": os.getpid(),
-            "task_id": "t1",
-            "session_key": "sk1",
-        }]))
+        checkpoint.write_text(
+            json.dumps(
+                [
+                    {
+                        "session_id": "proc_live",
+                        "command": "sleep 999",
+                        "pid": os.getpid(),
+                        "task_id": "t1",
+                        "session_key": "sk1",
+                    }
+                ]
+            )
+        )
 
         with patch("tools.process_registry.CHECKPOINT_PATH", checkpoint):
             recovered = registry.recover_from_checkpoint()
@@ -519,13 +568,15 @@ class TestCheckpoint:
 
     def test_recovery_skips_explicit_sandbox_backed_entries(self, registry, tmp_path):
         checkpoint = tmp_path / "procs.json"
-        original = [{
-            "session_id": "proc_remote",
-            "command": "sleep 999",
-            "pid": os.getpid(),
-            "task_id": "t1",
-            "pid_scope": "sandbox",
-        }]
+        original = [
+            {
+                "session_id": "proc_remote",
+                "command": "sleep 999",
+                "pid": os.getpid(),
+                "task_id": "t1",
+                "pid_scope": "sandbox",
+            }
+        ]
         checkpoint.write_text(json.dumps(original))
 
         with patch("tools.process_registry.CHECKPOINT_PATH", checkpoint):
@@ -539,13 +590,19 @@ class TestCheckpoint:
     def test_detached_recovered_process_eventually_exits(self, registry, tmp_path):
         proc = _spawn_python_sleep(0.4)
         checkpoint = tmp_path / "procs.json"
-        checkpoint.write_text(json.dumps([{
-            "session_id": "proc_live",
-            "command": "python -c 'import time; time.sleep(0.4)'",
-            "pid": proc.pid,
-            "task_id": "t1",
-            "session_key": "sk1",
-        }]))
+        checkpoint.write_text(
+            json.dumps(
+                [
+                    {
+                        "session_id": "proc_live",
+                        "command": "python -c 'import time; time.sleep(0.4)'",
+                        "pid": proc.pid,
+                        "task_id": "t1",
+                        "session_key": "sk1",
+                    }
+                ]
+            )
+        )
 
         try:
             with patch("tools.process_registry.CHECKPOINT_PATH", checkpoint):
@@ -559,8 +616,10 @@ class TestCheckpoint:
                 proc.wait(timeout=5)
 
                 assert _wait_until(
-                    lambda: registry.get("proc_live") is not None
-                    and registry.get("proc_live").exited,
+                    lambda: (
+                        registry.get("proc_live") is not None
+                        and registry.get("proc_live").exited
+                    ),
                     timeout=5,
                 )
 
@@ -582,6 +641,7 @@ class TestCheckpoint:
 # =========================================================================
 # Kill process
 # =========================================================================
+
 
 class TestKillProcess:
     def test_kill_not_found(self, registry):
@@ -620,18 +680,22 @@ class TestKillProcess:
 # Tool handler
 # =========================================================================
 
+
 class TestProcessToolHandler:
     def test_list_action(self):
         from tools.process_registry import _handle_process
+
         result = json.loads(_handle_process({"action": "list"}))
         assert "processes" in result
 
     def test_poll_missing_session_id(self):
         from tools.process_registry import _handle_process
+
         result = json.loads(_handle_process({"action": "poll"}))
         assert "error" in result
 
     def test_unknown_action(self):
         from tools.process_registry import _handle_process
+
         result = json.loads(_handle_process({"action": "unknown_action"}))
         assert "error" in result

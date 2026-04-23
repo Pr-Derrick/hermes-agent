@@ -75,7 +75,9 @@ async def test_draining_rejects_new_session_messages():
     assert result == "⏳ Gateway is restarting and is not accepting new work right now."
 
 
-def test_load_busy_input_mode_prefers_env_then_config_then_default(tmp_path, monkeypatch):
+def test_load_busy_input_mode_prefers_env_then_config_then_default(
+    tmp_path, monkeypatch
+):
     monkeypatch.setattr(gateway_run, "_hermes_home", tmp_path)
     monkeypatch.delenv("HERMES_GATEWAY_BUSY_INPUT_MODE", raising=False)
 
@@ -140,7 +142,9 @@ async def test_launch_detached_restart_command_uses_setsid(monkeypatch):
 
     monkeypatch.setattr(gateway_run, "_resolve_hermes_bin", lambda: ["/usr/bin/hermes"])
     monkeypatch.setattr(gateway_run.os, "getpid", lambda: 321)
-    monkeypatch.setattr(shutil, "which", lambda cmd: "/usr/bin/setsid" if cmd == "setsid" else None)
+    monkeypatch.setattr(
+        shutil, "which", lambda cmd: "/usr/bin/setsid" if cmd == "setsid" else None
+    )
 
     def fake_popen(cmd, **kwargs):
         popen_calls.append((cmd, kwargs))

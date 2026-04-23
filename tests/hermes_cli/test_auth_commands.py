@@ -16,10 +16,14 @@ def _write_auth_store(tmp_path, payload: dict) -> None:
 
 
 def _jwt_with_email(email: str) -> str:
-    header = base64.urlsafe_b64encode(b'{"alg":"RS256","typ":"JWT"}').rstrip(b"=").decode()
-    payload = base64.urlsafe_b64encode(
-        json.dumps({"email": email}).encode()
-    ).rstrip(b"=").decode()
+    header = (
+        base64.urlsafe_b64encode(b'{"alg":"RS256","typ":"JWT"}').rstrip(b"=").decode()
+    )
+    payload = (
+        base64.urlsafe_b64encode(json.dumps({"email": email}).encode())
+        .rstrip(b"=")
+        .decode()
+    )
     return f"{header}.{payload}.signature"
 
 
@@ -422,7 +426,7 @@ def test_auth_list_does_not_call_mutating_select(monkeypatch, capsys):
     class _Entry:
         id = "cred-1"
         label = "primary"
-        auth_type="***"
+        auth_type = "***"
         source = "manual"
         last_status = None
         last_error_code = None
@@ -440,7 +444,11 @@ def test_auth_list_does_not_call_mutating_select(monkeypatch, capsys):
 
     monkeypatch.setattr(
         "hermes_cli.auth_commands.load_pool",
-        lambda provider: _Pool() if provider == "openrouter" else type("_EmptyPool", (), {"entries": lambda self: []})(),
+        lambda provider: (
+            _Pool()
+            if provider == "openrouter"
+            else type("_EmptyPool", (), {"entries": lambda self: []})()
+        ),
     )
 
     class _Args:
@@ -565,6 +573,7 @@ def test_auth_remove_env_seeded_clears_env_var(tmp_path, monkeypatch):
 
     # Env var should be cleared from os.environ
     import os
+
     assert os.environ.get("OPENROUTER_API_KEY") is None
 
     # Env var should be removed from .env file
@@ -614,6 +623,7 @@ def test_auth_remove_env_seeded_does_not_resurrect(tmp_path, monkeypatch):
 
     # Now reload the pool — the entry should NOT come back
     from agent.credential_pool import load_pool
+
     pool = load_pool("openrouter")
     assert not pool.has_credentials()
 
@@ -675,20 +685,23 @@ def test_auth_remove_claude_code_suppresses_reseed(tmp_path, monkeypatch):
     auth_store = {
         "version": 1,
         "credential_pool": {
-            "anthropic": [{
-                "id": "cc1",
-                "label": "claude_code",
-                "auth_type": "oauth",
-                "priority": 0,
-                "source": "claude_code",
-                "access_token": "sk-ant-oat01-token",
-            }]
+            "anthropic": [
+                {
+                    "id": "cc1",
+                    "label": "claude_code",
+                    "auth_type": "oauth",
+                    "priority": 0,
+                    "source": "claude_code",
+                    "access_token": "sk-ant-oat01-token",
+                }
+            ]
         },
     }
     (hermes_home / "auth.json").write_text(json.dumps(auth_store))
 
     from types import SimpleNamespace
     from hermes_cli.auth_commands import auth_remove_command
+
     auth_remove_command(SimpleNamespace(provider="anthropic", target="1"))
 
     updated = json.loads((hermes_home / "auth.json").read_text())

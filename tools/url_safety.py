@@ -24,10 +24,12 @@ from urllib.parse import urlparse
 logger = logging.getLogger(__name__)
 
 # Hostnames that should always be blocked regardless of IP resolution
-_BLOCKED_HOSTNAMES = frozenset({
-    "metadata.google.internal",
-    "metadata.goog",
-})
+_BLOCKED_HOSTNAMES = frozenset(
+    {
+        "metadata.google.internal",
+        "metadata.goog",
+    }
+)
 
 # 100.64.0.0/10 (CGNAT / Shared Address Space, RFC 6598) is NOT covered by
 # ipaddress.is_private — it returns False for both is_private and is_global.
@@ -67,7 +69,9 @@ def is_safe_url(url: str) -> bool:
 
         # Try to resolve and check IP
         try:
-            addr_info = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+            addr_info = socket.getaddrinfo(
+                hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM
+            )
         except socket.gaierror:
             # DNS resolution failed — fail closed. If DNS can't resolve it,
             # the HTTP client will also fail, so blocking loses nothing.
@@ -84,7 +88,8 @@ def is_safe_url(url: str) -> bool:
             if _is_blocked_ip(ip):
                 logger.warning(
                     "Blocked request to private/internal address: %s -> %s",
-                    hostname, ip_str,
+                    hostname,
+                    ip_str,
                 )
                 return False
 

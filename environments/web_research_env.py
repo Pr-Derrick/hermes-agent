@@ -60,6 +60,7 @@ if str(_repo_root) not in sys.path:
 # ---------------------------------------------------------------------------
 try:
     from datasets import load_dataset
+
     HF_AVAILABLE = True
 except ImportError:
     HF_AVAILABLE = False
@@ -146,6 +147,7 @@ SAMPLE_QUESTIONS = [
 # Configuration
 # ---------------------------------------------------------------------------
 
+
 class WebResearchEnvConfig(HermesAgentEnvConfig):
     """Configuration for the web research RL environment."""
 
@@ -197,6 +199,7 @@ class WebResearchEnvConfig(HermesAgentEnvConfig):
 # ---------------------------------------------------------------------------
 # Environment
 # ---------------------------------------------------------------------------
+
 
 class WebResearchEnv(HermesAgentBaseEnv):
     """
@@ -296,7 +299,9 @@ class WebResearchEnv(HermesAgentBaseEnv):
                 )
                 return
             except Exception as e:
-                logger.warning(f"Could not load FRAMES from HuggingFace: {e}. Using built-in samples.")
+                logger.warning(
+                    f"Could not load FRAMES from HuggingFace: {e}. Using built-in samples."
+                )
 
         # Fallback
         random.shuffle(SAMPLE_QUESTIONS)
@@ -360,7 +365,11 @@ class WebResearchEnv(HermesAgentBaseEnv):
         final_response = ""
         tools_used: list[str] = []
         for msg in reversed(result.messages):
-            if msg.get("role") == "assistant" and msg.get("content") and not final_response:
+            if (
+                msg.get("role") == "assistant"
+                and msg.get("content")
+                and not final_response
+            ):
                 final_response = msg["content"]
             # Collect tool names from tool call messages
             if msg.get("role") == "assistant" and msg.get("tool_calls"):
@@ -390,7 +399,9 @@ class WebResearchEnv(HermesAgentBaseEnv):
         elif tool_call_count <= cfg.heavy_penalty_calls:
             efficiency = 1.0 - (tool_call_count - cfg.efficient_max_calls) * 0.08
         else:
-            efficiency = max(0.0, 1.0 - (tool_call_count - cfg.efficient_max_calls) * 0.12)
+            efficiency = max(
+                0.0, 1.0 - (tool_call_count - cfg.efficient_max_calls) * 0.12
+            )
 
         # ---- Bonus: Source diversity ---------------------------------
         domains = self._extract_domains(final_response)
@@ -444,7 +455,9 @@ class WebResearchEnv(HermesAgentBaseEnv):
         eval_size = min(self.config.eval_size, len(items))
         eval_items = items[:eval_size]
 
-        logger.info(f"Running eval on {len(eval_items)} questions (with agent loop + tools)...")
+        logger.info(
+            f"Running eval on {len(eval_items)} questions (with agent loop + tools)..."
+        )
         start_time = time.time()
         samples = []
 
@@ -453,13 +466,15 @@ class WebResearchEnv(HermesAgentBaseEnv):
 
         for i, item in enumerate(eval_items):
             task_id = str(uuid.uuid4())
-            logger.info(f"Eval [{i+1}/{len(eval_items)}]: {item['question'][:80]}...")
+            logger.info(f"Eval [{i + 1}/{len(eval_items)}]: {item['question'][:80]}...")
 
             try:
                 # Build messages
                 messages: List[Dict[str, Any]] = []
                 if self.config.system_prompt:
-                    messages.append({"role": "system", "content": self.config.system_prompt})
+                    messages.append(
+                        {"role": "system", "content": self.config.system_prompt}
+                    )
                 messages.append({"role": "user", "content": self.format_prompt(item)})
 
                 # Run the full agent loop with tools
@@ -480,7 +495,11 @@ class WebResearchEnv(HermesAgentBaseEnv):
                 final_response = ""
                 tool_call_count = 0
                 for msg in reversed(result.messages):
-                    if msg.get("role") == "assistant" and msg.get("content") and not final_response:
+                    if (
+                        msg.get("role") == "assistant"
+                        and msg.get("content")
+                        and not final_response
+                    ):
                         final_response = msg["content"]
                     if msg.get("role") == "assistant" and msg.get("tool_calls"):
                         tool_call_count += len(msg["tool_calls"])
@@ -505,22 +524,26 @@ class WebResearchEnv(HermesAgentBaseEnv):
                 )
                 # Roll back buffers to avoid polluting training metrics
                 for buf in (
-                    self._reward_buffer, self._correctness_buffer,
-                    self._tool_usage_buffer, self._efficiency_buffer,
+                    self._reward_buffer,
+                    self._correctness_buffer,
+                    self._tool_usage_buffer,
+                    self._efficiency_buffer,
                     self._diversity_buffer,
                 ):
                     if len(buf) > buf_len:
                         buf.pop()
 
-                samples.append({
-                    "prompt": item["question"],
-                    "response": final_response[:500],
-                    "expected": item["answer"],
-                    "correctness": correctness,
-                    "reward": reward,
-                    "tool_calls": tool_call_count,
-                    "turns": result.turns_used,
-                })
+                samples.append(
+                    {
+                        "prompt": item["question"],
+                        "response": final_response[:500],
+                        "expected": item["answer"],
+                        "correctness": correctness,
+                        "reward": reward,
+                        "tool_calls": tool_call_count,
+                        "turns": result.turns_used,
+                    }
+                )
 
                 logger.info(
                     f"  → correctness={correctness:.2f}, reward={reward:.3f}, "
@@ -529,15 +552,17 @@ class WebResearchEnv(HermesAgentBaseEnv):
 
             except Exception as e:
                 logger.error(f"Eval error on item: {e}")
-                samples.append({
-                    "prompt": item["question"],
-                    "response": f"ERROR: {e}",
-                    "expected": item["answer"],
-                    "correctness": 0.0,
-                    "reward": 0.0,
-                    "tool_calls": 0,
-                    "turns": 0,
-                })
+                samples.append(
+                    {
+                        "prompt": item["question"],
+                        "response": f"ERROR: {e}",
+                        "expected": item["answer"],
+                        "correctness": 0.0,
+                        "reward": 0.0,
+                        "tool_calls": 0,
+                        "turns": 0,
+                    }
+                )
 
         end_time = time.time()
 
@@ -551,7 +576,9 @@ class WebResearchEnv(HermesAgentBaseEnv):
             "eval/mean_correctness": sum(correctness_scores) / n if n else 0.0,
             "eval/mean_reward": sum(rewards) / n if n else 0.0,
             "eval/mean_tool_calls": sum(tool_counts) / n if n else 0.0,
-            "eval/tool_usage_rate": sum(1 for t in tool_counts if t > 0) / n if n else 0.0,
+            "eval/tool_usage_rate": sum(1 for t in tool_counts if t > 0) / n
+            if n
+            else 0.0,
             "eval/n_items": n,
         }
 
@@ -673,13 +700,38 @@ class WebResearchEnv(HermesAgentBaseEnv):
     def _heuristic_score(expected: str, model_answer: str) -> float:
         """Lightweight keyword overlap score as fallback."""
         stopwords = {
-            "the", "a", "an", "is", "are", "was", "were", "of", "in", "on",
-            "at", "to", "for", "with", "and", "or", "but", "it", "its",
-            "this", "that", "as", "by", "from", "be", "has", "have", "had",
+            "the",
+            "a",
+            "an",
+            "is",
+            "are",
+            "was",
+            "were",
+            "of",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "with",
+            "and",
+            "or",
+            "but",
+            "it",
+            "its",
+            "this",
+            "that",
+            "as",
+            "by",
+            "from",
+            "be",
+            "has",
+            "have",
+            "had",
         }
 
         def tokenize(text: str) -> set:
-            tokens = re.findall(r'\b\w+\b', text.lower())
+            tokens = re.findall(r"\b\w+\b", text.lower())
             return {t for t in tokens if t not in stopwords and len(t) > 2}
 
         expected_tokens = tokenize(expected)

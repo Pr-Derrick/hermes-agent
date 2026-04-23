@@ -66,12 +66,13 @@ _GIT_TIMEOUT: int = max(10, min(60, int(os.getenv("HERMES_CHECKPOINT_TIMEOUT", "
 _MAX_FILES = 50_000
 
 # Valid git commit hash pattern: 4–40 hex chars (short or full SHA-1/SHA-256).
-_COMMIT_HASH_RE = re.compile(r'^[0-9a-fA-F]{4,64}$')
+_COMMIT_HASH_RE = re.compile(r"^[0-9a-fA-F]{4,64}$")
 
 
 # ---------------------------------------------------------------------------
 # Input validation helpers
 # ---------------------------------------------------------------------------
+
 
 def _validate_commit_hash(commit_hash: str) -> Optional[str]:
     """Validate a commit hash to prevent git argument injection.
@@ -113,6 +114,7 @@ def _validate_file_path(file_path: str, working_dir: str) -> Optional[str]:
 # Shadow repo helpers
 # ---------------------------------------------------------------------------
 
+
 def _normalize_path(path_value: str) -> Path:
     """Return a canonical absolute path for checkpoint operations."""
     return Path(path_value).expanduser().resolve()
@@ -153,11 +155,15 @@ def _run_git(
     normalized_working_dir = _normalize_path(working_dir)
     if not normalized_working_dir.exists():
         msg = f"working directory not found: {normalized_working_dir}"
-        logger.error("Git command skipped: %s (%s)", " ".join(["git"] + list(args)), msg)
+        logger.error(
+            "Git command skipped: %s (%s)", " ".join(["git"] + list(args)), msg
+        )
         return False, "", msg
     if not normalized_working_dir.is_dir():
         msg = f"working directory is not a directory: {normalized_working_dir}"
-        logger.error("Git command skipped: %s (%s)", " ".join(["git"] + list(args)), msg)
+        logger.error(
+            "Git command skipped: %s (%s)", " ".join(["git"] + list(args)), msg
+        )
         return False, "", msg
 
     env = _git_env(shadow_repo, str(normalized_working_dir))
@@ -178,7 +184,9 @@ def _run_git(
         if not ok and result.returncode not in allowed_returncodes:
             logger.error(
                 "Git command failed: %s (rc=%d) stderr=%s",
-                " ".join(cmd), result.returncode, stderr,
+                " ".join(cmd),
+                result.returncode,
+                stderr,
             )
         return ok, stdout, stderr
     except subprocess.TimeoutExpired:
@@ -191,10 +199,17 @@ def _run_git(
             logger.error("Git executable not found: %s", " ".join(cmd), exc_info=True)
             return False, "", "git not found"
         msg = f"working directory not found: {normalized_working_dir}"
-        logger.error("Git command failed before execution: %s (%s)", " ".join(cmd), msg, exc_info=True)
+        logger.error(
+            "Git command failed before execution: %s (%s)",
+            " ".join(cmd),
+            msg,
+            exc_info=True,
+        )
         return False, "", msg
     except Exception as exc:
-        logger.error("Unexpected git error running %s: %s", " ".join(cmd), exc, exc_info=True)
+        logger.error(
+            "Unexpected git error running %s: %s", " ".join(cmd), exc, exc_info=True
+        )
         return False, "", str(exc)
 
 
@@ -242,6 +257,7 @@ def _dir_file_count(path: str) -> int:
 # ---------------------------------------------------------------------------
 # CheckpointManager
 # ---------------------------------------------------------------------------
+
 
 class CheckpointManager:
     """Manages automatic filesystem checkpoints.
@@ -327,7 +343,8 @@ class CheckpointManager:
 
         ok, stdout, _ = _run_git(
             ["log", "--format=%H|%h|%aI|%s", "-n", str(self.max_snapshots)],
-            shadow, abs_dir,
+            shadow,
+            abs_dir,
         )
 
         if not ok or not stdout:
@@ -349,7 +366,8 @@ class CheckpointManager:
                 # Get diffstat for this commit
                 stat_ok, stat_out, _ = _run_git(
                     ["diff", "--shortstat", f"{parts[0]}~1", parts[0]],
-                    shadow, abs_dir,
+                    shadow,
+                    abs_dir,
                     allowed_returncodes={128, 129},  # first commit has no parent
                 )
                 if stat_ok and stat_out:
@@ -361,13 +379,14 @@ class CheckpointManager:
     def _parse_shortstat(stat_line: str, entry: Dict) -> None:
         """Parse git --shortstat output into entry dict."""
         import re
-        m = re.search(r'(\d+) file', stat_line)
+
+        m = re.search(r"(\d+) file", stat_line)
         if m:
             entry["files_changed"] = int(m.group(1))
-        m = re.search(r'(\d+) insertion', stat_line)
+        m = re.search(r"(\d+) insertion", stat_line)
         if m:
             entry["insertions"] = int(m.group(1))
-        m = re.search(r'(\d+) deletion', stat_line)
+        m = re.search(r"(\d+) deletion", stat_line)
         if m:
             entry["deletions"] = int(m.group(1))
 
@@ -385,11 +404,16 @@ class CheckpointManager:
         shadow = _shadow_repo_path(abs_dir)
 
         if not (shadow / "HEAD").exists():
-            return {"success": False, "error": "No checkpoints exist for this directory"}
+            return {
+                "success": False,
+                "error": "No checkpoints exist for this directory",
+            }
 
         # Verify the commit exists
         ok, _, err = _run_git(
-            ["cat-file", "-t", commit_hash], shadow, abs_dir,
+            ["cat-file", "-t", commit_hash],
+            shadow,
+            abs_dir,
         )
         if not ok:
             return {"success": False, "error": f"Checkpoint '{commit_hash}' not found"}
@@ -400,13 +424,15 @@ class CheckpointManager:
         # Get stat summary: checkpoint vs current working tree
         ok_stat, stat_out, _ = _run_git(
             ["diff", "--stat", commit_hash, "--cached"],
-            shadow, abs_dir,
+            shadow,
+            abs_dir,
         )
 
         # Get actual diff (limited to avoid terminal flood)
         ok_diff, diff_out, _ = _run_git(
             ["diff", commit_hash, "--cached", "--no-color"],
-            shadow, abs_dir,
+            shadow,
+            abs_dir,
         )
 
         # Unstage to avoid polluting the shadow repo index
@@ -421,7 +447,9 @@ class CheckpointManager:
             "diff": diff_out if ok_diff else "",
         }
 
-    def restore(self, working_dir: str, commit_hash: str, file_path: str = None) -> Dict:
+    def restore(
+        self, working_dir: str, commit_hash: str, file_path: str = None
+    ) -> Dict:
         """Restore files to a checkpoint state.
 
         Uses ``git checkout <hash> -- .`` (or a specific file) which restores
@@ -450,14 +478,23 @@ class CheckpointManager:
         shadow = _shadow_repo_path(abs_dir)
 
         if not (shadow / "HEAD").exists():
-            return {"success": False, "error": "No checkpoints exist for this directory"}
+            return {
+                "success": False,
+                "error": "No checkpoints exist for this directory",
+            }
 
         # Verify the commit exists
         ok, _, err = _run_git(
-            ["cat-file", "-t", commit_hash], shadow, abs_dir,
+            ["cat-file", "-t", commit_hash],
+            shadow,
+            abs_dir,
         )
         if not ok:
-            return {"success": False, "error": f"Checkpoint '{commit_hash}' not found", "debug": err or None}
+            return {
+                "success": False,
+                "error": f"Checkpoint '{commit_hash}' not found",
+                "debug": err or None,
+            }
 
         # Take a checkpoint of current state before restoring (so you can undo the undo)
         self._take(abs_dir, f"pre-rollback snapshot (restoring to {commit_hash[:8]})")
@@ -466,15 +503,23 @@ class CheckpointManager:
         restore_target = file_path if file_path else "."
         ok, stdout, err = _run_git(
             ["checkout", commit_hash, "--", restore_target],
-            shadow, abs_dir, timeout=_GIT_TIMEOUT * 2,
+            shadow,
+            abs_dir,
+            timeout=_GIT_TIMEOUT * 2,
         )
 
         if not ok:
-            return {"success": False, "error": f"Restore failed: {err}", "debug": err or None}
+            return {
+                "success": False,
+                "error": f"Restore failed: {err}",
+                "debug": err or None,
+            }
 
         # Get info about what was restored
         ok2, reason_out, _ = _run_git(
-            ["log", "--format=%s", "-1", commit_hash], shadow, abs_dir,
+            ["log", "--format=%s", "-1", commit_hash],
+            shadow,
+            abs_dir,
         )
         reason = reason_out if ok2 else "unknown"
 
@@ -502,8 +547,17 @@ class CheckpointManager:
             candidate = path.parent
 
         # Walk up looking for project root markers
-        markers = {".git", "pyproject.toml", "package.json", "Cargo.toml",
-                    "go.mod", "Makefile", "pom.xml", ".hg", "Gemfile"}
+        markers = {
+            ".git",
+            "pyproject.toml",
+            "package.json",
+            "Cargo.toml",
+            "go.mod",
+            "Makefile",
+            "pom.xml",
+            ".hg",
+            "Gemfile",
+        }
         check = candidate
         while check != check.parent:
             if any((check / m).exists() for m in markers):
@@ -534,7 +588,10 @@ class CheckpointManager:
 
         # Stage everything
         ok, _, err = _run_git(
-            ["add", "-A"], shadow, working_dir, timeout=_GIT_TIMEOUT * 2,
+            ["add", "-A"],
+            shadow,
+            working_dir,
+            timeout=_GIT_TIMEOUT * 2,
         )
         if not ok:
             logger.debug("Checkpoint git-add failed: %s", err)
@@ -555,7 +612,9 @@ class CheckpointManager:
         # Commit
         ok, _, err = _run_git(
             ["commit", "-m", reason, "--allow-empty-message"],
-            shadow, working_dir, timeout=_GIT_TIMEOUT * 2,
+            shadow,
+            working_dir,
+            timeout=_GIT_TIMEOUT * 2,
         )
         if not ok:
             logger.debug("Checkpoint commit failed: %s", err)
@@ -571,7 +630,9 @@ class CheckpointManager:
     def _prune(self, shadow_repo: Path, working_dir: str) -> None:
         """Keep only the last max_snapshots commits via orphan reset."""
         ok, stdout, _ = _run_git(
-            ["rev-list", "--count", "HEAD"], shadow_repo, working_dir,
+            ["rev-list", "--count", "HEAD"],
+            shadow_repo,
+            working_dir,
         )
         if not ok:
             return
@@ -589,7 +650,9 @@ class CheckpointManager:
         # listing is already limited by max_snapshots.
         # Full pruning would require rebase --onto or filter-branch which
         # is fragile for a background feature.  We just limit the log view.
-        logger.debug("Checkpoint repo has %d commits (limit %d)", count, self.max_snapshots)
+        logger.debug(
+            "Checkpoint repo has %d commits (limit %d)", count, self.max_snapshots
+        )
 
 
 def format_checkpoint_list(checkpoints: List[Dict], directory: str) -> str:

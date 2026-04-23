@@ -33,7 +33,9 @@ def build_plan_path(
     daytona, and similar terminal backends. That keeps the plan with the active
     workspace instead of the Hermes host's global home directory.
     """
-    slug_source = (user_instruction or "").strip().splitlines()[0] if user_instruction else ""
+    slug_source = (
+        (user_instruction or "").strip().splitlines()[0] if user_instruction else ""
+    )
     slug = _PLAN_SLUG_RE.sub("-", slug_source.lower()).strip("-")
     if slug:
         slug = "-".join(part for part in slug.split("-")[:8] if part)[:48].strip("-")
@@ -42,7 +44,9 @@ def build_plan_path(
     return Path(".hermes") / "plans" / f"{timestamp}-{slug}.md"
 
 
-def _load_skill_payload(skill_identifier: str, task_id: str | None = None) -> tuple[dict[str, Any], Path | None, str] | None:
+def _load_skill_payload(
+    skill_identifier: str, task_id: str | None = None
+) -> tuple[dict[str, Any], Path | None, str] | None:
     """Load a skill by name/path and return (loaded_payload, skill_dir, display_name)."""
     raw_identifier = (skill_identifier or "").strip()
     if not raw_identifier:
@@ -54,7 +58,9 @@ def _load_skill_payload(skill_identifier: str, task_id: str | None = None) -> tu
         identifier_path = Path(raw_identifier).expanduser()
         if identifier_path.is_absolute():
             try:
-                normalized = str(identifier_path.resolve().relative_to(SKILLS_DIR.resolve()))
+                normalized = str(
+                    identifier_path.resolve().relative_to(SKILLS_DIR.resolve())
+                )
             except Exception:
                 normalized = raw_identifier
         else:
@@ -95,7 +101,9 @@ def _inject_skill_config(loaded_skill: dict[str, Any], parts: list[str]) -> None
         )
 
         # The loaded_skill dict contains the raw content which includes frontmatter
-        raw_content = str(loaded_skill.get("raw_content") or loaded_skill.get("content") or "")
+        raw_content = str(
+            loaded_skill.get("raw_content") or loaded_skill.get("content") or ""
+        )
         if not raw_content:
             return
 
@@ -179,7 +187,9 @@ def _build_skill_message(
             # Skill is from an external dir — use the skill name instead
             skill_view_target = skill_dir.name
         parts.append("")
-        parts.append("[This skill has supporting files you can load with the skill_view tool:]")
+        parts.append(
+            "[This skill has supporting files you can load with the skill_view tool:]"
+        )
         for sf in supporting:
             parts.append(f"- {sf}")
         parts.append(
@@ -188,7 +198,9 @@ def _build_skill_message(
 
     if user_instruction:
         parts.append("")
-        parts.append(f"The user has provided the following instruction alongside the skill invocation: {user_instruction}")
+        parts.append(
+            f"The user has provided the following instruction alongside the skill invocation: {user_instruction}"
+        )
 
     if runtime_note:
         parts.append("")
@@ -206,8 +218,14 @@ def scan_skill_commands() -> Dict[str, Dict[str, Any]]:
     global _skill_commands
     _skill_commands = {}
     try:
-        from tools.skills_tool import SKILLS_DIR, _parse_frontmatter, skill_matches_platform, _get_disabled_skill_names
+        from tools.skills_tool import (
+            SKILLS_DIR,
+            _parse_frontmatter,
+            skill_matches_platform,
+            _get_disabled_skill_names,
+        )
         from agent.skill_utils import get_external_skills_dirs
+
         disabled = _get_disabled_skill_names()
         seen_names: set = set()
 
@@ -219,34 +237,34 @@ def scan_skill_commands() -> Dict[str, Dict[str, Any]]:
 
         for scan_dir in dirs_to_scan:
             for skill_md in scan_dir.rglob("SKILL.md"):
-                if any(part in ('.git', '.github', '.hub') for part in skill_md.parts):
+                if any(part in (".git", ".github", ".hub") for part in skill_md.parts):
                     continue
                 try:
-                    content = skill_md.read_text(encoding='utf-8')
+                    content = skill_md.read_text(encoding="utf-8")
                     frontmatter, body = _parse_frontmatter(content)
                     # Skip skills incompatible with the current OS platform
                     if not skill_matches_platform(frontmatter):
                         continue
-                    name = frontmatter.get('name', skill_md.parent.name)
+                    name = frontmatter.get("name", skill_md.parent.name)
                     if name in seen_names:
                         continue
                     # Respect user's disabled skills config
                     if name in disabled:
                         continue
-                    description = frontmatter.get('description', '')
+                    description = frontmatter.get("description", "")
                     if not description:
-                        for line in body.strip().split('\n'):
+                        for line in body.strip().split("\n"):
                             line = line.strip()
-                            if line and not line.startswith('#'):
+                            if line and not line.startswith("#"):
                                 description = line[:80]
                                 break
                     seen_names.add(name)
                     # Normalize to hyphen-separated slug, stripping
                     # non-alnum chars (e.g. +, /) to avoid invalid
                     # Telegram command names downstream.
-                    cmd_name = name.lower().replace(' ', '-').replace('_', '-')
-                    cmd_name = _SKILL_INVALID_CHARS.sub('', cmd_name)
-                    cmd_name = _SKILL_MULTI_HYPHEN.sub('-', cmd_name).strip('-')
+                    cmd_name = name.lower().replace(" ", "-").replace("_", "-")
+                    cmd_name = _SKILL_INVALID_CHARS.sub("", cmd_name)
+                    cmd_name = _SKILL_MULTI_HYPHEN.sub("-", cmd_name).strip("-")
                     if not cmd_name:
                         continue
                     _skill_commands[f"/{cmd_name}"] = {

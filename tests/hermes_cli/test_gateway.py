@@ -14,7 +14,9 @@ class TestSystemdLingerStatus:
         monkeypatch.setattr(
             gateway.subprocess,
             "run",
-            lambda *args, **kwargs: SimpleNamespace(returncode=0, stdout="yes\n", stderr=""),
+            lambda *args, **kwargs: SimpleNamespace(
+                returncode=0, stdout="yes\n", stderr=""
+            ),
         )
         monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/loginctl")
 
@@ -27,7 +29,9 @@ class TestSystemdLingerStatus:
         monkeypatch.setattr(
             gateway.subprocess,
             "run",
-            lambda *args, **kwargs: SimpleNamespace(returncode=0, stdout="no\n", stderr=""),
+            lambda *args, **kwargs: SimpleNamespace(
+                returncode=0, stdout="no\n", stderr=""
+            ),
         )
         monkeypatch.setattr("shutil.which", lambda name: "/usr/bin/loginctl")
 
@@ -43,7 +47,9 @@ def test_systemd_status_warns_when_linger_disabled(monkeypatch, tmp_path, capsys
     unit_path = tmp_path / "hermes-gateway.service"
     unit_path.write_text("[Unit]\n")
 
-    monkeypatch.setattr(gateway, "get_systemd_unit_path", lambda system=False: unit_path)
+    monkeypatch.setattr(
+        gateway, "get_systemd_unit_path", lambda system=False: unit_path
+    )
     monkeypatch.setattr(gateway, "get_systemd_linger_status", lambda: (False, ""))
 
     def fake_run(cmd, capture_output=False, text=False, check=False, **kwargs):
@@ -66,7 +72,9 @@ def test_systemd_status_warns_when_linger_disabled(monkeypatch, tmp_path, capsys
 def test_systemd_install_checks_linger_status(monkeypatch, tmp_path, capsys):
     unit_path = tmp_path / "systemd" / "user" / "hermes-gateway.service"
 
-    monkeypatch.setattr(gateway, "get_systemd_unit_path", lambda system=False: unit_path)
+    monkeypatch.setattr(
+        gateway, "get_systemd_unit_path", lambda system=False: unit_path
+    )
 
     calls = []
     helper_calls = []
@@ -76,7 +84,9 @@ def test_systemd_install_checks_linger_status(monkeypatch, tmp_path, capsys):
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(gateway.subprocess, "run", fake_run)
-    monkeypatch.setattr(gateway, "_ensure_linger_enabled", lambda: helper_calls.append(True))
+    monkeypatch.setattr(
+        gateway, "_ensure_linger_enabled", lambda: helper_calls.append(True)
+    )
 
     gateway.systemd_install(force=False)
 
@@ -90,16 +100,22 @@ def test_systemd_install_checks_linger_status(monkeypatch, tmp_path, capsys):
     assert "User service installed and enabled" in out
 
 
-def test_systemd_install_system_scope_skips_linger_and_uses_systemctl(monkeypatch, tmp_path, capsys):
+def test_systemd_install_system_scope_skips_linger_and_uses_systemctl(
+    monkeypatch, tmp_path, capsys
+):
     unit_path = tmp_path / "etc" / "systemd" / "system" / "hermes-gateway.service"
 
-    monkeypatch.setattr(gateway, "get_systemd_unit_path", lambda system=False: unit_path)
+    monkeypatch.setattr(
+        gateway, "get_systemd_unit_path", lambda system=False: unit_path
+    )
     monkeypatch.setattr(
         gateway,
         "generate_systemd_unit",
         lambda system=False, run_as_user=None: f"scope={system} user={run_as_user}\n",
     )
-    monkeypatch.setattr(gateway, "_require_root_for_system_service", lambda action: None)
+    monkeypatch.setattr(
+        gateway, "_require_root_for_system_service", lambda action: None
+    )
 
     calls = []
     helper_calls = []
@@ -109,7 +125,9 @@ def test_systemd_install_system_scope_skips_linger_and_uses_systemctl(monkeypatc
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(gateway.subprocess, "run", fake_run)
-    monkeypatch.setattr(gateway, "_ensure_linger_enabled", lambda: helper_calls.append(True))
+    monkeypatch.setattr(
+        gateway, "_ensure_linger_enabled", lambda: helper_calls.append(True)
+    )
 
     gateway.systemd_install(force=False, system=True, run_as_user="alice")
 
@@ -121,7 +139,9 @@ def test_systemd_install_system_scope_skips_linger_and_uses_systemctl(monkeypatc
         ["systemctl", "enable", gateway.get_service_name()],
     ]
     assert helper_calls == []
-    assert "Configured to run as: alice" not in out  # generated test unit has no User= line
+    assert (
+        "Configured to run as: alice" not in out
+    )  # generated test unit has no User= line
     assert "System service installed and enabled" in out
 
 
@@ -147,11 +167,19 @@ def test_conflicting_systemd_units_warning(monkeypatch, tmp_path, capsys):
     assert "--system" in out
 
 
-def test_install_linux_gateway_from_setup_system_choice_without_root_prints_followup(monkeypatch, capsys):
+def test_install_linux_gateway_from_setup_system_choice_without_root_prints_followup(
+    monkeypatch, capsys
+):
     monkeypatch.setattr(gateway, "prompt_linux_gateway_install_scope", lambda: "system")
     monkeypatch.setattr(gateway.os, "geteuid", lambda: 1000)
     monkeypatch.setattr(gateway, "_default_system_service_user", lambda: "alice")
-    monkeypatch.setattr(gateway, "systemd_install", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should not install")))
+    monkeypatch.setattr(
+        gateway,
+        "systemd_install",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("should not install")
+        ),
+    )
 
     scope, did_install = gateway.install_linux_gateway_from_setup(force=False)
 
@@ -170,7 +198,9 @@ def test_install_linux_gateway_from_setup_system_choice_as_root_installs(monkeyp
     monkeypatch.setattr(
         gateway,
         "systemd_install",
-        lambda force=False, system=False, run_as_user=None: calls.append((force, system, run_as_user)),
+        lambda force=False, system=False, run_as_user=None: calls.append(
+            (force, system, run_as_user)
+        ),
     )
 
     scope, did_install = gateway.install_linux_gateway_from_setup(force=True)
@@ -214,6 +244,7 @@ class TestWaitForGatewayExit:
 
         # Simulate monotonic time advancing past force_after
         call_num = 0
+
         def fake_monotonic():
             nonlocal call_num
             call_num += 1
@@ -222,6 +253,7 @@ class TestWaitForGatewayExit:
             return call_num * 2.0  # 2, 4, 6, 8, ...
 
         kills = []
+
         def mock_terminate(pid, force=False):
             kills.append((pid, force))
 
@@ -241,6 +273,7 @@ class TestWaitForGatewayExit:
         """ProcessLookupError during force-kill is not fatal."""
 
         call_num = 0
+
         def fake_monotonic():
             nonlocal call_num
             call_num += 1
@@ -260,8 +293,16 @@ class TestWaitForGatewayExit:
     def test_kill_gateway_processes_force_uses_helper(self, monkeypatch):
         calls = []
 
-        monkeypatch.setattr(gateway, "find_gateway_pids", lambda exclude_pids=None, all_profiles=False: [11, 22])
-        monkeypatch.setattr(gateway, "terminate_pid", lambda pid, force=False: calls.append((pid, force)))
+        monkeypatch.setattr(
+            gateway,
+            "find_gateway_pids",
+            lambda exclude_pids=None, all_profiles=False: [11, 22],
+        )
+        monkeypatch.setattr(
+            gateway,
+            "terminate_pid",
+            lambda pid, force=False: calls.append((pid, force)),
+        )
 
         killed = gateway.kill_gateway_processes(force=True)
 

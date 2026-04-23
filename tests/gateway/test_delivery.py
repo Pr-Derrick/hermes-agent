@@ -24,7 +24,9 @@ class TestParseTargetPlatformChat:
         assert target.chat_id is None
 
     def test_origin_with_source(self):
-        origin = SessionSource(platform=Platform.TELEGRAM, chat_id="789", thread_id="42")
+        origin = SessionSource(
+            platform=Platform.TELEGRAM, chat_id="789", thread_id="42"
+        )
         target = DeliveryTarget.parse("origin", origin=origin)
         assert target.platform == Platform.TELEGRAM
         assert target.chat_id == "789"
@@ -43,7 +45,9 @@ class TestParseTargetPlatformChat:
 
 class TestTargetToStringRoundtrip:
     def test_origin_roundtrip(self):
-        origin = SessionSource(platform=Platform.TELEGRAM, chat_id="111", thread_id="42")
+        origin = SessionSource(
+            platform=Platform.TELEGRAM, chat_id="111", thread_id="42"
+        )
         target = DeliveryTarget.parse("origin", origin=origin)
         assert target.to_string() == "origin"
 
@@ -63,6 +67,3 @@ class TestTargetToStringRoundtrip:
         reparsed = DeliveryTarget.parse(s)
         assert reparsed.platform == Platform.TELEGRAM
         assert reparsed.chat_id == "999"
-
-
-

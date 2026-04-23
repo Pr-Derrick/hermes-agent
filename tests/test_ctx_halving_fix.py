@@ -33,11 +33,13 @@ import pytest
 # parse_available_output_tokens_from_error — unit tests
 # ---------------------------------------------------------------------------
 
+
 class TestParseAvailableOutputTokens:
     """Pure-function tests; no I/O required."""
 
     def _parse(self, msg):
         from agent.model_metadata import parse_available_output_tokens_from_error
+
         return parse_available_output_tokens_from_error(msg)
 
     # ── Should detect and extract ────────────────────────────────────────
@@ -105,6 +107,7 @@ class TestParseAvailableOutputTokens:
 # build_anthropic_kwargs — output cap clamping
 # ---------------------------------------------------------------------------
 
+
 class TestBuildAnthropicKwargsClamping:
     """The context_length clamp only fires when output ceiling > window.
     For standard Anthropic models (output ceiling < window) it must not fire.
@@ -112,6 +115,7 @@ class TestBuildAnthropicKwargsClamping:
 
     def _build(self, model, max_tokens=None, context_length=None):
         from agent.anthropic_adapter import build_anthropic_kwargs
+
         return build_anthropic_kwargs(
             model=model,
             messages=[{"role": "user", "content": "hi"}],
@@ -138,7 +142,9 @@ class TestBuildAnthropicKwargsClamping:
 
     def test_explicit_max_tokens_clamped_when_exceeds_window(self):
         """Explicit max_tokens larger than a small window is clamped."""
-        kwargs = self._build("claude-opus-4-6", max_tokens=32_768, context_length=16_000)
+        kwargs = self._build(
+            "claude-opus-4-6", max_tokens=32_768, context_length=16_000
+        )
         assert kwargs["max_tokens"] == 15_999
 
     def test_no_context_length_uses_native_ceiling(self):
@@ -151,6 +157,7 @@ class TestBuildAnthropicKwargsClamping:
 # Ephemeral max_tokens mechanism — _build_api_kwargs
 # ---------------------------------------------------------------------------
 
+
 class TestEphemeralMaxOutputTokens:
     """_build_api_kwargs consumes _ephemeral_max_output_tokens exactly once
     and falls back to self.max_tokens on subsequent calls.
@@ -160,6 +167,7 @@ class TestEphemeralMaxOutputTokens:
         """Return a minimal AIAgent with api_mode='anthropic_messages' and
         a stubbed context_compressor, bypassing full __init__ cost."""
         from run_agent import AIAgent
+
         agent = object.__new__(AIAgent)
         # Minimal attributes used by _build_api_kwargs
         agent.api_mode = "anthropic_messages"
@@ -220,6 +228,7 @@ class TestEphemeralMaxOutputTokens:
 # ---------------------------------------------------------------------------
 # Integration: error handler does NOT halve context_length for output-cap errors
 # ---------------------------------------------------------------------------
+
 
 class TestContextNotHalvedOnOutputCapError:
     """When the API returns 'max_tokens too large given prompt', the handler
@@ -288,7 +297,9 @@ class TestContextNotHalvedOnOutputCapError:
         error_msg = "prompt is too long: 205000 tokens > 200000 maximum"
 
         available_out = parse_available_output_tokens_from_error(error_msg)
-        assert available_out is None, "prompt-too-long must not be caught by output-cap parser"
+        assert available_out is None, (
+            "prompt-too-long must not be caught by output-cap parser"
+        )
 
         # The old halving path is still used for this class of error
         new_ctx = get_next_probe_tier(200_000)

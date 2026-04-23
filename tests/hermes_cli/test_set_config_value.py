@@ -32,26 +32,30 @@ def _read_config(tmp_path):
 # Explicit allowlist keys → .env
 # ---------------------------------------------------------------------------
 
+
 class TestExplicitAllowlist:
     """Keys in the hardcoded allowlist should always go to .env."""
 
-    @pytest.mark.parametrize("key", [
-        "OPENROUTER_API_KEY",
-        "OPENAI_API_KEY",
-        "ANTHROPIC_API_KEY",
-        "WANDB_API_KEY",
-        "TINKER_API_KEY",
-        "HONCHO_API_KEY",
-        "FIRECRAWL_API_KEY",
-        "BROWSERBASE_API_KEY",
-        "FAL_KEY",
-        "SUDO_PASSWORD",
-        "GITHUB_TOKEN",
-        "TELEGRAM_BOT_TOKEN",
-        "DISCORD_BOT_TOKEN",
-        "SLACK_BOT_TOKEN",
-        "SLACK_APP_TOKEN",
-    ])
+    @pytest.mark.parametrize(
+        "key",
+        [
+            "OPENROUTER_API_KEY",
+            "OPENAI_API_KEY",
+            "ANTHROPIC_API_KEY",
+            "WANDB_API_KEY",
+            "TINKER_API_KEY",
+            "HONCHO_API_KEY",
+            "FIRECRAWL_API_KEY",
+            "BROWSERBASE_API_KEY",
+            "FAL_KEY",
+            "SUDO_PASSWORD",
+            "GITHUB_TOKEN",
+            "TELEGRAM_BOT_TOKEN",
+            "DISCORD_BOT_TOKEN",
+            "SLACK_BOT_TOKEN",
+            "SLACK_APP_TOKEN",
+        ],
+    )
     def test_explicit_key_routes_to_env(self, key, _isolated_hermes_home):
         set_config_value(key, "test-value-123")
         env_content = _read_env(_isolated_hermes_home)
@@ -64,16 +68,20 @@ class TestExplicitAllowlist:
 # Catch-all patterns → .env
 # ---------------------------------------------------------------------------
 
+
 class TestCatchAllPatterns:
     """Any key ending in _API_KEY or _TOKEN should route to .env."""
 
-    @pytest.mark.parametrize("key", [
-        "DAYTONA_API_KEY",
-        "ELEVENLABS_API_KEY",
-        "SOME_FUTURE_SERVICE_API_KEY",
-        "MY_CUSTOM_TOKEN",
-        "WHATSAPP_BOT_TOKEN",
-    ])
+    @pytest.mark.parametrize(
+        "key",
+        [
+            "DAYTONA_API_KEY",
+            "ELEVENLABS_API_KEY",
+            "SOME_FUTURE_SERVICE_API_KEY",
+            "MY_CUSTOM_TOKEN",
+            "WHATSAPP_BOT_TOKEN",
+        ],
+    )
     def test_api_key_suffix_routes_to_env(self, key, _isolated_hermes_home):
         set_config_value(key, "secret-456")
         env_content = _read_env(_isolated_hermes_home)
@@ -96,6 +104,7 @@ class TestCatchAllPatterns:
 # Non-secret keys → config.yaml
 # ---------------------------------------------------------------------------
 
+
 class TestConfigYamlRouting:
     """Regular config keys should go to config.yaml, NOT .env."""
 
@@ -117,11 +126,16 @@ class TestConfigYamlRouting:
         config = _read_config(_isolated_hermes_home)
         assert "python:3.12" in config
 
-    def test_terminal_docker_cwd_mount_flag_goes_to_config_and_env(self, _isolated_hermes_home):
+    def test_terminal_docker_cwd_mount_flag_goes_to_config_and_env(
+        self, _isolated_hermes_home
+    ):
         set_config_value("terminal.docker_mount_cwd_to_workspace", "true")
         config = _read_config(_isolated_hermes_home)
         env_content = _read_env(_isolated_hermes_home)
-        assert "docker_mount_cwd_to_workspace: 'true'" in config or "docker_mount_cwd_to_workspace: true" in config
+        assert (
+            "docker_mount_cwd_to_workspace: 'true'" in config
+            or "docker_mount_cwd_to_workspace: true" in config
+        )
         assert (
             "TERMINAL_DOCKER_MOUNT_CWD_TO_WORKSPACE=true" in env_content
             or "TERMINAL_DOCKER_MOUNT_CWD_TO_WORKSPACE=True" in env_content
@@ -131,6 +145,7 @@ class TestConfigYamlRouting:
 # ---------------------------------------------------------------------------
 # Empty / falsy values — regression tests for #4277
 # ---------------------------------------------------------------------------
+
 
 class TestFalsyValues:
     """config set should accept empty strings and falsy values like '0'."""
@@ -145,7 +160,7 @@ class TestFalsyValues:
         """Blanking a config key should write an empty string to config.yaml."""
         set_config_value("model", "")
         config = _read_config(_isolated_hermes_home)
-        assert "model: ''" in config or "model: \"\"" in config
+        assert "model: ''" in config or 'model: ""' in config
 
     def test_zero_routes_to_config(self, _isolated_hermes_home):
         """Setting a config key to '0' should write 0 to config.yaml."""

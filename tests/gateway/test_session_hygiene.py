@@ -27,6 +27,7 @@ from gateway.session import SessionEntry, SessionSource
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_history(n_messages: int, content_size: int = 100) -> list:
     """Build a fake transcript with n_messages user/assistant pairs."""
     history = []
@@ -53,7 +54,9 @@ def _make_large_history_tokens(target_tokens: int) -> list:
 
 class HygieneCaptureAdapter(BasePlatformAdapter):
     def __init__(self):
-        super().__init__(PlatformConfig(enabled=True, token="fake-token"), Platform.TELEGRAM)
+        super().__init__(
+            PlatformConfig(enabled=True, token="fake-token"), Platform.TELEGRAM
+        )
         self.sent = []
 
     async def connect(self) -> bool:
@@ -80,6 +83,7 @@ class HygieneCaptureAdapter(BasePlatformAdapter):
 # ---------------------------------------------------------------------------
 # Detection threshold tests (model-aware, unified with compression config)
 # ---------------------------------------------------------------------------
+
 
 class TestSessionHygieneThresholds:
     """Test that the threshold logic correctly identifies large sessions.
@@ -212,9 +216,6 @@ class TestSessionHygieneWarnThreshold:
         assert post_compress_tokens < warn_threshold
 
 
-
-
-
 class TestEstimatedTokenThreshold:
     """Verify that hygiene thresholds are always below the model's context
     limit — for both actual and estimated token counts.
@@ -279,12 +280,16 @@ class TestTokenEstimation:
     def test_proportional_to_content(self):
         small = _make_history(10, content_size=100)
         large = _make_history(10, content_size=10_000)
-        assert estimate_messages_tokens_rough(large) > estimate_messages_tokens_rough(small)
+        assert estimate_messages_tokens_rough(large) > estimate_messages_tokens_rough(
+            small
+        )
 
     def test_proportional_to_count(self):
         few = _make_history(10, content_size=1000)
         many = _make_history(100, content_size=1000)
-        assert estimate_messages_tokens_rough(many) > estimate_messages_tokens_rough(few)
+        assert estimate_messages_tokens_rough(many) > estimate_messages_tokens_rough(
+            few
+        )
 
     def test_pathological_session_detected(self):
         """The reported pathological case: 648 messages, ~299K tokens.
@@ -299,7 +304,9 @@ class TestTokenEstimation:
 
 
 @pytest.mark.asyncio
-async def test_session_hygiene_messages_stay_in_originating_topic(monkeypatch, tmp_path):
+async def test_session_hygiene_messages_stay_in_originating_topic(
+    monkeypatch, tmp_path
+):
     fake_dotenv = types.ModuleType("dotenv")
     fake_dotenv.load_dotenv = lambda *args, **kwargs: None
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
@@ -339,7 +346,9 @@ async def test_session_hygiene_messages_stay_in_originating_topic(monkeypatch, t
         platform=Platform.TELEGRAM,
         chat_type="group",
     )
-    runner.session_store.load_transcript.return_value = _make_history(6, content_size=400)
+    runner.session_store.load_transcript.return_value = _make_history(
+        6, content_size=400
+    )
     runner.session_store.has_any_sessions.return_value = True
     runner.session_store.rewrite_transcript = MagicMock()
     runner.session_store.append_to_transcript = MagicMock()
@@ -360,7 +369,9 @@ async def test_session_hygiene_messages_stay_in_originating_topic(monkeypatch, t
     )
 
     monkeypatch.setattr(gateway_run, "_hermes_home", tmp_path)
-    monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "fake"})
+    monkeypatch.setattr(
+        gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "fake"}
+    )
     monkeypatch.setattr(
         "agent.model_metadata.get_model_context_length",
         lambda *_args, **_kwargs: 100,

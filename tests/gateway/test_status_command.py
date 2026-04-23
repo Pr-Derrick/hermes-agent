@@ -124,7 +124,9 @@ async def test_handle_message_persists_agent_token_counts(monkeypatch):
         chat_type="dm",
     )
     runner = _make_runner(session_entry)
-    runner.session_store.load_transcript.return_value = [{"role": "user", "content": "earlier"}]
+    runner.session_store.load_transcript.return_value = [
+        {"role": "user", "content": "earlier"}
+    ]
     runner._run_agent = AsyncMock(
         return_value={
             "final_response": "ok",
@@ -138,7 +140,9 @@ async def test_handle_message_persists_agent_token_counts(monkeypatch):
         }
     )
 
-    monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"})
+    monkeypatch.setattr(
+        gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"}
+    )
     monkeypatch.setattr(
         "agent.model_metadata.get_model_context_length",
         lambda *_args, **_kwargs: 100000,
@@ -151,7 +155,6 @@ async def test_handle_message_persists_agent_token_counts(monkeypatch):
         session_entry.session_key,
         last_prompt_tokens=80,
     )
-
 
 
 @pytest.mark.asyncio
@@ -176,10 +179,17 @@ async def test_status_command_bypasses_active_session_guard():
     class _ConcreteAdapter(BasePlatformAdapter):
         platform = Platform.TELEGRAM
 
-        async def connect(self): pass
-        async def disconnect(self): pass
-        async def send(self, chat_id, content, **kwargs): pass
-        async def get_chat_info(self, chat_id): return {}
+        async def connect(self):
+            pass
+
+        async def disconnect(self):
+            pass
+
+        async def send(self, chat_id, content, **kwargs):
+            pass
+
+        async def get_chat_info(self, chat_id):
+            return {}
 
     platform_config = PlatformConfig(enabled=True, token="***")
     adapter = _ConcreteAdapter(platform_config, Platform.TELEGRAM)
@@ -204,8 +214,14 @@ async def test_status_command_bypasses_active_session_guard():
     )
     await adapter.handle_message(event)
 
-    assert handler_called_with, "/status handler was never called (event was queued or dropped)"
+    assert handler_called_with, (
+        "/status handler was never called (event was queued or dropped)"
+    )
     assert sent, "/status response was never sent"
     assert "Agent Running" in sent[0]
-    assert not interrupt_event.is_set(), "/status incorrectly triggered an agent interrupt"
-    assert session_key not in adapter._pending_messages, "/status was incorrectly queued"
+    assert not interrupt_event.is_set(), (
+        "/status incorrectly triggered an agent interrupt"
+    )
+    assert session_key not in adapter._pending_messages, (
+        "/status was incorrectly queued"
+    )

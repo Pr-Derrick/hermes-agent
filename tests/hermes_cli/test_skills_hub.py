@@ -5,7 +5,13 @@ import pytest
 from rich.console import Console
 
 from cli import ChatConsole
-from hermes_cli.skills_hub import do_check, do_install, do_list, do_update, handle_skills_slash
+from hermes_cli.skills_hub import (
+    do_check,
+    do_install,
+    do_list,
+    do_update,
+    handle_skills_slash,
+)
 
 
 class _DummyLockFile:
@@ -56,7 +62,9 @@ def three_source_env(monkeypatch, hub_env):
     import tools.skills_tool as skills_tool
 
     monkeypatch.setattr(hub, "HubLockFile", lambda: _DummyLockFile([_HUB_ENTRY]))
-    monkeypatch.setattr(skills_tool, "_find_all_skills", lambda: list(_ALL_THREE_SKILLS))
+    monkeypatch.setattr(
+        skills_tool, "_find_all_skills", lambda: list(_ALL_THREE_SKILLS)
+    )
     monkeypatch.setattr(skills_sync, "_read_manifest", lambda: dict(_BUILTIN_MANIFEST))
 
     return hub_env
@@ -89,10 +97,22 @@ def _capture_update(monkeypatch, results) -> tuple[str, list[tuple[str, str, boo
     installs = []
 
     monkeypatch.setattr(hub, "check_for_skill_updates", lambda **_kwargs: results)
-    monkeypatch.setattr(hub, "HubLockFile", lambda: type("L", (), {
-        "get_installed": lambda self, name: {"install_path": "category/" + name}
-    })())
-    monkeypatch.setattr(cli_hub, "do_install", lambda identifier, category="", force=False, console=None: installs.append((identifier, category, force)))
+    monkeypatch.setattr(
+        hub,
+        "HubLockFile",
+        lambda: type(
+            "L",
+            (),
+            {"get_installed": lambda self, name: {"install_path": "category/" + name}},
+        )(),
+    )
+    monkeypatch.setattr(
+        cli_hub,
+        "do_install",
+        lambda identifier, category="", force=False, console=None: installs.append(
+            (identifier, category, force)
+        ),
+    )
 
     do_update(console=console)
     return sink.getvalue(), installs
@@ -155,10 +175,13 @@ def test_do_list_filter_builtin(three_source_env):
 
 
 def test_do_check_reports_available_updates(monkeypatch):
-    output = _capture_check(monkeypatch, [
-        {"name": "hub-skill", "source": "skills.sh", "status": "update_available"},
-        {"name": "other-skill", "source": "github", "status": "up_to_date"},
-    ])
+    output = _capture_check(
+        monkeypatch,
+        [
+            {"name": "hub-skill", "source": "skills.sh", "status": "update_available"},
+            {"name": "other-skill", "source": "github", "status": "up_to_date"},
+        ],
+    )
 
     assert "hub-skill" in output
     assert "update_available" in output
@@ -172,27 +195,46 @@ def test_do_check_handles_no_installed_updates(monkeypatch):
 
 
 def test_do_update_reinstalls_outdated_skills(monkeypatch):
-    output, installs = _capture_update(monkeypatch, [
-        {"name": "hub-skill", "identifier": "skills-sh/example/repo/hub-skill", "status": "update_available"},
-        {"name": "other-skill", "identifier": "github/example/other-skill", "status": "up_to_date"},
-    ])
+    output, installs = _capture_update(
+        monkeypatch,
+        [
+            {
+                "name": "hub-skill",
+                "identifier": "skills-sh/example/repo/hub-skill",
+                "status": "update_available",
+            },
+            {
+                "name": "other-skill",
+                "identifier": "github/example/other-skill",
+                "status": "up_to_date",
+            },
+        ],
+    )
 
     assert installs == [("skills-sh/example/repo/hub-skill", "category", True)]
     assert "Updated 1 skill" in output
 
 
 def test_handle_skills_slash_search_accepts_chatconsole_without_status_errors():
-    results = [type("R", (), {
-        "name": "kubernetes",
-        "description": "Cluster orchestration",
-        "source": "skills.sh",
-        "trust_level": "community",
-        "identifier": "skills-sh/example/kubernetes",
-    })()]
+    results = [
+        type(
+            "R",
+            (),
+            {
+                "name": "kubernetes",
+                "description": "Cluster orchestration",
+                "source": "skills.sh",
+                "trust_level": "community",
+                "identifier": "skills-sh/example/kubernetes",
+            },
+        )()
+    ]
 
-    with patch("tools.skills_hub.unified_search", return_value=results), \
-         patch("tools.skills_hub.create_source_router", return_value={}), \
-         patch("tools.skills_hub.GitHubAuth"):
+    with (
+        patch("tools.skills_hub.unified_search", return_value=results),
+        patch("tools.skills_hub.create_source_router", return_value={}),
+        patch("tools.skills_hub.GitHubAuth"),
+    ):
         handle_skills_slash("/skills search kubernetes", console=ChatConsole())
 
 
@@ -204,20 +246,28 @@ def test_do_install_scans_with_resolved_identifier(monkeypatch, tmp_path, hub_en
 
     class _ResolvedSource:
         def inspect(self, identifier):
-            return type("Meta", (), {
-                "extra": {},
-                "identifier": canonical_identifier,
-            })()
+            return type(
+                "Meta",
+                (),
+                {
+                    "extra": {},
+                    "identifier": canonical_identifier,
+                },
+            )()
 
         def fetch(self, identifier):
-            return type("Bundle", (), {
-                "name": "frontend-design",
-                "files": {"SKILL.md": "# Frontend Design"},
-                "source": "skills.sh",
-                "identifier": canonical_identifier,
-                "trust_level": "trusted",
-                "metadata": {},
-            })()
+            return type(
+                "Bundle",
+                (),
+                {
+                    "name": "frontend-design",
+                    "files": {"SKILL.md": "# Frontend Design"},
+                    "source": "skills.sh",
+                    "identifier": canonical_identifier,
+                    "trust_level": "trusted",
+                    "metadata": {},
+                },
+            )()
 
     q_path = tmp_path / "skills" / ".hub" / "quarantine" / "frontend-design"
     q_path.mkdir(parents=True)
@@ -237,14 +287,24 @@ def test_do_install_scans_with_resolved_identifier(monkeypatch, tmp_path, hub_en
     monkeypatch.setattr(hub, "ensure_hub_dirs", lambda: None)
     monkeypatch.setattr(hub, "create_source_router", lambda auth: [_ResolvedSource()])
     monkeypatch.setattr(hub, "quarantine_bundle", lambda bundle: q_path)
-    monkeypatch.setattr(hub, "HubLockFile", lambda: type("Lock", (), {"get_installed": lambda self, name: None})())
+    monkeypatch.setattr(
+        hub,
+        "HubLockFile",
+        lambda: type("Lock", (), {"get_installed": lambda self, name: None})(),
+    )
     monkeypatch.setattr(guard, "scan_skill", _scan_skill)
     monkeypatch.setattr(guard, "format_scan_report", lambda result: "scan ok")
-    monkeypatch.setattr(guard, "should_allow_install", lambda result, force=False: (False, "stop after scan"))
+    monkeypatch.setattr(
+        guard,
+        "should_allow_install",
+        lambda result, force=False: (False, "stop after scan"),
+    )
 
     sink = StringIO()
     console = Console(file=sink, force_terminal=False, color_system=None)
 
-    do_install("skils-sh/anthropics/skills/frontend-design", console=console, skip_confirm=True)
+    do_install(
+        "skils-sh/anthropics/skills/frontend-design", console=console, skip_confirm=True
+    )
 
     assert scanned["source"] == canonical_identifier

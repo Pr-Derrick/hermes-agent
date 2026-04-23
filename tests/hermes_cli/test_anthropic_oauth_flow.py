@@ -3,7 +3,9 @@
 from hermes_cli.config import load_env, save_env_value
 
 
-def test_run_anthropic_oauth_flow_prefers_claude_code_credentials(tmp_path, monkeypatch, capsys):
+def test_run_anthropic_oauth_flow_prefers_claude_code_credentials(
+    tmp_path, monkeypatch, capsys
+):
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     monkeypatch.setattr(
         "agent.anthropic_adapter.run_oauth_setup_token",
@@ -34,13 +36,23 @@ def test_run_anthropic_oauth_flow_prefers_claude_code_credentials(tmp_path, monk
     assert "Claude Code credentials linked" in output
 
 
-def test_run_anthropic_oauth_flow_manual_token_still_persists(tmp_path, monkeypatch, capsys):
+def test_run_anthropic_oauth_flow_manual_token_still_persists(
+    tmp_path, monkeypatch, capsys
+):
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     monkeypatch.setattr("agent.anthropic_adapter.run_oauth_setup_token", lambda: None)
-    monkeypatch.setattr("agent.anthropic_adapter.read_claude_code_credentials", lambda: None)
-    monkeypatch.setattr("agent.anthropic_adapter.is_claude_code_token_valid", lambda creds: False)
-    monkeypatch.setattr("builtins.input", lambda _prompt="": "sk-ant-oat01-manual-token")
-    monkeypatch.setattr("getpass.getpass", lambda _prompt="": "sk-ant-oat01-manual-token")
+    monkeypatch.setattr(
+        "agent.anthropic_adapter.read_claude_code_credentials", lambda: None
+    )
+    monkeypatch.setattr(
+        "agent.anthropic_adapter.is_claude_code_token_valid", lambda creds: False
+    )
+    monkeypatch.setattr(
+        "builtins.input", lambda _prompt="": "sk-ant-oat01-manual-token"
+    )
+    monkeypatch.setattr(
+        "getpass.getpass", lambda _prompt="": "sk-ant-oat01-manual-token"
+    )
 
     from hermes_cli.main import _run_anthropic_oauth_flow
 

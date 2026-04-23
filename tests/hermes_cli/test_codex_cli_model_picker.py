@@ -44,26 +44,31 @@ def codex_cli_only_env(tmp_path, monkeypatch):
     monkeypatch.setenv("CODEX_HOME", str(codex_home))
 
     # Empty Hermes auth store
-    (hermes_home / "auth.json").write_text(
-        json.dumps({"version": 2, "providers": {}})
-    )
+    (hermes_home / "auth.json").write_text(json.dumps({"version": 2, "providers": {}}))
 
     # Valid Codex CLI tokens
     fake_jwt = _make_fake_jwt()
     (codex_home / "auth.json").write_text(
-        json.dumps({
-            "tokens": {
-                "access_token": fake_jwt,
-                "refresh_token": "fake-refresh-token",
+        json.dumps(
+            {
+                "tokens": {
+                    "access_token": fake_jwt,
+                    "refresh_token": "fake-refresh-token",
+                }
             }
-        })
+        )
     )
 
     # Clear provider env vars so only OAuth is a detection path
     for var in [
-        "OPENROUTER_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-        "NOUS_API_KEY", "DEEPSEEK_API_KEY", "COPILOT_GITHUB_TOKEN",
-        "GH_TOKEN", "GEMINI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "NOUS_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "COPILOT_GITHUB_TOKEN",
+        "GH_TOKEN",
+        "GEMINI_API_KEY",
     ]:
         monkeypatch.delenv(var, raising=False)
 
@@ -118,22 +123,29 @@ def hermes_auth_only_env(tmp_path, monkeypatch):
     # Point CODEX_HOME to nonexistent dir to prove it's not needed
     monkeypatch.setenv("CODEX_HOME", str(tmp_path / "no_codex"))
 
-    (hermes_home / "auth.json").write_text(json.dumps({
-        "version": 2,
-        "providers": {
-            "openai-codex": {
-                "tokens": {
-                    "access_token": _make_fake_jwt(),
-                    "refresh_token": "fake-refresh",
+    (hermes_home / "auth.json").write_text(
+        json.dumps(
+            {
+                "version": 2,
+                "providers": {
+                    "openai-codex": {
+                        "tokens": {
+                            "access_token": _make_fake_jwt(),
+                            "refresh_token": "fake-refresh",
+                        },
+                        "last_refresh": "2026-04-12T00:00:00Z",
+                    }
                 },
-                "last_refresh": "2026-04-12T00:00:00Z",
             }
-        },
-    }))
+        )
+    )
 
     for var in [
-        "OPENROUTER_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-        "NOUS_API_KEY", "DEEPSEEK_API_KEY",
+        "OPENROUTER_API_KEY",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "NOUS_API_KEY",
+        "DEEPSEEK_API_KEY",
     ]:
         monkeypatch.delenv(var, raising=False)
 
@@ -164,28 +176,34 @@ def claude_code_only_env(tmp_path, monkeypatch):
     # No Codex CLI
     monkeypatch.setenv("CODEX_HOME", str(tmp_path / "no_codex"))
 
-    (hermes_home / "auth.json").write_text(
-        json.dumps({"version": 2, "providers": {}})
-    )
+    (hermes_home / "auth.json").write_text(json.dumps({"version": 2, "providers": {}}))
 
     # Claude Code credentials in the correct format
     claude_dir = tmp_path / ".claude"
     claude_dir.mkdir()
-    (claude_dir / ".credentials.json").write_text(json.dumps({
-        "claudeAiOauth": {
-            "accessToken": _make_fake_jwt(),
-            "refreshToken": "fake-refresh",
-            "expiresAt": int(time.time() * 1000) + 3_600_000,
-        }
-    }))
+    (claude_dir / ".credentials.json").write_text(
+        json.dumps(
+            {
+                "claudeAiOauth": {
+                    "accessToken": _make_fake_jwt(),
+                    "refreshToken": "fake-refresh",
+                    "expiresAt": int(time.time() * 1000) + 3_600_000,
+                }
+            }
+        )
+    )
 
     # Patch Path.home() so the adapter finds the file
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
 
     for var in [
-        "OPENROUTER_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-        "ANTHROPIC_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN",
-        "NOUS_API_KEY", "DEEPSEEK_API_KEY",
+        "OPENROUTER_API_KEY",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "ANTHROPIC_TOKEN",
+        "CLAUDE_CODE_OAUTH_TOKEN",
+        "NOUS_API_KEY",
+        "DEEPSEEK_API_KEY",
     ]:
         monkeypatch.delenv(var, raising=False)
 
@@ -218,14 +236,17 @@ def test_no_codex_when_no_credentials(tmp_path, monkeypatch):
     monkeypatch.setenv("HERMES_HOME", str(hermes_home))
     monkeypatch.setenv("CODEX_HOME", str(tmp_path / "no_codex"))
 
-    (hermes_home / "auth.json").write_text(
-        json.dumps({"version": 2, "providers": {}})
-    )
+    (hermes_home / "auth.json").write_text(json.dumps({"version": 2, "providers": {}}))
 
     for var in [
-        "OPENROUTER_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-        "NOUS_API_KEY", "DEEPSEEK_API_KEY", "COPILOT_GITHUB_TOKEN",
-        "GH_TOKEN", "GEMINI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "NOUS_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "COPILOT_GITHUB_TOKEN",
+        "GH_TOKEN",
+        "GEMINI_API_KEY",
     ]:
         monkeypatch.delenv(var, raising=False)
 

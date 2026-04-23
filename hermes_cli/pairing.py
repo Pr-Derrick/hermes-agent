@@ -8,6 +8,7 @@ Usage:
     hermes pairing clear-pending     # Clear all expired/pending codes
 """
 
+
 def pairing_command(args):
     """Handle hermes pairing subcommands."""
     from gateway.pairing import PairingStore
@@ -54,7 +55,9 @@ def _cmd_list(store):
         print(f"  {'Platform':<12} {'User ID':<20} {'Name':<20}")
         print(f"  {'--------':<12} {'-------':<20} {'----':<20}")
         for a in approved:
-            print(f"  {a['platform']:<12} {a['user_id']:<20} {a.get('user_name', ''):<20}")
+            print(
+                f"  {a['platform']:<12} {a['user_id']:<20} {a.get('user_name', ''):<20}"
+            )
     else:
         print("\n  No approved users.")
 

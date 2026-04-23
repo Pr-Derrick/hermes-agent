@@ -28,8 +28,10 @@ from tools.file_tools import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 class _FakeReadResult:
     """Minimal stand-in for FileOperations.read_file return value."""
+
     def __init__(self, content="line1\nline2\n", total_lines=2, file_size=100):
         self.content = content
         self._total_lines = total_lines
@@ -46,7 +48,9 @@ class _FakeReadResult:
 def _make_fake_ops(content="hello\n", total_lines=1, file_size=6):
     fake = MagicMock()
     fake.read_file = lambda path, offset=1, limit=500: _FakeReadResult(
-        content=content, total_lines=total_lines, file_size=file_size,
+        content=content,
+        total_lines=total_lines,
+        file_size=file_size,
     )
     return fake
 
@@ -55,13 +59,24 @@ def _make_fake_ops(content="hello\n", total_lines=1, file_size=6):
 # Device path blocking
 # ---------------------------------------------------------------------------
 
+
 class TestDevicePathBlocking(unittest.TestCase):
     """Paths like /dev/zero should be rejected before any I/O."""
 
     def test_blocked_device_detection(self):
-        for dev in ("/dev/zero", "/dev/random", "/dev/urandom", "/dev/stdin",
-                     "/dev/tty", "/dev/console", "/dev/stdout", "/dev/stderr",
-                     "/dev/fd/0", "/dev/fd/1", "/dev/fd/2"):
+        for dev in (
+            "/dev/zero",
+            "/dev/random",
+            "/dev/urandom",
+            "/dev/stdin",
+            "/dev/tty",
+            "/dev/console",
+            "/dev/stdout",
+            "/dev/stderr",
+            "/dev/fd/0",
+            "/dev/fd/1",
+            "/dev/fd/2",
+        ):
             self.assertTrue(_is_blocked_device(dev), f"{dev} should be blocked")
 
     def test_safe_device_not_blocked(self):
@@ -90,6 +105,7 @@ class TestDevicePathBlocking(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Character-count limits
 # ---------------------------------------------------------------------------
+
 
 class TestCharacterCountGuard(unittest.TestCase):
     """Large reads should be rejected with guidance to use offset/limit."""
@@ -141,6 +157,7 @@ class TestCharacterCountGuard(unittest.TestCase):
 # File deduplication
 # ---------------------------------------------------------------------------
 
+
 class TestFileDedup(unittest.TestCase):
     """Re-reading an unchanged file should return a lightweight stub."""
 
@@ -163,7 +180,8 @@ class TestFileDedup(unittest.TestCase):
     def test_second_read_returns_dedup_stub(self, mock_ops):
         """Second read of same file+range returns dedup stub."""
         mock_ops.return_value = _make_fake_ops(
-            content="line one\nline two\n", file_size=20,
+            content="line one\nline two\n",
+            file_size=20,
         )
         # First read — full content
         r1 = json.loads(read_file_tool(self._tmpfile, task_id="dup"))
@@ -178,7 +196,8 @@ class TestFileDedup(unittest.TestCase):
     def test_modified_file_not_deduped(self, mock_ops):
         """After the file is modified, dedup returns full content."""
         mock_ops.return_value = _make_fake_ops(
-            content="line one\nline two\n", file_size=20,
+            content="line one\nline two\n",
+            file_size=20,
         )
         read_file_tool(self._tmpfile, task_id="mod")
 
@@ -194,20 +213,27 @@ class TestFileDedup(unittest.TestCase):
     def test_different_range_not_deduped(self, mock_ops):
         """Same file but different offset/limit should not dedup."""
         mock_ops.return_value = _make_fake_ops(
-            content="line one\nline two\n", file_size=20,
+            content="line one\nline two\n",
+            file_size=20,
         )
         read_file_tool(self._tmpfile, offset=1, limit=500, task_id="rng")
 
-        r2 = json.loads(read_file_tool(
-            self._tmpfile, offset=10, limit=500, task_id="rng",
-        ))
+        r2 = json.loads(
+            read_file_tool(
+                self._tmpfile,
+                offset=10,
+                limit=500,
+                task_id="rng",
+            )
+        )
         self.assertNotEqual(r2.get("dedup"), True)
 
     @patch("tools.file_tools._get_file_ops")
     def test_different_task_not_deduped(self, mock_ops):
         """Different task_ids have separate dedup caches."""
         mock_ops.return_value = _make_fake_ops(
-            content="line one\nline two\n", file_size=20,
+            content="line one\nline two\n",
+            file_size=20,
         )
         read_file_tool(self._tmpfile, task_id="task_a")
 
@@ -218,6 +244,7 @@ class TestFileDedup(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Dedup reset on compression
 # ---------------------------------------------------------------------------
+
 
 class TestDedupResetOnCompression(unittest.TestCase):
     """reset_file_dedup should clear the dedup cache so post-compression
@@ -242,7 +269,8 @@ class TestDedupResetOnCompression(unittest.TestCase):
     def test_reset_clears_dedup(self, mock_ops):
         """After reset_file_dedup, the same read returns full content."""
         mock_ops.return_value = _make_fake_ops(
-            content="original content\n", file_size=18,
+            content="original content\n",
+            file_size=18,
         )
         # First read — populates dedup cache
         read_file_tool(self._tmpfile, task_id="comp")
@@ -256,14 +284,18 @@ class TestDedupResetOnCompression(unittest.TestCase):
 
         # Read again — should get full content
         r_post = json.loads(read_file_tool(self._tmpfile, task_id="comp"))
-        self.assertNotEqual(r_post.get("dedup"), True,
-                            "Post-compression read should return full content")
+        self.assertNotEqual(
+            r_post.get("dedup"),
+            True,
+            "Post-compression read should return full content",
+        )
 
     @patch("tools.file_tools._get_file_ops")
     def test_reset_all_tasks(self, mock_ops):
         """reset_file_dedup(None) clears all tasks."""
         mock_ops.return_value = _make_fake_ops(
-            content="original content\n", file_size=18,
+            content="original content\n",
+            file_size=18,
         )
         read_file_tool(self._tmpfile, task_id="t1")
         read_file_tool(self._tmpfile, task_id="t2")
@@ -279,7 +311,8 @@ class TestDedupResetOnCompression(unittest.TestCase):
     def test_reset_preserves_loop_detection(self, mock_ops):
         """reset_file_dedup does NOT affect the consecutive-read counter."""
         mock_ops.return_value = _make_fake_ops(
-            content="original content\n", file_size=18,
+            content="original content\n",
+            file_size=18,
         )
         # Build up consecutive count (read 1 and 2)
         read_file_tool(self._tmpfile, task_id="loop")
@@ -301,6 +334,7 @@ class TestDedupResetOnCompression(unittest.TestCase):
 # Large-file hint
 # ---------------------------------------------------------------------------
 
+
 class TestLargeFileHint(unittest.TestCase):
     """Large truncated files should include a hint about targeted reads."""
 
@@ -316,15 +350,19 @@ class TestLargeFileHint(unittest.TestCase):
         fake = _make_fake_ops(content=content, total_lines=10000, file_size=600_000)
         # Make to_dict return truncated=True
         orig_read = fake.read_file
+
         def patched_read(path, offset=1, limit=500):
             r = orig_read(path, offset, limit)
             orig_to_dict = r.to_dict
+
             def new_to_dict():
                 d = orig_to_dict()
                 d["truncated"] = True
                 return d
+
             r.to_dict = new_to_dict
             return r
+
         fake.read_file = patched_read
         mock_ops.return_value = fake
 
@@ -337,6 +375,7 @@ class TestLargeFileHint(unittest.TestCase):
 # Config override
 # ---------------------------------------------------------------------------
 
+
 class TestConfigOverride(unittest.TestCase):
     """file_read_max_chars in config.yaml should control the char guard."""
 
@@ -344,11 +383,13 @@ class TestConfigOverride(unittest.TestCase):
         clear_read_tracker()
         # Reset the cached value so each test gets a fresh lookup
         import tools.file_tools as _ft
+
         _ft._max_read_chars_cached = None
 
     def tearDown(self):
         clear_read_tracker()
         import tools.file_tools as _ft
+
         _ft._max_read_chars_cached = None
 
     @patch("tools.file_tools._get_file_ops")
@@ -362,12 +403,15 @@ class TestConfigOverride(unittest.TestCase):
         self.assertIn("50", result["error"])  # should show the configured limit
 
     @patch("tools.file_tools._get_file_ops")
-    @patch("hermes_cli.config.load_config", return_value={"file_read_max_chars": 500_000})
+    @patch(
+        "hermes_cli.config.load_config", return_value={"file_read_max_chars": 500_000}
+    )
     def test_custom_config_raises_limit(self, _mock_cfg, mock_ops):
         """A config value of 500K should allow reads up to 500K chars."""
         # 200K chars would be rejected at the default 100K but passes at 500K
         mock_ops.return_value = _make_fake_ops(
-            content="y" * 200_000, file_size=200_000,
+            content="y" * 200_000,
+            file_size=200_000,
         )
         result = json.loads(read_file_tool("/tmp/cfgtest2.txt", task_id="cfg2"))
         self.assertNotIn("error", result)

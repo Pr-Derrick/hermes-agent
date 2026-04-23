@@ -42,8 +42,12 @@ def make_approval_callback(
 
     def _callback(command: str, description: str) -> str:
         options = [
-            PermissionOption(option_id="allow_once", kind="allow_once", name="Allow once"),
-            PermissionOption(option_id="allow_always", kind="allow_always", name="Allow always"),
+            PermissionOption(
+                option_id="allow_once", kind="allow_once", name="Allow once"
+            ),
+            PermissionOption(
+                option_id="allow_always", kind="allow_always", name="Allow always"
+            ),
             PermissionOption(option_id="deny", kind="reject_once", name="Deny"),
         ]
         import acp as _acp

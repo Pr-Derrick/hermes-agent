@@ -13,11 +13,13 @@ import pytest
 # Unit tests: shared interrupt module
 # ---------------------------------------------------------------------------
 
+
 class TestInterruptModule:
     """Tests for tools/interrupt.py"""
 
     def test_set_and_check(self):
         from tools.interrupt import set_interrupt, is_interrupted
+
         set_interrupt(False)
         assert not is_interrupted()
 
@@ -30,6 +32,7 @@ class TestInterruptModule:
     def test_thread_safety(self):
         """Set from one thread, check from another."""
         from tools.interrupt import set_interrupt, is_interrupted
+
         set_interrupt(False)
 
         seen = {"value": False}
@@ -55,6 +58,7 @@ class TestInterruptModule:
 # ---------------------------------------------------------------------------
 # Unit tests: pre-tool interrupt check
 # ---------------------------------------------------------------------------
+
 
 class TestPreToolCheck:
     """Verify that _execute_tool_calls skips all tools when interrupted."""
@@ -93,16 +97,24 @@ class TestPreToolCheck:
         # Import and call the method
         import types
         from run_agent import AIAgent
+
         # Bind the real methods to our mock so dispatch works correctly
-        agent._execute_tool_calls_sequential = types.MethodType(AIAgent._execute_tool_calls_sequential, agent)
-        agent._execute_tool_calls_concurrent = types.MethodType(AIAgent._execute_tool_calls_concurrent, agent)
+        agent._execute_tool_calls_sequential = types.MethodType(
+            AIAgent._execute_tool_calls_sequential, agent
+        )
+        agent._execute_tool_calls_concurrent = types.MethodType(
+            AIAgent._execute_tool_calls_concurrent, agent
+        )
         AIAgent._execute_tool_calls(agent, assistant_msg, messages, "default")
 
         # All 3 should be skipped
         assert len(messages) == 3
         for msg in messages:
             assert msg["role"] == "tool"
-            assert "cancelled" in msg["content"].lower() or "interrupted" in msg["content"].lower()
+            assert (
+                "cancelled" in msg["content"].lower()
+                or "interrupted" in msg["content"].lower()
+            )
 
         # No actual tool handlers should have been called
         # (handle_function_call should NOT have been invoked)
@@ -111,6 +123,7 @@ class TestPreToolCheck:
 # ---------------------------------------------------------------------------
 # Unit tests: message combining
 # ---------------------------------------------------------------------------
+
 
 class TestMessageCombining:
     """Verify multiple interrupt messages are joined."""
@@ -161,13 +174,11 @@ class TestMessageCombining:
 # Integration tests (require local terminal)
 # ---------------------------------------------------------------------------
 
+
 class TestSIGKILLEscalation:
     """Test that SIGTERM-resistant processes get SIGKILL'd."""
 
-    @pytest.mark.skipif(
-        not __import__("shutil").which("bash"),
-        reason="Requires bash"
-    )
+    @pytest.mark.skipif(not __import__("shutil").which("bash"), reason="Requires bash")
     def test_sigterm_trap_killed_within_2s(self):
         """A process that traps SIGTERM should be SIGKILL'd after 1s grace."""
         from tools.interrupt import set_interrupt

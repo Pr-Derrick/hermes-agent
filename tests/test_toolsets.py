@@ -38,8 +38,16 @@ class TestResolveToolset:
 
     def test_cycle_detection(self):
         # Create a cycle: A includes B, B includes A
-        TOOLSETS["_cycle_a"] = {"description": "test", "tools": ["t1"], "includes": ["_cycle_b"]}
-        TOOLSETS["_cycle_b"] = {"description": "test", "tools": ["t2"], "includes": ["_cycle_a"]}
+        TOOLSETS["_cycle_a"] = {
+            "description": "test",
+            "tools": ["t1"],
+            "includes": ["_cycle_b"],
+        }
+        TOOLSETS["_cycle_b"] = {
+            "description": "test",
+            "tools": ["t2"],
+            "includes": ["_cycle_a"],
+        }
         try:
             tools = resolve_toolset("_cycle_a")
             # Should not infinite loop — cycle is detected
@@ -136,7 +144,15 @@ class TestToolsetConsistency:
 
     def test_hermes_platforms_share_core_tools(self):
         """All hermes-* platform toolsets should have the same tools."""
-        platforms = ["hermes-cli", "hermes-telegram", "hermes-discord", "hermes-whatsapp", "hermes-slack", "hermes-signal", "hermes-homeassistant"]
+        platforms = [
+            "hermes-cli",
+            "hermes-telegram",
+            "hermes-discord",
+            "hermes-whatsapp",
+            "hermes-slack",
+            "hermes-signal",
+            "hermes-homeassistant",
+        ]
         tool_sets = [set(TOOLSETS[p]["tools"]) for p in platforms]
         # All platform toolsets should be identical
         for ts in tool_sets[1:]:

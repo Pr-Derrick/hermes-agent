@@ -82,7 +82,9 @@ def build_tool_title(tool_name: str, args: Dict[str, Any]) -> str:
     if tool_name == "web_extract":
         urls = args.get("urls", [])
         if urls:
-            return f"extract: {urls[0]}" + (f" (+{len(urls)-1})" if len(urls) > 1 else "")
+            return f"extract: {urls[0]}" + (
+                f" (+{len(urls) - 1})" if len(urls) > 1 else ""
+            )
         return "web extract"
     if tool_name == "delegate_task":
         goal = args.get("goal", "")
@@ -123,7 +125,11 @@ def build_tool_start(
             patch_text = arguments.get("patch", "")
             content = [acp.tool_content(acp.text_block(patch_text))]
         return acp.start_tool_call(
-            tool_call_id, title, kind=kind, content=content, locations=locations,
+            tool_call_id,
+            title,
+            kind=kind,
+            content=content,
+            locations=locations,
             raw_input=arguments,
         )
 
@@ -132,7 +138,11 @@ def build_tool_start(
         file_content = arguments.get("content", "")
         content = [acp.tool_diff_content(path=path, new_text=file_content)]
         return acp.start_tool_call(
-            tool_call_id, title, kind=kind, content=content, locations=locations,
+            tool_call_id,
+            title,
+            kind=kind,
+            content=content,
+            locations=locations,
             raw_input=arguments,
         )
 
@@ -140,7 +150,11 @@ def build_tool_start(
         command = arguments.get("command", "")
         content = [acp.tool_content(acp.text_block(f"$ {command}"))]
         return acp.start_tool_call(
-            tool_call_id, title, kind=kind, content=content, locations=locations,
+            tool_call_id,
+            title,
+            kind=kind,
+            content=content,
+            locations=locations,
             raw_input=arguments,
         )
 
@@ -148,28 +162,43 @@ def build_tool_start(
         path = arguments.get("path", "")
         content = [acp.tool_content(acp.text_block(f"Reading {path}"))]
         return acp.start_tool_call(
-            tool_call_id, title, kind=kind, content=content, locations=locations,
+            tool_call_id,
+            title,
+            kind=kind,
+            content=content,
+            locations=locations,
             raw_input=arguments,
         )
 
     if tool_name == "search_files":
         pattern = arguments.get("pattern", "")
         target = arguments.get("target", "content")
-        content = [acp.tool_content(acp.text_block(f"Searching for '{pattern}' ({target})"))]
+        content = [
+            acp.tool_content(acp.text_block(f"Searching for '{pattern}' ({target})"))
+        ]
         return acp.start_tool_call(
-            tool_call_id, title, kind=kind, content=content, locations=locations,
+            tool_call_id,
+            title,
+            kind=kind,
+            content=content,
+            locations=locations,
             raw_input=arguments,
         )
 
     # Generic fallback
     import json
+
     try:
         args_text = json.dumps(arguments, indent=2, default=str)
     except (TypeError, ValueError):
         args_text = str(arguments)
     content = [acp.tool_content(acp.text_block(args_text))]
     return acp.start_tool_call(
-        tool_call_id, title, kind=kind, content=content, locations=locations,
+        tool_call_id,
+        title,
+        kind=kind,
+        content=content,
+        locations=locations,
         raw_input=arguments,
     )
 
@@ -185,7 +214,9 @@ def build_tool_complete(
     # Truncate very large results for the UI
     display_result = result or ""
     if len(display_result) > 5000:
-        display_result = display_result[:4900] + f"\n... ({len(result)} chars total, truncated)"
+        display_result = (
+            display_result[:4900] + f"\n... ({len(result)} chars total, truncated)"
+        )
 
     content = [acp.tool_content(acp.text_block(display_result))]
     return acp.update_tool_call(

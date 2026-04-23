@@ -30,7 +30,9 @@ def _make_tool_defs(*names: str) -> list:
 def _make_agent(fallback_model=None):
     """Create a minimal AIAgent with optional fallback config."""
     with (
-        patch("run_agent.get_tool_definitions", return_value=_make_tool_defs("web_search")),
+        patch(
+            "run_agent.get_tool_definitions", return_value=_make_tool_defs("web_search")
+        ),
         patch("run_agent.check_toolset_requirements", return_value={}),
         patch("run_agent.OpenAI"),
     ):
@@ -57,6 +59,7 @@ def _mock_resolve(base_url="https://openrouter.ai/api/v1", api_key="test-key"):
 # _try_activate_fallback()
 # =============================================================================
 
+
 class TestTryActivateFallback:
     def test_returns_false_when_not_configured(self):
         agent = _make_agent(fallback_model=None)
@@ -77,7 +80,10 @@ class TestTryActivateFallback:
 
     def test_activates_openrouter_fallback(self):
         agent = _make_agent(
-            fallback_model={"provider": "openrouter", "model": "anthropic/claude-sonnet-4"},
+            fallback_model={
+                "provider": "openrouter",
+                "model": "anthropic/claude-sonnet-4",
+            },
         )
         mock_client = _mock_resolve(
             api_key="sk-or-fallback-key",
@@ -167,7 +173,10 @@ class TestTryActivateFallback:
 
     def test_only_fires_once(self):
         agent = _make_agent(
-            fallback_model={"provider": "openrouter", "model": "anthropic/claude-sonnet-4"},
+            fallback_model={
+                "provider": "openrouter",
+                "model": "anthropic/claude-sonnet-4",
+            },
         )
         mock_client = _mock_resolve(
             api_key="sk-or-key",
@@ -217,7 +226,10 @@ class TestTryActivateFallback:
 
     def test_prompt_caching_enabled_for_claude_on_openrouter(self):
         agent = _make_agent(
-            fallback_model={"provider": "openrouter", "model": "anthropic/claude-sonnet-4"},
+            fallback_model={
+                "provider": "openrouter",
+                "model": "anthropic/claude-sonnet-4",
+            },
         )
         mock_client = _mock_resolve(
             api_key="sk-or-key",
@@ -232,7 +244,10 @@ class TestTryActivateFallback:
 
     def test_prompt_caching_disabled_for_non_claude(self):
         agent = _make_agent(
-            fallback_model={"provider": "openrouter", "model": "google/gemini-2.5-flash"},
+            fallback_model={
+                "provider": "openrouter",
+                "model": "google/gemini-2.5-flash",
+            },
         )
         mock_client = _mock_resolve(
             api_key="sk-or-key",
@@ -345,10 +360,14 @@ class TestTryActivateFallback:
 # Fallback config init
 # =============================================================================
 
+
 class TestFallbackInit:
     def test_fallback_stored_when_configured(self):
         agent = _make_agent(
-            fallback_model={"provider": "openrouter", "model": "anthropic/claude-sonnet-4"},
+            fallback_model={
+                "provider": "openrouter",
+                "model": "anthropic/claude-sonnet-4",
+            },
         )
         assert agent._fallback_model is not None
         assert agent._fallback_model["provider"] == "openrouter"
@@ -368,16 +387,20 @@ class TestFallbackInit:
 # Provider credential resolution
 # =============================================================================
 
+
 class TestProviderCredentials:
     """Verify that each supported provider resolves via the centralized router."""
 
-    @pytest.mark.parametrize("provider,env_var,base_url_fragment", [
-        ("openrouter", "OPENROUTER_API_KEY", "openrouter"),
-        ("zai", "ZAI_API_KEY", "z.ai"),
-        ("kimi-coding", "KIMI_API_KEY", "moonshot.ai"),
-        ("minimax", "MINIMAX_API_KEY", "minimax.io"),
-        ("minimax-cn", "MINIMAX_CN_API_KEY", "minimaxi.com"),
-    ])
+    @pytest.mark.parametrize(
+        "provider,env_var,base_url_fragment",
+        [
+            ("openrouter", "OPENROUTER_API_KEY", "openrouter"),
+            ("zai", "ZAI_API_KEY", "z.ai"),
+            ("kimi-coding", "KIMI_API_KEY", "moonshot.ai"),
+            ("minimax", "MINIMAX_API_KEY", "minimax.io"),
+            ("minimax-cn", "MINIMAX_CN_API_KEY", "minimaxi.com"),
+        ],
+    )
     def test_provider_resolves(self, provider, env_var, base_url_fragment):
         agent = _make_agent(
             fallback_model={"provider": provider, "model": "test-model"},

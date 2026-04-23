@@ -97,11 +97,7 @@ class TestLoadCliConfigExpansion:
     """Verify that load_cli_config() also expands ${VAR} references."""
 
     def test_cli_config_expands_auxiliary_api_key(self, tmp_path, monkeypatch):
-        config_yaml = (
-            "auxiliary:\n"
-            "  vision:\n"
-            "    api_key: ${TEST_VISION_KEY_XYZ}\n"
-        )
+        config_yaml = "auxiliary:\n  vision:\n    api_key: ${TEST_VISION_KEY_XYZ}\n"
         config_file = tmp_path / "config.yaml"
         config_file.write_text(config_yaml)
 
@@ -110,16 +106,13 @@ class TestLoadCliConfigExpansion:
         monkeypatch.setattr("cli._hermes_home", tmp_path)
 
         from cli import load_cli_config
+
         config = load_cli_config()
 
         assert config["auxiliary"]["vision"]["api_key"] == "vis-key-123"
 
     def test_cli_config_unresolved_kept_verbatim(self, tmp_path, monkeypatch):
-        config_yaml = (
-            "auxiliary:\n"
-            "  vision:\n"
-            "    api_key: ${UNSET_CLI_VAR_ABC}\n"
-        )
+        config_yaml = "auxiliary:\n  vision:\n    api_key: ${UNSET_CLI_VAR_ABC}\n"
         config_file = tmp_path / "config.yaml"
         config_file.write_text(config_yaml)
 
@@ -127,6 +120,7 @@ class TestLoadCliConfigExpansion:
         monkeypatch.setattr("cli._hermes_home", tmp_path)
 
         from cli import load_cli_config
+
         config = load_cli_config()
 
         assert config["auxiliary"]["vision"]["api_key"] == "${UNSET_CLI_VAR_ABC}"

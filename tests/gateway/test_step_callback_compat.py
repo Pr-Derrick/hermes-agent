@@ -31,17 +31,20 @@ class TestStepCallbackNormalization:
 
         def _step_callback_sync(iteration: int, prev_tools: list) -> None:
             _names: list[str] = []
-            for _t in (prev_tools or []):
+            for _t in prev_tools or []:
                 if isinstance(_t, dict):
                     _names.append(_t.get("name") or "")
                 else:
                     _names.append(str(_t))
             asyncio.run_coroutine_threadsafe(
-                hooks_ref.emit("agent:step", {
-                    "iteration": iteration,
-                    "tool_names": _names,
-                    "tools": prev_tools,
-                }),
+                hooks_ref.emit(
+                    "agent:step",
+                    {
+                        "iteration": iteration,
+                        "tool_names": _names,
+                        "tools": prev_tools,
+                    },
+                ),
                 loop,
             )
 
@@ -60,6 +63,7 @@ class TestStepCallbackNormalization:
         try:
             loop.run_until_complete(asyncio.sleep(0))  # prime the loop
             import threading
+
             t = threading.Thread(target=cb, args=(1, prev_tools))
             t.start()
             t.join(timeout=2)
@@ -84,6 +88,7 @@ class TestStepCallbackNormalization:
         try:
             loop.run_until_complete(asyncio.sleep(0))
             import threading
+
             t = threading.Thread(target=cb, args=(2, prev_tools))
             t.start()
             t.join(timeout=2)
@@ -102,6 +107,7 @@ class TestStepCallbackNormalization:
         try:
             loop.run_until_complete(asyncio.sleep(0))
             import threading
+
             t = threading.Thread(target=cb, args=(1, []))
             t.start()
             t.join(timeout=2)

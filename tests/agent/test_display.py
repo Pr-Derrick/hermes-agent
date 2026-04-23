@@ -64,7 +64,9 @@ class TestBuildToolPreview:
         assert build_tool_preview("process", None) is None
 
     def test_process_tool_normal(self):
-        result = build_tool_preview("process", {"action": "poll", "session_id": "abc123"})
+        result = build_tool_preview(
+            "process", {"action": "poll", "session_id": "abc123"}
+        )
         assert result is not None
         assert "poll" in result
 
@@ -74,12 +76,16 @@ class TestBuildToolPreview:
         assert "reading" in result
 
     def test_todo_tool_with_todos(self):
-        result = build_tool_preview("todo", {"todos": [{"id": "1", "content": "test", "status": "pending"}]})
+        result = build_tool_preview(
+            "todo", {"todos": [{"id": "1", "content": "test", "status": "pending"}]}
+        )
         assert result is not None
         assert "1 task" in result
 
     def test_memory_tool_add(self):
-        result = build_tool_preview("memory", {"action": "add", "target": "user", "content": "test note"})
+        result = build_tool_preview(
+            "memory", {"action": "add", "target": "user", "content": "test note"}
+        )
         assert result is not None
         assert "user" in result
 
@@ -97,7 +103,9 @@ class TestBuildToolPreview:
 
 class TestEditDiffPreview:
     def test_extract_edit_diff_for_patch(self):
-        diff = extract_edit_diff("patch", '{"success": true, "diff": "--- a/x\\n+++ b/x\\n"}')
+        diff = extract_edit_diff(
+            "patch", '{"success": true, "diff": "--- a/x\\n+++ b/x\\n"}'
+        )
         assert diff is not None
         assert "+++ b/x" in diff
 
@@ -168,7 +176,10 @@ class TestEditDiffPreview:
     def test_render_edit_diff_with_delta_handles_renderer_errors(self, monkeypatch):
         printer = MagicMock()
 
-        monkeypatch.setattr("agent.display._summarize_rendered_diff_sections", MagicMock(side_effect=RuntimeError("boom")))
+        monkeypatch.setattr(
+            "agent.display._summarize_rendered_diff_sections",
+            MagicMock(side_effect=RuntimeError("boom")),
+        )
 
         rendered = render_edit_diff_with_delta(
             "patch",
@@ -189,8 +200,7 @@ class TestEditDiffPreview:
 
     def test_summarize_rendered_diff_sections_limits_file_count(self):
         diff = "".join(
-            f"--- a/file{i}.py\n+++ b/file{i}.py\n+line{i}\n"
-            for i in range(8)
+            f"--- a/file{i}.py\n+++ b/file{i}.py\n+line{i}\n" for i in range(8)
         )
 
         rendered = _summarize_rendered_diff_sections(diff, max_files=3, max_lines=50)

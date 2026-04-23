@@ -29,11 +29,13 @@ def cmd_fetch(args: argparse.Namespace) -> None:
     try:
         import youtube_transcript_api  # noqa: F811
     except ImportError:
-        _out({
-            "ok": False,
-            "error": "missing_dependency",
-            "message": "Run: pip install youtube-transcript-api",
-        })
+        _out(
+            {
+                "ok": False,
+                "error": "missing_dependency",
+                "message": "Run: pip install youtube-transcript-api",
+            }
+        )
         sys.exit(1)
 
     video_id = args.video_id
@@ -44,12 +46,14 @@ def cmd_fetch(args: argparse.Namespace) -> None:
         raw = api.fetch(video_id, languages=languages)
     except Exception as exc:
         error_type = type(exc).__name__
-        _out({
-            "ok": False,
-            "error": "transcript_unavailable",
-            "error_type": error_type,
-            "message": f"Could not fetch transcript for {video_id}: {exc}",
-        })
+        _out(
+            {
+                "ok": False,
+                "error": "transcript_unavailable",
+                "error_type": error_type,
+                "message": f"Could not fetch transcript for {video_id}: {exc}",
+            }
+        )
         sys.exit(1)
 
     segments = raw
@@ -58,18 +62,22 @@ def cmd_fetch(args: argparse.Namespace) -> None:
 
     text = _normalize_segments(segments)
     if not text:
-        _out({
-            "ok": False,
-            "error": "empty_transcript",
-            "message": f"Transcript for {video_id} contained no usable text.",
-        })
+        _out(
+            {
+                "ok": False,
+                "error": "empty_transcript",
+                "message": f"Transcript for {video_id} contained no usable text.",
+            }
+        )
         sys.exit(1)
 
-    _out({
-        "ok": True,
-        "video_id": video_id,
-        "transcript": text,
-    })
+    _out(
+        {
+            "ok": True,
+            "video_id": video_id,
+            "transcript": text,
+        }
+    )
 
 
 def main() -> None:

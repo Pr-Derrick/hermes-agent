@@ -100,7 +100,9 @@ class TestTopLevelCwdAlias:
 
     def test_no_cwd_falls_back_to_messaging_cwd(self):
         cfg = {}
-        result = _simulate_config_bridge(cfg, {"MESSAGING_CWD": "/home/hermes/projects"})
+        result = _simulate_config_bridge(
+            cfg, {"MESSAGING_CWD": "/home/hermes/projects"}
+        )
         assert result["TERMINAL_CWD"] == "/home/hermes/projects"
 
     def test_no_cwd_no_messaging_cwd_falls_back_to_home(self):
@@ -138,7 +140,9 @@ class TestTopLevelCwdAlias:
     def test_messaging_cwd_env_var_works(self):
         """MESSAGING_CWD in initial env should be picked up as fallback."""
         cfg = {}
-        result = _simulate_config_bridge(cfg, {"MESSAGING_CWD": "/home/hermes/projects"})
+        result = _simulate_config_bridge(
+            cfg, {"MESSAGING_CWD": "/home/hermes/projects"}
+        )
         assert result["TERMINAL_CWD"] == "/home/hermes/projects"
 
     def test_top_level_cwd_beats_messaging_cwd(self):

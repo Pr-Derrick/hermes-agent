@@ -40,11 +40,15 @@ class TestSanitizePluginName:
             _sanitize_plugin_name("../../etc/passwd", tmp_path)
 
     def test_rejects_single_dot_dot(self, tmp_path):
-        with pytest.raises(ValueError, match="must not reference the plugins directory itself"):
+        with pytest.raises(
+            ValueError, match="must not reference the plugins directory itself"
+        ):
             _sanitize_plugin_name("..", tmp_path)
 
     def test_rejects_single_dot(self, tmp_path):
-        with pytest.raises(ValueError, match="must not reference the plugins directory itself"):
+        with pytest.raises(
+            ValueError, match="must not reference the plugins directory itself"
+        ):
             _sanitize_plugin_name(".", tmp_path)
 
     def test_rejects_forward_slash(self, tmp_path):
@@ -476,9 +480,11 @@ class TestPromptPluginEnvVars:
             "requires_env": ["MY_API_KEY"],
         }
 
-        with patch("hermes_cli.config.get_env_value", return_value=None), \
-             patch("builtins.input", return_value="sk-test-123"), \
-             patch("hermes_cli.config.save_env_value") as mock_save:
+        with (
+            patch("hermes_cli.config.get_env_value", return_value=None),
+            patch("builtins.input", return_value="sk-test-123"),
+            patch("hermes_cli.config.save_env_value") as mock_save,
+        ):
             _prompt_plugin_env_vars(manifest, console)
 
         mock_save.assert_called_once_with("MY_API_KEY", "sk-test-123")
@@ -500,9 +506,11 @@ class TestPromptPluginEnvVars:
             ],
         }
 
-        with patch("hermes_cli.config.get_env_value", return_value=None), \
-             patch("builtins.input", return_value="pk-lf-123"), \
-             patch("hermes_cli.config.save_env_value") as mock_save:
+        with (
+            patch("hermes_cli.config.get_env_value", return_value=None),
+            patch("builtins.input", return_value="pk-lf-123"),
+            patch("hermes_cli.config.save_env_value") as mock_save,
+        ):
             _prompt_plugin_env_vars(manifest, console)
 
         mock_save.assert_called_once_with("LANGFUSE_PUBLIC_KEY", "pk-lf-123")
@@ -520,9 +528,11 @@ class TestPromptPluginEnvVars:
             "requires_env": [{"name": "SECRET_KEY", "secret": True}],
         }
 
-        with patch("hermes_cli.config.get_env_value", return_value=None), \
-             patch("getpass.getpass", return_value="s3cret") as mock_gp, \
-             patch("hermes_cli.config.save_env_value"):
+        with (
+            patch("hermes_cli.config.get_env_value", return_value=None),
+            patch("getpass.getpass", return_value="s3cret") as mock_gp,
+            patch("hermes_cli.config.save_env_value"),
+        ):
             _prompt_plugin_env_vars(manifest, console)
 
         mock_gp.assert_called_once()
@@ -534,9 +544,11 @@ class TestPromptPluginEnvVars:
         console = MagicMock()
         manifest = {"name": "test", "requires_env": ["OPTIONAL_VAR"]}
 
-        with patch("hermes_cli.config.get_env_value", return_value=None), \
-             patch("builtins.input", return_value=""), \
-             patch("hermes_cli.config.save_env_value") as mock_save:
+        with (
+            patch("hermes_cli.config.get_env_value", return_value=None),
+            patch("builtins.input", return_value=""),
+            patch("hermes_cli.config.save_env_value") as mock_save,
+        ):
             _prompt_plugin_env_vars(manifest, console)
 
         mock_save.assert_not_called()
@@ -548,9 +560,11 @@ class TestPromptPluginEnvVars:
         console = MagicMock()
         manifest = {"name": "test", "requires_env": ["KEY1", "KEY2"]}
 
-        with patch("hermes_cli.config.get_env_value", return_value=None), \
-             patch("builtins.input", side_effect=KeyboardInterrupt), \
-             patch("hermes_cli.config.save_env_value") as mock_save:
+        with (
+            patch("hermes_cli.config.get_env_value", return_value=None),
+            patch("builtins.input", side_effect=KeyboardInterrupt),
+            patch("hermes_cli.config.save_env_value") as mock_save,
+        ):
             _prompt_plugin_env_vars(manifest, console)
 
         # Should not crash, and not save anything
@@ -565,6 +579,7 @@ class TestCursesRadiolist:
 
     def test_non_tty_returns_default(self):
         from hermes_cli.curses_ui import curses_radiolist
+
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = False
             result = curses_radiolist("Pick one", ["a", "b", "c"], selected=1)
@@ -572,6 +587,7 @@ class TestCursesRadiolist:
 
     def test_non_tty_returns_cancel_value(self):
         from hermes_cli.curses_ui import curses_radiolist
+
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = False
             result = curses_radiolist("Pick", ["x", "y"], selected=0, cancel_returns=1)
@@ -590,6 +606,7 @@ class TestProviderDiscovery:
         config_file = tmp_path / "config.yaml"
         config_file.write_text("memory:\n  provider: ''\n")
         from hermes_cli.plugins_cmd import _get_current_memory_provider
+
         result = _get_current_memory_provider()
         assert result == ""
 
@@ -599,6 +616,7 @@ class TestProviderDiscovery:
         config_file = tmp_path / "config.yaml"
         config_file.write_text("context:\n  engine: compressor\n")
         from hermes_cli.plugins_cmd import _get_current_context_engine
+
         result = _get_current_context_engine()
         assert result == "compressor"
 
@@ -608,6 +626,7 @@ class TestProviderDiscovery:
         config_file = tmp_path / "config.yaml"
         config_file.write_text("memory:\n  provider: ''\n")
         from hermes_cli.plugins_cmd import _save_memory_provider
+
         _save_memory_provider("honcho")
         content = yaml.safe_load(config_file.read_text())
         assert content["memory"]["provider"] == "honcho"
@@ -618,23 +637,30 @@ class TestProviderDiscovery:
         config_file = tmp_path / "config.yaml"
         config_file.write_text("context:\n  engine: compressor\n")
         from hermes_cli.plugins_cmd import _save_context_engine
+
         _save_context_engine("lcm")
         content = yaml.safe_load(config_file.read_text())
         assert content["context"]["engine"] == "lcm"
 
     def test_discover_memory_providers_empty(self):
         """Discovery returns empty list when import fails."""
-        with patch("plugins.memory.discover_memory_providers",
-                    side_effect=ImportError("no module")):
+        with patch(
+            "plugins.memory.discover_memory_providers",
+            side_effect=ImportError("no module"),
+        ):
             from hermes_cli.plugins_cmd import _discover_memory_providers
+
             result = _discover_memory_providers()
             assert result == []
 
     def test_discover_context_engines_empty(self):
         """Discovery returns empty list when import fails."""
-        with patch("plugins.context_engine.discover_context_engines",
-                    side_effect=ImportError("no module")):
+        with patch(
+            "plugins.context_engine.discover_context_engines",
+            side_effect=ImportError("no module"),
+        ):
             from hermes_cli.plugins_cmd import _discover_context_engines
+
             result = _discover_context_engines()
             assert result == []
 
@@ -651,7 +677,10 @@ class TestNoAutoActivation:
         # This tests the run_agent.py logic indirectly by checking that the
         # code path for default config doesn't call get_plugin_context_engine.
         import run_agent as ra_module
+
         source = open(ra_module.__file__).read()
         # The old code had: "Even with default config, check if a plugin registered one"
         # The fix removes this. Verify it's gone.
-        assert "Even with default config, check if a plugin registered one" not in source
+        assert (
+            "Even with default config, check if a plugin registered one" not in source
+        )

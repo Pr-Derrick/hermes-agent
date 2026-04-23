@@ -63,6 +63,7 @@ def _make_adapter():
 # send_exec_approval — Block Kit buttons
 # ===========================================================================
 
+
 class TestSlackExecApproval:
     """Test the send_exec_approval method sends Block Kit buttons."""
 
@@ -149,6 +150,7 @@ class TestSlackExecApproval:
 # _handle_approval_action — button click handler
 # ===========================================================================
 
+
 class TestSlackApprovalAction:
     """Test the approval button click handler."""
 
@@ -162,7 +164,10 @@ class TestSlackApprovalAction:
             "message": {
                 "ts": "1234.5678",
                 "blocks": [
-                    {"type": "section", "text": {"type": "mrkdwn", "text": "original text"}},
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": "original text"},
+                    },
                     {"type": "actions", "elements": []},
                 ],
             },
@@ -177,7 +182,9 @@ class TestSlackApprovalAction:
         mock_client = adapter._team_clients["T1"]
         mock_client.chat_update = AsyncMock()
 
-        with patch("tools.approval.resolve_gateway_approval", return_value=1) as mock_resolve:
+        with patch(
+            "tools.approval.resolve_gateway_approval", return_value=1
+        ) as mock_resolve:
             await adapter._handle_approval_action(ack, body, action)
 
         ack.assert_called_once()
@@ -218,9 +225,12 @@ class TestSlackApprovalAction:
 
         ack = AsyncMock()
         body = {
-            "message": {"ts": "1.2", "blocks": [
-                {"type": "section", "text": {"type": "mrkdwn", "text": "cmd"}},
-            ]},
+            "message": {
+                "ts": "1.2",
+                "blocks": [
+                    {"type": "section", "text": {"type": "mrkdwn", "text": "cmd"}},
+                ],
+            },
             "channel": {"id": "C1"},
             "user": {"name": "alice"},
         }
@@ -229,7 +239,9 @@ class TestSlackApprovalAction:
         mock_client = adapter._team_clients["T1"]
         mock_client.chat_update = AsyncMock()
 
-        with patch("tools.approval.resolve_gateway_approval", return_value=1) as mock_resolve:
+        with patch(
+            "tools.approval.resolve_gateway_approval", return_value=1
+        ) as mock_resolve:
             await adapter._handle_approval_action(ack, body, action)
 
         mock_resolve.assert_called_once_with("session-key", "deny")
@@ -241,6 +253,7 @@ class TestSlackApprovalAction:
 # _fetch_thread_context
 # ===========================================================================
 
+
 class TestSlackThreadContext:
     """Test thread context fetching."""
 
@@ -248,13 +261,27 @@ class TestSlackThreadContext:
     async def test_fetches_and_formats_context(self):
         adapter = _make_adapter()
         mock_client = adapter._team_clients["T1"]
-        mock_client.conversations_replies = AsyncMock(return_value={
-            "messages": [
-                {"ts": "1000.0", "user": "U1", "text": "This is the parent message"},
-                {"ts": "1000.1", "user": "U2", "text": "I think we should refactor"},
-                {"ts": "1000.2", "user": "U1", "text": "Good idea, <@U_BOT> what do you think?"},
-            ]
-        })
+        mock_client.conversations_replies = AsyncMock(
+            return_value={
+                "messages": [
+                    {
+                        "ts": "1000.0",
+                        "user": "U1",
+                        "text": "This is the parent message",
+                    },
+                    {
+                        "ts": "1000.1",
+                        "user": "U2",
+                        "text": "I think we should refactor",
+                    },
+                    {
+                        "ts": "1000.2",
+                        "user": "U1",
+                        "text": "Good idea, <@U_BOT> what do you think?",
+                    },
+                ]
+            }
+        )
 
         # Mock user name resolution
         adapter._user_name_cache = {"U1": "Alice", "U2": "Bob"}
@@ -278,13 +305,19 @@ class TestSlackThreadContext:
     async def test_skips_bot_messages(self):
         adapter = _make_adapter()
         mock_client = adapter._team_clients["T1"]
-        mock_client.conversations_replies = AsyncMock(return_value={
-            "messages": [
-                {"ts": "1000.0", "user": "U1", "text": "Parent"},
-                {"ts": "1000.1", "bot_id": "B1", "text": "Bot reply (should be skipped)"},
-                {"ts": "1000.2", "user": "U1", "text": "Current"},
-            ]
-        })
+        mock_client.conversations_replies = AsyncMock(
+            return_value={
+                "messages": [
+                    {"ts": "1000.0", "user": "U1", "text": "Parent"},
+                    {
+                        "ts": "1000.1",
+                        "bot_id": "B1",
+                        "text": "Bot reply (should be skipped)",
+                    },
+                    {"ts": "1000.2", "user": "U1", "text": "Current"},
+                ]
+            }
+        )
         adapter._user_name_cache = {"U1": "Alice"}
 
         context = await adapter._fetch_thread_context(
@@ -309,7 +342,9 @@ class TestSlackThreadContext:
     async def test_api_failure_returns_empty(self):
         adapter = _make_adapter()
         mock_client = adapter._team_clients["T1"]
-        mock_client.conversations_replies = AsyncMock(side_effect=Exception("API error"))
+        mock_client.conversations_replies = AsyncMock(
+            side_effect=Exception("API error")
+        )
 
         context = await adapter._fetch_thread_context(
             channel_id="C1", thread_ts="1000.0", current_ts="1000.1", team_id="T1"
@@ -321,6 +356,7 @@ class TestSlackThreadContext:
 # _has_active_session_for_thread — session key fix (#5833)
 # ===========================================================================
 
+
 class TestSessionKeyFix:
     """Test that _has_active_session_for_thread uses build_session_key."""
 
@@ -330,12 +366,12 @@ class TestSessionKeyFix:
 
         # Mock session store with a known entry
         mock_store = MagicMock()
-        mock_store._entries = {
-            "agent:main:slack:group:C1:1000.0": MagicMock()
-        }
+        mock_store._entries = {"agent:main:slack:group:C1:1000.0": MagicMock()}
         mock_store._ensure_loaded = MagicMock()
         mock_store.config = MagicMock()
-        mock_store.config.group_sessions_per_user = False  # threads don't include user_id
+        mock_store.config.group_sessions_per_user = (
+            False  # threads don't include user_id
+        )
         mock_store.config.thread_sessions_per_user = False
         adapter._session_store = mock_store
 
@@ -377,6 +413,7 @@ class TestSessionKeyFix:
 # Thread engagement — bot-started threads & mentioned threads
 # ===========================================================================
 
+
 class TestThreadEngagement:
     """Test _bot_message_ts and _mentioned_threads tracking."""
 
@@ -387,7 +424,9 @@ class TestThreadEngagement:
         mock_client = adapter._team_clients["T1"]
         mock_client.chat_postMessage = AsyncMock(return_value={"ts": "9000.1"})
 
-        await adapter.send(chat_id="C1", content="Hello!", metadata={"thread_id": "8000.0"})
+        await adapter.send(
+            chat_id="C1", content="Hello!", metadata={"thread_id": "8000.0"}
+        )
 
         assert "9000.1" in adapter._bot_message_ts
         # Thread root should also be tracked
@@ -420,7 +459,9 @@ class TestThreadEngagement:
         for i in range(15):
             adapter._mentioned_threads.add(f"{i}.0")
             if len(adapter._mentioned_threads) > adapter._MENTIONED_THREADS_MAX:
-                to_remove = list(adapter._mentioned_threads)[:adapter._MENTIONED_THREADS_MAX // 2]
+                to_remove = list(adapter._mentioned_threads)[
+                    : adapter._MENTIONED_THREADS_MAX // 2
+                ]
                 for t in to_remove:
                     adapter._mentioned_threads.discard(t)
         assert len(adapter._mentioned_threads) <= 10

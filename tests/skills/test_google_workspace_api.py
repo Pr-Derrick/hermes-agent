@@ -80,10 +80,12 @@ def test_bridge_refreshes_expired_token(bridge_module, tmp_path):
     _write_token(token_path, token="ya29.old", expiry=past)
 
     mock_resp = MagicMock()
-    mock_resp.read.return_value = json.dumps({
-        "access_token": "ya29.refreshed",
-        "expires_in": 3600,
-    }).encode()
+    mock_resp.read.return_value = json.dumps(
+        {
+            "access_token": "ya29.refreshed",
+            "expires_in": 3600,
+        }
+    ).encode()
     mock_resp.__enter__ = lambda s: s
     mock_resp.__exit__ = MagicMock(return_value=False)
 
@@ -133,7 +135,11 @@ def test_api_calendar_list_uses_agenda_by_default(api_module):
         return MagicMock(returncode=0)
 
     args = api_module.argparse.Namespace(
-        start="", end="", max=25, calendar="primary", func=api_module.calendar_list,
+        start="",
+        end="",
+        max=25,
+        calendar="primary",
+        func=api_module.calendar_list,
     )
 
     with patch.object(subprocess, "run", side_effect=capture_run):

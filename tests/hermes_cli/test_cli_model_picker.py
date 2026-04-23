@@ -89,7 +89,9 @@ def test_provider_selection_returns_slug_on_choice():
     cli = _make_picker_cli(1)
     from cli import HermesCLI
 
-    result = HermesCLI._interactive_provider_selection(cli, providers, "gpt-5.4", "OpenRouter")
+    result = HermesCLI._interactive_provider_selection(
+        cli, providers, "gpt-5.4", "OpenRouter"
+    )
 
     assert result == "anthropic"
     cli._run_curses_picker.assert_called_once()
@@ -100,7 +102,9 @@ def test_provider_selection_returns_none_on_cancel():
     cli = _make_picker_cli(None)
     from cli import HermesCLI
 
-    result = HermesCLI._interactive_provider_selection(cli, providers, "gpt-5.4", "OpenRouter")
+    result = HermesCLI._interactive_provider_selection(
+        cli, providers, "gpt-5.4", "OpenRouter"
+    )
 
     assert result is None
 
@@ -120,7 +124,9 @@ def test_model_selection_returns_model_on_choice():
     cli = _make_picker_cli(0)
     from cli import HermesCLI
 
-    result = HermesCLI._interactive_model_selection(cli, provider_data["models"], provider_data)
+    result = HermesCLI._interactive_model_selection(
+        cli, provider_data["models"], provider_data
+    )
 
     assert result == "anthropic/claude-opus-4.6"
 
@@ -131,7 +137,9 @@ def test_model_selection_custom_entry_prompts_for_input():
     from cli import HermesCLI
 
     cli._prompt_text_input = MagicMock(return_value="my-custom-model")
-    result = HermesCLI._interactive_model_selection(cli, provider_data["models"], provider_data)
+    result = HermesCLI._interactive_model_selection(
+        cli, provider_data["models"], provider_data
+    )
 
     assert result == "my-custom-model"
     cli._prompt_text_input.assert_called_once_with("  Enter model name: ")
@@ -151,7 +159,9 @@ def test_model_selection_empty_prompts_for_manual_input():
     result = HermesCLI._interactive_model_selection(cli, [], provider_data)
 
     assert result == "my-model"
-    cli._prompt_text_input.assert_called_once_with("  Enter model name manually (or Enter to cancel): ")
+    cli._prompt_text_input.assert_called_once_with(
+        "  Enter model name manually (or Enter to cancel): "
+    )
 
 
 def test_prompt_text_input_uses_run_in_terminal_when_app_active():
@@ -160,7 +170,9 @@ def test_prompt_text_input_uses_run_in_terminal_when_app_active():
     cli = _make_modal_cli()
 
     with (
-        patch("prompt_toolkit.application.run_in_terminal", side_effect=lambda fn: fn()) as run_mock,
+        patch(
+            "prompt_toolkit.application.run_in_terminal", side_effect=lambda fn: fn()
+        ) as run_mock,
         patch("builtins.input", return_value="manual-value"),
     ):
         result = HermesCLI._prompt_text_input(cli, "Enter value: ")
@@ -175,13 +187,21 @@ def test_should_handle_model_command_inline_uses_command_name_resolution():
 
     cli = _make_modal_cli()
 
-    with patch("hermes_cli.commands.resolve_command", return_value=SimpleNamespace(name="model")):
+    with patch(
+        "hermes_cli.commands.resolve_command",
+        return_value=SimpleNamespace(name="model"),
+    ):
         assert HermesCLI._should_handle_model_command_inline(cli, "/model") is True
 
-    with patch("hermes_cli.commands.resolve_command", return_value=SimpleNamespace(name="help")):
+    with patch(
+        "hermes_cli.commands.resolve_command", return_value=SimpleNamespace(name="help")
+    ):
         assert HermesCLI._should_handle_model_command_inline(cli, "/model") is False
 
-    assert HermesCLI._should_handle_model_command_inline(cli, "/model", has_images=True) is False
+    assert (
+        HermesCLI._should_handle_model_command_inline(cli, "/model", has_images=True)
+        is False
+    )
 
 
 def test_process_command_model_without_args_opens_modal_picker_and_captures_draft():
@@ -191,7 +211,10 @@ def test_process_command_model_without_args_opens_modal_picker_and_captures_draf
     providers = _make_providers()
 
     with (
-        patch("hermes_cli.model_switch.list_authenticated_providers", return_value=providers),
+        patch(
+            "hermes_cli.model_switch.list_authenticated_providers",
+            return_value=providers,
+        ),
         patch("cli._cprint"),
     ):
         result = cli.process_command("/model")
@@ -200,7 +223,10 @@ def test_process_command_model_without_args_opens_modal_picker_and_captures_draf
     assert cli._model_picker_state is not None
     assert cli._model_picker_state["stage"] == "provider"
     assert cli._model_picker_state["selected"] == 0
-    assert cli._modal_input_snapshot == {"text": "draft text", "cursor_position": len("draft text")}
+    assert cli._modal_input_snapshot == {
+        "text": "draft text",
+        "cursor_position": len("draft text"),
+    }
     assert cli._app.current_buffer.text == ""
 
 
@@ -211,18 +237,27 @@ def test_model_picker_provider_then_model_selection_applies_switch_result_and_re
     providers = _make_providers()
 
     with (
-        patch("hermes_cli.model_switch.list_authenticated_providers", return_value=providers),
+        patch(
+            "hermes_cli.model_switch.list_authenticated_providers",
+            return_value=providers,
+        ),
         patch("cli._cprint"),
     ):
         assert cli.process_command("/model") is True
 
     cli._model_picker_state["selected"] = 1
-    with patch("hermes_cli.models.provider_model_ids", return_value=["claude-opus-4.6", "claude-sonnet-4.6"]):
+    with patch(
+        "hermes_cli.models.provider_model_ids",
+        return_value=["claude-opus-4.6", "claude-sonnet-4.6"],
+    ):
         HermesCLI._handle_model_picker_selection(cli)
 
     assert cli._model_picker_state["stage"] == "model"
     assert cli._model_picker_state["provider_data"]["slug"] == "anthropic"
-    assert cli._model_picker_state["model_list"] == ["claude-opus-4.6", "claude-sonnet-4.6"]
+    assert cli._model_picker_state["model_list"] == [
+        "claude-opus-4.6",
+        "claude-sonnet-4.6",
+    ]
 
     cli._model_picker_state["selected"] = 0
     switch_result = SimpleNamespace(
@@ -240,7 +275,9 @@ def test_model_picker_provider_then_model_selection_applies_switch_result_and_re
     )
 
     with (
-        patch("hermes_cli.model_switch.switch_model", return_value=switch_result) as switch_mock,
+        patch(
+            "hermes_cli.model_switch.switch_model", return_value=switch_result
+        ) as switch_mock,
         patch("cli._cprint"),
     ):
         HermesCLI._handle_model_picker_selection(cli)

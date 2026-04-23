@@ -70,7 +70,9 @@ def _install_fake_tools_package():
 
 def _install_fake_fal_client(captured):
     def submit(model, arguments=None, headers=None):
-        raise AssertionError("managed FAL gateway mode should use fal_client.SyncClient")
+        raise AssertionError(
+            "managed FAL gateway mode should use fal_client.SyncClient"
+        )
 
     class FakeResponse:
         def json(self):
@@ -81,7 +83,9 @@ def _install_fake_fal_client(captured):
                 "cancel_url": "http://127.0.0.1:3009/requests/req-123/cancel",
             }
 
-    def _maybe_retry_request(client, method, url, json=None, timeout=None, headers=None):
+    def _maybe_retry_request(
+        client, method, url, json=None, timeout=None, headers=None
+    ):
         captured["submit_via"] = "managed_client"
         captured["http_client"] = client
         captured["method"] = method
@@ -141,12 +145,8 @@ def _install_fake_openai_module(captured, transcription_response=None):
                 return transcription_response
 
             self.audio = types.SimpleNamespace(
-                speech=types.SimpleNamespace(
-                    create=create_speech
-                ),
-                transcriptions=types.SimpleNamespace(
-                    create=create_transcription
-                ),
+                speech=types.SimpleNamespace(create=create_speech),
+                transcriptions=types.SimpleNamespace(create=create_transcription),
             )
 
         def close(self):
@@ -174,7 +174,7 @@ def test_managed_fal_submit_uses_gateway_origin_and_nous_token(monkeypatch):
         "image_generation_tool.py",
     )
     monkeypatch.setattr(image_generation_tool.uuid, "uuid4", lambda: "fal-submit-123")
-    
+
     image_generation_tool._submit_fal_request(
         "fal-ai/flux-2-pro",
         {"prompt": "test prompt", "num_images": 1},
@@ -210,7 +210,9 @@ def test_managed_fal_submit_reuses_cached_sync_client(monkeypatch):
     assert captured["http_client"] is first_client
 
 
-def test_openai_tts_uses_managed_audio_gateway_when_direct_key_absent(monkeypatch, tmp_path):
+def test_openai_tts_uses_managed_audio_gateway_when_direct_key_absent(
+    monkeypatch, tmp_path
+):
     captured = {}
     _install_fake_tools_package()
     _install_fake_openai_module(captured)
@@ -227,7 +229,9 @@ def test_openai_tts_uses_managed_audio_gateway_when_direct_key_absent(monkeypatc
     assert captured["api_key"] == "nous-token"
     assert captured["base_url"] == "https://openai-audio-gateway.nousresearch.com/v1"
     assert captured["speech_kwargs"]["model"] == "gpt-4o-mini-tts"
-    assert captured["speech_kwargs"]["extra_headers"] == {"x-idempotency-key": "tts-call-123"}
+    assert captured["speech_kwargs"]["extra_headers"] == {
+        "x-idempotency-key": "tts-call-123"
+    }
     assert captured["stream_to_file"] == str(output_path)
     assert captured["close_calls"] == 1
 
@@ -253,7 +257,9 @@ def test_openai_tts_accepts_openai_api_key_as_direct_fallback(monkeypatch, tmp_p
 def test_transcription_uses_model_specific_response_formats(monkeypatch, tmp_path):
     whisper_capture = {}
     _install_fake_tools_package()
-    _install_fake_openai_module(whisper_capture, transcription_response="hello from whisper")
+    _install_fake_openai_module(
+        whisper_capture, transcription_response="hello from whisper"
+    )
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     (tmp_path / "config.yaml").write_text("stt:\n  provider: openai\n")
     monkeypatch.delenv("VOICE_TOOLS_OPENAI_KEY", raising=False)
@@ -269,9 +275,14 @@ def test_transcription_uses_model_specific_response_formats(monkeypatch, tmp_pat
     audio_path = tmp_path / "audio.wav"
     audio_path.write_bytes(b"RIFF0000WAVEfmt ")
 
-    whisper_result = transcription_tools.transcribe_audio(str(audio_path), model="whisper-1")
+    whisper_result = transcription_tools.transcribe_audio(
+        str(audio_path), model="whisper-1"
+    )
     assert whisper_result["success"] is True
-    assert whisper_capture["base_url"] == "https://openai-audio-gateway.nousresearch.com/v1"
+    assert (
+        whisper_capture["base_url"]
+        == "https://openai-audio-gateway.nousresearch.com/v1"
+    )
     assert whisper_capture["transcription_kwargs"]["response_format"] == "text"
     assert whisper_capture["close_calls"] == 1
 

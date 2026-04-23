@@ -37,7 +37,9 @@ def _setup_callback(outcome, timeout=60.0):
     future = MagicMock(spec=Future)
     future.result.return_value = response
 
-    with patch("acp_adapter.permissions.asyncio.run_coroutine_threadsafe", return_value=future):
+    with patch(
+        "acp_adapter.permissions.asyncio.run_coroutine_threadsafe", return_value=future
+    ):
         cb = make_approval_callback(mock_rp, loop, session_id="s1", timeout=timeout)
         result = cb("rm -rf /", "dangerous command")
 
@@ -68,7 +70,10 @@ class TestApprovalMapping:
         future = MagicMock(spec=Future)
         future.result.side_effect = TimeoutError("timed out")
 
-        with patch("acp_adapter.permissions.asyncio.run_coroutine_threadsafe", return_value=future):
+        with patch(
+            "acp_adapter.permissions.asyncio.run_coroutine_threadsafe",
+            return_value=future,
+        ):
             cb = make_approval_callback(mock_rp, loop, session_id="s1", timeout=0.01)
             result = cb("rm -rf /", "dangerous")
 

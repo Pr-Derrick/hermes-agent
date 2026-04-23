@@ -41,7 +41,9 @@ def mirror_to_session(
     try:
         session_id = _find_session_id(platform, str(chat_id), thread_id=thread_id)
         if not session_id:
-            logger.debug("Mirror: no session found for %s:%s:%s", platform, chat_id, thread_id)
+            logger.debug(
+                "Mirror: no session found for %s:%s:%s", platform, chat_id, thread_id
+            )
             return False
 
         mirror_msg = {
@@ -63,7 +65,9 @@ def mirror_to_session(
         return False
 
 
-def _find_session_id(platform: str, chat_id: str, thread_id: Optional[str] = None) -> Optional[str]:
+def _find_session_id(
+    platform: str, chat_id: str, thread_id: Optional[str] = None
+) -> Optional[str]:
     """
     Find the active session_id for a platform + chat_id pair.
 
@@ -119,6 +123,7 @@ def _append_to_sqlite(session_id: str, message: dict) -> None:
     db = None
     try:
         from hermes_state import SessionDB
+
         db = SessionDB()
         db.append_message(
             session_id=session_id,

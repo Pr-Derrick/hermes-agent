@@ -53,6 +53,7 @@ def discover_memory_providers() -> List[Tuple[str, str, bool]]:
         if yaml_file.exists():
             try:
                 import yaml
+
                 with open(yaml_file) as f:
                     meta = yaml.safe_load(f) or {}
                 desc = meta.get("description", "")
@@ -89,7 +90,9 @@ def load_memory_provider(name: str) -> Optional["MemoryProvider"]:
         provider = _load_provider_from_dir(provider_dir)
         if provider:
             return provider
-        logger.warning("Memory provider '%s' loaded but no provider instance found", name)
+        logger.warning(
+            "Memory provider '%s' loaded but no provider instance found", name
+        )
         return None
     except Exception as e:
         logger.warning("Failed to load memory provider '%s': %s", name, e)
@@ -124,8 +127,9 @@ def _load_provider_from_dir(provider_dir: Path) -> Optional["MemoryProvider"]:
                 parent_init = parent_path / "__init__.py"
                 if parent_init.exists():
                     spec = importlib.util.spec_from_file_location(
-                        parent, str(parent_init),
-                        submodule_search_locations=[str(parent_path)]
+                        parent,
+                        str(parent_init),
+                        submodule_search_locations=[str(parent_path)],
                     )
                     if spec:
                         parent_mod = importlib.util.module_from_spec(spec)
@@ -137,8 +141,7 @@ def _load_provider_from_dir(provider_dir: Path) -> Optional["MemoryProvider"]:
 
         # Now load the provider module
         spec = importlib.util.spec_from_file_location(
-            module_name, str(init_file),
-            submodule_search_locations=[str(provider_dir)]
+            module_name, str(init_file), submodule_search_locations=[str(provider_dir)]
         )
         if not spec:
             return None
@@ -163,7 +166,9 @@ def _load_provider_from_dir(provider_dir: Path) -> Optional["MemoryProvider"]:
                     try:
                         sub_spec.loader.exec_module(sub_mod)
                     except Exception as e:
-                        logger.debug("Failed to load submodule %s: %s", full_sub_name, e)
+                        logger.debug(
+                            "Failed to load submodule %s: %s", full_sub_name, e
+                        )
 
         try:
             spec.loader.exec_module(mod)
@@ -184,10 +189,14 @@ def _load_provider_from_dir(provider_dir: Path) -> Optional["MemoryProvider"]:
 
     # Fallback: find a MemoryProvider subclass and instantiate it
     from agent.memory_provider import MemoryProvider
+
     for attr_name in dir(mod):
         attr = getattr(mod, attr_name, None)
-        if (isinstance(attr, type) and issubclass(attr, MemoryProvider)
-                and attr is not MemoryProvider):
+        if (
+            isinstance(attr, type)
+            and issubclass(attr, MemoryProvider)
+            and attr is not MemoryProvider
+        ):
             try:
                 return attr()
             except Exception:
@@ -225,6 +234,7 @@ def _get_active_memory_provider() -> Optional[str]:
     """
     try:
         from hermes_cli.config import load_config
+
         config = load_config()
         return config.get("memory", {}).get("provider") or None
     except Exception:
@@ -271,9 +281,7 @@ def discover_plugin_cli_commands() -> List[dict]:
         if module_name in sys.modules:
             cli_mod = sys.modules[module_name]
         else:
-            spec = importlib.util.spec_from_file_location(
-                module_name, str(cli_file)
-            )
+            spec = importlib.util.spec_from_file_location(module_name, str(cli_file))
             if not spec or not spec.loader:
                 return results
             cli_mod = importlib.util.module_from_spec(spec)
@@ -291,6 +299,7 @@ def discover_plugin_cli_commands() -> List[dict]:
         if yaml_file.exists():
             try:
                 import yaml
+
                 with open(yaml_file) as f:
                     meta = yaml.safe_load(f) or {}
                 desc = meta.get("description", "")
@@ -300,18 +309,23 @@ def discover_plugin_cli_commands() -> List[dict]:
             except Exception:
                 pass
 
-        handler_fn = getattr(cli_mod, f"{active_provider}_command", None) or \
-                     getattr(cli_mod, "honcho_command", None)
+        handler_fn = getattr(cli_mod, f"{active_provider}_command", None) or getattr(
+            cli_mod, "honcho_command", None
+        )
 
-        results.append({
-            "name": active_provider,
-            "help": help_text,
-            "description": description,
-            "setup_fn": register_cli,
-            "handler_fn": handler_fn,
-            "plugin": active_provider,
-        })
+        results.append(
+            {
+                "name": active_provider,
+                "help": help_text,
+                "description": description,
+                "setup_fn": register_cli,
+                "handler_fn": handler_fn,
+                "plugin": active_provider,
+            }
+        )
     except Exception as e:
-        logger.debug("Failed to scan CLI for memory plugin '%s': %s", active_provider, e)
+        logger.debug(
+            "Failed to scan CLI for memory plugin '%s': %s", active_provider, e
+        )
 
     return results

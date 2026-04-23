@@ -26,13 +26,44 @@ from tools.homeassistant_tool import (
 # ---------------------------------------------------------------------------
 
 SAMPLE_STATES = [
-    {"entity_id": "light.bedroom", "state": "on", "attributes": {"friendly_name": "Bedroom Light", "brightness": 200}},
-    {"entity_id": "light.kitchen", "state": "off", "attributes": {"friendly_name": "Kitchen Light"}},
-    {"entity_id": "switch.fan", "state": "on", "attributes": {"friendly_name": "Living Room Fan"}},
-    {"entity_id": "sensor.temperature", "state": "22.5", "attributes": {"friendly_name": "Kitchen Temperature", "unit_of_measurement": "C"}},
-    {"entity_id": "climate.thermostat", "state": "heat", "attributes": {"friendly_name": "Main Thermostat", "current_temperature": 21}},
-    {"entity_id": "binary_sensor.motion", "state": "off", "attributes": {"friendly_name": "Hallway Motion"}},
-    {"entity_id": "sensor.humidity", "state": "55", "attributes": {"friendly_name": "Bedroom Humidity", "area": "bedroom"}},
+    {
+        "entity_id": "light.bedroom",
+        "state": "on",
+        "attributes": {"friendly_name": "Bedroom Light", "brightness": 200},
+    },
+    {
+        "entity_id": "light.kitchen",
+        "state": "off",
+        "attributes": {"friendly_name": "Kitchen Light"},
+    },
+    {
+        "entity_id": "switch.fan",
+        "state": "on",
+        "attributes": {"friendly_name": "Living Room Fan"},
+    },
+    {
+        "entity_id": "sensor.temperature",
+        "state": "22.5",
+        "attributes": {
+            "friendly_name": "Kitchen Temperature",
+            "unit_of_measurement": "C",
+        },
+    },
+    {
+        "entity_id": "climate.thermostat",
+        "state": "heat",
+        "attributes": {"friendly_name": "Main Thermostat", "current_temperature": 21},
+    },
+    {
+        "entity_id": "binary_sensor.motion",
+        "state": "off",
+        "attributes": {"friendly_name": "Hallway Motion"},
+    },
+    {
+        "entity_id": "sensor.humidity",
+        "state": "55",
+        "attributes": {"friendly_name": "Bedroom Humidity", "area": "bedroom"},
+    },
 ]
 
 
@@ -223,9 +254,9 @@ class TestDomainBlocklist:
 
     @pytest.mark.parametrize("domain", sorted(_BLOCKED_DOMAINS))
     def test_blocked_domain_rejected(self, domain):
-        result = json.loads(_handle_call_service({
-            "domain": domain, "service": "any_service"
-        }))
+        result = json.loads(
+            _handle_call_service({"domain": domain, "service": "any_service"})
+        )
         assert "error" in result
         assert "blocked" in result["error"].lower()
 
@@ -233,9 +264,11 @@ class TestDomainBlocklist:
         """Safe domains like 'light' should not be blocked (will fail on network, not blocklist)."""
         # This will try to make a real HTTP call and fail, but the important thing
         # is it does NOT return a "blocked" error
-        result = json.loads(_handle_call_service({
-            "domain": "light", "service": "turn_on", "entity_id": "light.test"
-        }))
+        result = json.loads(
+            _handle_call_service(
+                {"domain": "light", "service": "turn_on", "entity_id": "light.test"}
+            )
+        )
         # Should fail with a network/connection error, not a "blocked" error
         if "error" in result:
             assert "blocked" not in result["error"].lower()
@@ -285,20 +318,24 @@ class TestEntityIdValidation:
         assert "Invalid entity_id" in result["error"]
 
     def test_call_service_rejects_invalid_entity_id(self):
-        result = json.loads(_handle_call_service({
-            "domain": "light",
-            "service": "turn_on",
-            "entity_id": "../../../etc/passwd",
-        }))
+        result = json.loads(
+            _handle_call_service(
+                {
+                    "domain": "light",
+                    "service": "turn_on",
+                    "entity_id": "../../../etc/passwd",
+                }
+            )
+        )
         assert "error" in result
         assert "Invalid entity_id" in result["error"]
 
     def test_call_service_allows_no_entity_id(self):
         """Some services (like scene.turn_on) don't need entity_id."""
         # Will fail on network, but should NOT fail on entity_id validation
-        result = json.loads(_handle_call_service({
-            "domain": "scene", "service": "turn_on"
-        }))
+        result = json.loads(
+            _handle_call_service({"domain": "scene", "service": "turn_on"})
+        )
         if "error" in result:
             assert "Invalid entity_id" not in result["error"]
 
@@ -361,7 +398,9 @@ class TestRegistration:
         from tools.registry import registry
 
         monkeypatch.delenv("HASS_TOKEN", raising=False)
-        defs = registry.get_definitions({"ha_list_entities", "ha_get_state", "ha_call_service"})
+        defs = registry.get_definitions(
+            {"ha_list_entities", "ha_get_state", "ha_call_service"}
+        )
         assert len(defs) == 0
 
     def test_check_fn_includes_when_token_set(self, monkeypatch):
@@ -369,5 +408,7 @@ class TestRegistration:
         from tools.registry import registry
 
         monkeypatch.setenv("HASS_TOKEN", "test-token")
-        defs = registry.get_definitions({"ha_list_entities", "ha_get_state", "ha_call_service"})
+        defs = registry.get_definitions(
+            {"ha_list_entities", "ha_get_state", "ha_call_service"}
+        )
         assert len(defs) == 3

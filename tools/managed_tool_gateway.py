@@ -80,7 +80,11 @@ def read_nous_access_token() -> Optional[str]:
 
     nous_provider = _read_nous_provider_state() or {}
     access_token = nous_provider.get("access_token")
-    cached_token = access_token.strip() if isinstance(access_token, str) and access_token.strip() else None
+    cached_token = (
+        access_token.strip()
+        if isinstance(access_token, str) and access_token.strip()
+        else None
+    )
 
     if cached_token and not _access_token_is_expiring(
         nous_provider.get("expires_at"),
@@ -160,8 +164,11 @@ def is_managed_tool_gateway_ready(
     token_reader: Optional[Callable[[], Optional[str]]] = None,
 ) -> bool:
     """Return True when gateway URL and Nous access token are available."""
-    return resolve_managed_tool_gateway(
-        vendor,
-        gateway_builder=gateway_builder,
-        token_reader=token_reader,
-    ) is not None
+    return (
+        resolve_managed_tool_gateway(
+            vendor,
+            gateway_builder=gateway_builder,
+            token_reader=token_reader,
+        )
+        is not None
+    )

@@ -202,10 +202,12 @@ class TestCoerceToolArgs:
 
     def test_preserves_non_string_values(self):
         """Lists, dicts, and other non-string values are never touched."""
-        schema = self._mock_schema({
-            "items": {"type": "array"},
-            "config": {"type": "object"},
-        })
+        schema = self._mock_schema(
+            {
+                "items": {"type": "array"},
+                "config": {"type": "object"},
+            }
+        )
         with patch("model_tools.registry.get_schema", return_value=schema):
             args = {"items": [1, 2, 3], "config": {"key": "val"}}
             result = coerce_tool_args("test_tool", args)
@@ -223,12 +225,14 @@ class TestCoerceToolArgs:
 
     def test_mixed_coercion(self):
         """Multiple args coerced in the same call."""
-        schema = self._mock_schema({
-            "offset": {"type": "integer"},
-            "limit": {"type": "integer"},
-            "full": {"type": "boolean"},
-            "path": {"type": "string"},
-        })
+        schema = self._mock_schema(
+            {
+                "offset": {"type": "integer"},
+                "limit": {"type": "integer"},
+                "full": {"type": "boolean"},
+                "path": {"type": "string"},
+            }
+        )
         with patch("model_tools.registry.get_schema", return_value=schema):
             args = {
                 "offset": "1",

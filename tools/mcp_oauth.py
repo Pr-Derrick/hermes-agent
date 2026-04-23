@@ -98,6 +98,7 @@ def _get_token_dir() -> Path:
     """
     try:
         from hermes_constants import get_hermes_home
+
         base = Path(get_hermes_home())
     except ImportError:
         base = Path(os.environ.get("HERMES_HOME", str(Path.home() / ".hermes")))
@@ -199,7 +200,9 @@ class HermesTokenStorage:
         try:
             return OAuthToken.model_validate(data)
         except (ValueError, TypeError, KeyError) as exc:
-            logger.warning("Corrupt tokens at %s -- ignoring: %s", self._tokens_path(), exc)
+            logger.warning(
+                "Corrupt tokens at %s -- ignoring: %s", self._tokens_path(), exc
+            )
             return None
 
     async def set_tokens(self, tokens: "OAuthToken") -> None:
@@ -215,7 +218,11 @@ class HermesTokenStorage:
         try:
             return OAuthClientInformationFull.model_validate(data)
         except (ValueError, TypeError, KeyError) as exc:
-            logger.warning("Corrupt client info at %s -- ignoring: %s", self._client_info_path(), exc)
+            logger.warning(
+                "Corrupt client info at %s -- ignoring: %s",
+                self._client_info_path(),
+                exc,
+            )
             return None
 
     async def set_client_info(self, client_info: "OAuthClientInformationFull") -> None:
@@ -261,11 +268,15 @@ def _make_callback_handler() -> tuple[type, dict]:
             result["error"] = error
 
             body = (
-                "<html><body><h2>Authorization Successful</h2>"
-                "<p>You can close this tab and return to Hermes.</p></body></html>"
-            ) if code else (
-                "<html><body><h2>Authorization Failed</h2>"
-                f"<p>Error: {error or 'unknown'}</p></body></html>"
+                (
+                    "<html><body><h2>Authorization Successful</h2>"
+                    "<p>You can close this tab and return to Hermes.</p></body></html>"
+                )
+                if code
+                else (
+                    "<html><body><h2>Authorization Failed</h2>"
+                    f"<p>Error: {error or 'unknown'}</p></body></html>"
+                )
             )
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -302,11 +313,20 @@ async def _redirect_handler(authorization_url: str) -> None:
             if opened:
                 print("  (Browser opened automatically.)\n", file=sys.stderr)
             else:
-                print("  (Could not open browser — please open the URL manually.)\n", file=sys.stderr)
+                print(
+                    "  (Could not open browser — please open the URL manually.)\n",
+                    file=sys.stderr,
+                )
         except Exception:
-            print("  (Could not open browser — please open the URL manually.)\n", file=sys.stderr)
+            print(
+                "  (Could not open browser — please open the URL manually.)\n",
+                file=sys.stderr,
+            )
     else:
-        print("  (Headless environment detected — open the URL manually.)\n", file=sys.stderr)
+        print(
+            "  (Headless environment detected — open the URL manually.)\n",
+            file=sys.stderr,
+        )
 
 
 async def _wait_for_callback() -> tuple[str, str | None]:
@@ -462,7 +482,9 @@ def build_oauth_auth(
             info_dict["scope"] = scope
 
         client_info = OAuthClientInformationFull.model_validate(info_dict)
-        _write_json(storage._client_info_path(), client_info.model_dump(exclude_none=True))
+        _write_json(
+            storage._client_info_path(), client_info.model_dump(exclude_none=True)
+        )
         logger.debug("Pre-registered client_id=%s for '%s'", client_id, server_name)
 
     # --- Base URL for discovery ---

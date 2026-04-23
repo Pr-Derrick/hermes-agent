@@ -23,68 +23,94 @@ def _setup_sessions(tmp_path, sessions_data):
 
 class TestFindSessionId:
     def test_finds_matching_session(self, tmp_path):
-        sessions_dir, index_file = _setup_sessions(tmp_path, {
-            "agent:main:telegram:dm": {
-                "session_id": "sess_abc",
-                "origin": {"platform": "telegram", "chat_id": "12345"},
-                "updated_at": "2026-01-01T00:00:00",
-            }
-        })
+        sessions_dir, index_file = _setup_sessions(
+            tmp_path,
+            {
+                "agent:main:telegram:dm": {
+                    "session_id": "sess_abc",
+                    "origin": {"platform": "telegram", "chat_id": "12345"},
+                    "updated_at": "2026-01-01T00:00:00",
+                }
+            },
+        )
 
-        with patch.object(mirror_mod, "_SESSIONS_DIR", sessions_dir), \
-             patch.object(mirror_mod, "_SESSIONS_INDEX", index_file):
+        with (
+            patch.object(mirror_mod, "_SESSIONS_DIR", sessions_dir),
+            patch.object(mirror_mod, "_SESSIONS_INDEX", index_file),
+        ):
             result = _find_session_id("telegram", "12345")
 
         assert result == "sess_abc"
 
     def test_returns_most_recent(self, tmp_path):
-        sessions_dir, index_file = _setup_sessions(tmp_path, {
-            "old": {
-                "session_id": "sess_old",
-                "origin": {"platform": "telegram", "chat_id": "12345"},
-                "updated_at": "2026-01-01T00:00:00",
+        sessions_dir, index_file = _setup_sessions(
+            tmp_path,
+            {
+                "old": {
+                    "session_id": "sess_old",
+                    "origin": {"platform": "telegram", "chat_id": "12345"},
+                    "updated_at": "2026-01-01T00:00:00",
+                },
+                "new": {
+                    "session_id": "sess_new",
+                    "origin": {"platform": "telegram", "chat_id": "12345"},
+                    "updated_at": "2026-02-01T00:00:00",
+                },
             },
-            "new": {
-                "session_id": "sess_new",
-                "origin": {"platform": "telegram", "chat_id": "12345"},
-                "updated_at": "2026-02-01T00:00:00",
-            },
-        })
+        )
 
-        with patch.object(mirror_mod, "_SESSIONS_DIR", sessions_dir), \
-             patch.object(mirror_mod, "_SESSIONS_INDEX", index_file):
+        with (
+            patch.object(mirror_mod, "_SESSIONS_DIR", sessions_dir),
+            patch.object(mirror_mod, "_SESSIONS_INDEX", index_file),
+        ):
             result = _find_session_id("telegram", "12345")
 
         assert result == "sess_new"
 
     def test_thread_id_disambiguates_same_chat(self, tmp_path):
-        sessions_dir, index_file = _setup_sessions(tmp_path, {
-            "topic_a": {
-                "session_id": "sess_topic_a",
-                "origin": {"platform": "telegram", "chat_id": "-1001", "thread_id": "10"},
-                "updated_at": "2026-01-01T00:00:00",
+        sessions_dir, index_file = _setup_sessions(
+            tmp_path,
+            {
+                "topic_a": {
+                    "session_id": "sess_topic_a",
+                    "origin": {
+                        "platform": "telegram",
+                        "chat_id": "-1001",
+                        "thread_id": "10",
+                    },
+                    "updated_at": "2026-01-01T00:00:00",
+                },
+                "topic_b": {
+                    "session_id": "sess_topic_b",
+                    "origin": {
+                        "platform": "telegram",
+                        "chat_id": "-1001",
+                        "thread_id": "11",
+                    },
+                    "updated_at": "2026-02-01T00:00:00",
+                },
             },
-            "topic_b": {
-                "session_id": "sess_topic_b",
-                "origin": {"platform": "telegram", "chat_id": "-1001", "thread_id": "11"},
-                "updated_at": "2026-02-01T00:00:00",
-            },
-        })
+        )
 
-        with patch.object(mirror_mod, "_SESSIONS_DIR", sessions_dir), \
-             patch.object(mirror_mod, "_SESSIONS_INDEX", index_file):
+        with (
+            patch.object(mirror_mod, "_SESSIONS_DIR", sessions_dir),
+            patch.object(mirror_mod, "_SESSIONS_INDEX", index_file),
+        ):
             result = _find_session_id("telegram", "-1001", thread_id="10")
 
         assert result == "sess_topic_a"
 
     def test_no_match_returns_none(self, tmp_path):
-        sessions_dir, index_file = _setup_sessions(tmp_path, {
-            "sess": {
-                "session_id": "sess_1",
-                "origin": {"platform": "discord", "chat_id": "999"},
-                "updated_at": "2026-01-01T00:00:00",
-            }
-        })
+        sessions_dir, index_file = _setup_sessions(
+            tmp_path,
+            {
+                "sess": {
+                    "session_id": "sess_1",
+                    "origin": {"platform": "discord", "chat_id": "999"},
+                    "updated_at": "2026-01-01T00:00:00",
+                }
+            },
+        )
 
         with patch.object(mirror_mod, "_SESSIONS_INDEX", index_file):
             result = _find_session_id("telegram", "12345")
@@ -98,13 +124,16 @@ class TestFindSessionId:
         assert result is None
 
     def test_platform_case_insensitive(self, tmp_path):
-        sessions_dir, index_file = _setup_sessions(tmp_path, {
-            "s1": {
-                "session_id": "sess_1",
-                "origin": {"platform": "Telegram", "chat_id": "123"},
-                "updated_at": "2026-01-01T00:00:00",
-            }
-        })
+        sessions_dir, index_file = _setup_sessions(
+            tmp_path,
+            {
+                "s1": {
+                    "session_id": "sess_1",
+                    "origin": {"platform": "Telegram", "chat_id": "123"},
+                    "updated_at": "2026-01-01T00:00:00",
+                }
+            },
+        )
 
         with patch.object(mirror_mod, "_SESSIONS_INDEX", index_file):
             result = _find_session_id("telegram", "123")
@@ -142,18 +171,25 @@ class TestAppendToJsonl:
 
 class TestMirrorToSession:
     def test_successful_mirror(self, tmp_path):
-        sessions_dir, index_file = _setup_sessions(tmp_path, {
-            "s1": {
-                "session_id": "sess_abc",
-                "origin": {"platform": "telegram", "chat_id": "12345"},
-                "updated_at": "2026-01-01T00:00:00",
-            }
-        })
+        sessions_dir, index_file = _setup_sessions(
+            tmp_path,
+            {
+                "s1": {
+                    "session_id": "sess_abc",
+                    "origin": {"platform": "telegram", "chat_id": "12345"},
+                    "updated_at": "2026-01-01T00:00:00",
+                }
+            },
+        )
 
-        with patch.object(mirror_mod, "_SESSIONS_DIR", sessions_dir), \
-             patch.object(mirror_mod, "_SESSIONS_INDEX", index_file), \
-             patch("gateway.mirror._append_to_sqlite"):
-            result = mirror_to_session("telegram", "12345", "Hello!", source_label="cli")
+        with (
+            patch.object(mirror_mod, "_SESSIONS_DIR", sessions_dir),
+            patch.object(mirror_mod, "_SESSIONS_INDEX", index_file),
+            patch("gateway.mirror._append_to_sqlite"),
+        ):
+            result = mirror_to_session(
+                "telegram", "12345", "Hello!", source_label="cli"
+            )
 
         assert result is True
 
@@ -167,23 +203,38 @@ class TestMirrorToSession:
         assert msg["mirror_source"] == "cli"
 
     def test_successful_mirror_uses_thread_id(self, tmp_path):
-        sessions_dir, index_file = _setup_sessions(tmp_path, {
-            "topic_a": {
-                "session_id": "sess_topic_a",
-                "origin": {"platform": "telegram", "chat_id": "-1001", "thread_id": "10"},
-                "updated_at": "2026-01-01T00:00:00",
+        sessions_dir, index_file = _setup_sessions(
+            tmp_path,
+            {
+                "topic_a": {
+                    "session_id": "sess_topic_a",
+                    "origin": {
+                        "platform": "telegram",
+                        "chat_id": "-1001",
+                        "thread_id": "10",
+                    },
+                    "updated_at": "2026-01-01T00:00:00",
+                },
+                "topic_b": {
+                    "session_id": "sess_topic_b",
+                    "origin": {
+                        "platform": "telegram",
+                        "chat_id": "-1001",
+                        "thread_id": "11",
+                    },
+                    "updated_at": "2026-02-01T00:00:00",
+                },
             },
-            "topic_b": {
-                "session_id": "sess_topic_b",
-                "origin": {"platform": "telegram", "chat_id": "-1001", "thread_id": "11"},
-                "updated_at": "2026-02-01T00:00:00",
-            },
-        })
+        )
 
-        with patch.object(mirror_mod, "_SESSIONS_DIR", sessions_dir), \
-             patch.object(mirror_mod, "_SESSIONS_INDEX", index_file), \
-             patch("gateway.mirror._append_to_sqlite"):
-            result = mirror_to_session("telegram", "-1001", "Hello topic!", source_label="cron", thread_id="10")
+        with (
+            patch.object(mirror_mod, "_SESSIONS_DIR", sessions_dir),
+            patch.object(mirror_mod, "_SESSIONS_INDEX", index_file),
+            patch("gateway.mirror._append_to_sqlite"),
+        ):
+            result = mirror_to_session(
+                "telegram", "-1001", "Hello topic!", source_label="cron", thread_id="10"
+            )
 
         assert result is True
         assert (sessions_dir / "sess_topic_a.jsonl").exists()
@@ -192,8 +243,10 @@ class TestMirrorToSession:
     def test_no_matching_session(self, tmp_path):
         sessions_dir, index_file = _setup_sessions(tmp_path, {})
 
-        with patch.object(mirror_mod, "_SESSIONS_DIR", sessions_dir), \
-             patch.object(mirror_mod, "_SESSIONS_INDEX", index_file):
+        with (
+            patch.object(mirror_mod, "_SESSIONS_DIR", sessions_dir),
+            patch.object(mirror_mod, "_SESSIONS_INDEX", index_file),
+        ):
             result = mirror_to_session("telegram", "99999", "Hello!")
 
         assert result is False
@@ -209,6 +262,7 @@ class TestAppendToSqlite:
     def test_connection_is_closed_after_use(self, tmp_path):
         """Verify _append_to_sqlite closes the SessionDB connection."""
         from gateway.mirror import _append_to_sqlite
+
         mock_db = MagicMock()
 
         with patch("hermes_state.SessionDB", return_value=mock_db):
@@ -220,6 +274,7 @@ class TestAppendToSqlite:
     def test_connection_closed_even_on_error(self, tmp_path):
         """Verify connection is closed even when append_message raises."""
         from gateway.mirror import _append_to_sqlite
+
         mock_db = MagicMock()
         mock_db.append_message.side_effect = Exception("db error")
 

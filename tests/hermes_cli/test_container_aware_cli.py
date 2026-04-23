@@ -4,6 +4,7 @@ When container.enable = true in the NixOS module, the activation script
 writes a .container-mode metadata file. The host CLI detects this and
 execs into the container instead of running locally.
 """
+
 import os
 import subprocess
 from pathlib import Path
@@ -38,8 +39,10 @@ def test_is_inside_container_containerenv():
 
 def test_is_inside_container_cgroup_docker():
     """Detects 'docker' in /proc/1/cgroup."""
-    with patch("os.path.exists", return_value=False), \
-         patch("builtins.open", create=True) as mock_open:
+    with (
+        patch("os.path.exists", return_value=False),
+        patch("builtins.open", create=True) as mock_open,
+    ):
         mock_open.return_value.__enter__ = lambda s: s
         mock_open.return_value.__exit__ = MagicMock(return_value=False)
         mock_open.return_value.read = MagicMock(
@@ -50,8 +53,10 @@ def test_is_inside_container_cgroup_docker():
 
 def test_is_inside_container_false_on_host():
     """Returns False when none of the container indicators are present."""
-    with patch("os.path.exists", return_value=False), \
-         patch("builtins.open", side_effect=OSError("no such file")):
+    with (
+        patch("os.path.exists", return_value=False),
+        patch("builtins.open", side_effect=OSError("no such file")),
+    ):
         assert _is_inside_container() is False
 
 
@@ -122,7 +127,9 @@ def test_get_container_exec_info_skipped_when_hermes_dev(container_env, monkeypa
     assert info is None
 
 
-def test_get_container_exec_info_not_skipped_when_hermes_dev_zero(container_env, monkeypatch):
+def test_get_container_exec_info_not_skipped_when_hermes_dev_zero(
+    container_env, monkeypatch
+):
     """HERMES_DEV=0 does NOT trigger bypass — only '1' does."""
     monkeypatch.setenv("HERMES_DEV", "0")
 
@@ -139,13 +146,13 @@ def test_get_container_exec_info_defaults():
     with tempfile.TemporaryDirectory() as tmpdir:
         hermes_home = Path(tmpdir) / ".hermes"
         hermes_home.mkdir()
-        (hermes_home / ".container-mode").write_text(
-            "# minimal file with no keys\n"
-        )
+        (hermes_home / ".container-mode").write_text("# minimal file with no keys\n")
 
-        with patch("hermes_cli.config._is_inside_container", return_value=False), \
-             patch("hermes_cli.config.get_hermes_home", return_value=hermes_home), \
-             patch.dict(os.environ, {}, clear=False):
+        with (
+            patch("hermes_cli.config._is_inside_container", return_value=False),
+            patch("hermes_cli.config.get_hermes_home", return_value=hermes_home),
+            patch.dict(os.environ, {}, clear=False),
+        ):
             os.environ.pop("HERMES_DEV", None)
             info = get_container_exec_info()
 
@@ -176,8 +183,10 @@ def test_get_container_exec_info_docker_backend(container_env):
 
 def test_get_container_exec_info_crashes_on_permission_error(container_env):
     """PermissionError propagates instead of being silently swallowed."""
-    with patch("hermes_cli.config._is_inside_container", return_value=False), \
-         patch("builtins.open", side_effect=PermissionError("permission denied")):
+    with (
+        patch("hermes_cli.config._is_inside_container", return_value=False),
+        patch("builtins.open", side_effect=PermissionError("permission denied")),
+    ):
         with pytest.raises(PermissionError):
             get_container_exec_info()
 
@@ -212,12 +221,15 @@ def test_exec_in_container_calls_execvp(docker_container_info):
     user, env vars, container name, binary, and CLI args."""
     from hermes_cli.main import _exec_in_container
 
-    with patch("shutil.which", return_value="/usr/bin/docker"), \
-         patch("subprocess.run") as mock_run, \
-         patch("sys.stdin") as mock_stdin, \
-         patch("os.execvp") as mock_execvp, \
-         patch.dict(os.environ, {"TERM": "xterm-256color", "LANG": "en_US.UTF-8"},
-                    clear=False):
+    with (
+        patch("shutil.which", return_value="/usr/bin/docker"),
+        patch("subprocess.run") as mock_run,
+        patch("sys.stdin") as mock_stdin,
+        patch("os.execvp") as mock_execvp,
+        patch.dict(
+            os.environ, {"TERM": "xterm-256color", "LANG": "en_US.UTF-8"}, clear=False
+        ),
+    ):
         mock_stdin.isatty.return_value = True
         mock_run.return_value = MagicMock(returncode=0)
 
@@ -243,10 +255,12 @@ def test_exec_in_container_non_tty_uses_i_only(docker_container_info):
     """Non-TTY mode uses -i instead of -it."""
     from hermes_cli.main import _exec_in_container
 
-    with patch("shutil.which", return_value="/usr/bin/docker"), \
-         patch("subprocess.run") as mock_run, \
-         patch("sys.stdin") as mock_stdin, \
-         patch("os.execvp") as mock_execvp:
+    with (
+        patch("shutil.which", return_value="/usr/bin/docker"),
+        patch("subprocess.run") as mock_run,
+        patch("sys.stdin") as mock_stdin,
+        patch("os.execvp") as mock_execvp,
+    ):
         mock_stdin.isatty.return_value = False
         mock_run.return_value = MagicMock(returncode=0)
 
@@ -261,10 +275,12 @@ def test_exec_in_container_no_runtime_hard_fails(podman_container_info):
     """Hard fails when runtime not found (no fallback)."""
     from hermes_cli.main import _exec_in_container
 
-    with patch("shutil.which", return_value=None), \
-         patch("subprocess.run") as mock_run, \
-         patch("os.execvp") as mock_execvp, \
-         pytest.raises(SystemExit) as exc_info:
+    with (
+        patch("shutil.which", return_value=None),
+        patch("subprocess.run") as mock_run,
+        patch("os.execvp") as mock_execvp,
+        pytest.raises(SystemExit) as exc_info,
+    ):
         _exec_in_container(podman_container_info, ["chat"])
 
     mock_run.assert_not_called()
@@ -284,10 +300,12 @@ def test_exec_in_container_sudo_probe_sets_prefix(podman_container_info):
             return "/usr/bin/sudo"
         return None
 
-    with patch("shutil.which", side_effect=which_side_effect), \
-         patch("subprocess.run") as mock_run, \
-         patch("sys.stdin") as mock_stdin, \
-         patch("os.execvp") as mock_execvp:
+    with (
+        patch("shutil.which", side_effect=which_side_effect),
+        patch("subprocess.run") as mock_run,
+        patch("sys.stdin") as mock_stdin,
+        patch("os.execvp") as mock_execvp,
+    ):
         mock_stdin.isatty.return_value = True
         mock_run.side_effect = [
             MagicMock(returncode=1),  # direct probe fails
@@ -309,11 +327,17 @@ def test_exec_in_container_probe_timeout_prints_message(docker_container_info):
     raw traceback."""
     from hermes_cli.main import _exec_in_container
 
-    with patch("shutil.which", return_value="/usr/bin/docker"), \
-         patch("subprocess.run", side_effect=subprocess.TimeoutExpired(
-             cmd=["docker", "inspect"], timeout=15)), \
-         patch("os.execvp") as mock_execvp, \
-         pytest.raises(SystemExit) as exc_info:
+    with (
+        patch("shutil.which", return_value="/usr/bin/docker"),
+        patch(
+            "subprocess.run",
+            side_effect=subprocess.TimeoutExpired(
+                cmd=["docker", "inspect"], timeout=15
+            ),
+        ),
+        patch("os.execvp") as mock_execvp,
+        pytest.raises(SystemExit) as exc_info,
+    ):
         _exec_in_container(docker_container_info, ["chat"])
 
     mock_execvp.assert_not_called()
@@ -330,10 +354,12 @@ def test_exec_in_container_container_not_running_no_sudo(docker_container_info):
             return "/usr/bin/docker"
         return None
 
-    with patch("shutil.which", side_effect=which_side_effect), \
-         patch("subprocess.run") as mock_run, \
-         patch("os.execvp") as mock_execvp, \
-         pytest.raises(SystemExit) as exc_info:
+    with (
+        patch("shutil.which", side_effect=which_side_effect),
+        patch("subprocess.run") as mock_run,
+        patch("os.execvp") as mock_execvp,
+        pytest.raises(SystemExit) as exc_info,
+    ):
         mock_run.return_value = MagicMock(returncode=1)
 
         _exec_in_container(docker_container_info, ["chat"])

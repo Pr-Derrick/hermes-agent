@@ -24,8 +24,10 @@ class TestCLILoadingIndicator:
             seen["status"] = cli_obj._command_status
             print("skills done")
 
-        with patch.object(cli_obj, "_handle_skills_command", side_effect=fake_handle), \
-             patch.object(cli_obj, "_invalidate") as invalidate_mock:
+        with (
+            patch.object(cli_obj, "_handle_skills_command", side_effect=fake_handle),
+            patch.object(cli_obj, "_invalidate") as invalidate_mock,
+        ):
             assert cli_obj.process_command("/skills search kubernetes")
 
         output = capsys.readouterr().out
@@ -49,8 +51,10 @@ class TestCLILoadingIndicator:
             seen["status"] = cli_obj._command_status
             print("reload done")
 
-        with patch.object(cli_obj, "_reload_mcp", side_effect=fake_reload), \
-             patch.object(cli_obj, "_invalidate") as invalidate_mock:
+        with (
+            patch.object(cli_obj, "_reload_mcp", side_effect=fake_reload),
+            patch.object(cli_obj, "_invalidate") as invalidate_mock,
+        ):
             assert cli_obj.process_command("/reload-mcp")
 
         output = capsys.readouterr().out

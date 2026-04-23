@@ -87,9 +87,7 @@ class TestManagedServerAPI:
         # We just note the state — not a hard fail either way.
         has_get_logprobs = hasattr(ManagedServer, "get_logprobs")
         if has_get_logprobs:
-            pytest.skip(
-                "ManagedServer still has get_logprobs — baseline atroposlib"
-            )
+            pytest.skip("ManagedServer still has get_logprobs — baseline atroposlib")
 
 
 class TestParserCompatibility:
@@ -147,7 +145,9 @@ class TestBaseEnvCompatibility:
         """Hermes wires parser selection through ServerManager.tool_parser."""
         import ast
 
-        base_env_path = Path(__file__).parent.parent.parent / "environments" / "hermes_base_env.py"
+        base_env_path = (
+            Path(__file__).parent.parent.parent / "environments" / "hermes_base_env.py"
+        )
         source = base_env_path.read_text()
         tree = ast.parse(source)
 
@@ -155,7 +155,10 @@ class TestBaseEnvCompatibility:
         for node in ast.walk(tree):
             if isinstance(node, ast.Assign):
                 for target in node.targets:
-                    if isinstance(target, ast.Attribute) and target.attr == "tool_parser":
+                    if (
+                        isinstance(target, ast.Attribute)
+                        and target.attr == "tool_parser"
+                    ):
                         parent = target.value
                         if (
                             isinstance(parent, ast.Attribute)
@@ -171,8 +174,10 @@ class TestBaseEnvCompatibility:
 
     def test_hermes_base_env_uses_config_tool_call_parser(self):
         """Verify hermes_base_env uses the config field rather than a local parser instance."""
-        base_env_path = Path(__file__).parent.parent.parent / "environments" / "hermes_base_env.py"
+        base_env_path = (
+            Path(__file__).parent.parent.parent / "environments" / "hermes_base_env.py"
+        )
         source = base_env_path.read_text()
 
-        assert 'tool_call_parser: str = Field(' in source
-        assert 'self.server.tool_parser = config.tool_call_parser' in source
+        assert "tool_call_parser: str = Field(" in source
+        assert "self.server.tool_parser = config.tool_call_parser" in source

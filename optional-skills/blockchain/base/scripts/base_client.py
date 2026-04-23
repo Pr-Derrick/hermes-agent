@@ -37,17 +37,17 @@ WEI_PER_ETH = 10**18
 GWEI = 10**9
 
 # ERC-20 function selectors (first 4 bytes of keccak256 hash)
-SEL_BALANCE_OF   = "70a08231"
-SEL_NAME         = "06fdde03"
-SEL_SYMBOL       = "95d89b41"
-SEL_DECIMALS     = "313ce567"
+SEL_BALANCE_OF = "70a08231"
+SEL_NAME = "06fdde03"
+SEL_SYMBOL = "95d89b41"
+SEL_DECIMALS = "313ce567"
 SEL_TOTAL_SUPPLY = "18160ddd"
 
 # ERC-165 supportsInterface(bytes4) selector
 SEL_SUPPORTS_INTERFACE = "01ffc9a7"
 
 # Interface IDs for ERC-165 detection
-IFACE_ERC721  = "80ac58cd"
+IFACE_ERC721 = "80ac58cd"
 IFACE_ERC1155 = "d9b67a26"
 
 # Transfer(address,address,uint256) event topic
@@ -55,17 +55,25 @@ TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523
 
 # Well-known Base tokens — maps lowercase address -> (symbol, name, decimals).
 KNOWN_TOKENS: Dict[str, Tuple[str, str, int]] = {
-    "0x4200000000000000000000000000000000000006": ("WETH",   "Wrapped Ether",               18),
-    "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": ("USDC",   "USD Coin",                     6),
-    "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22": ("cbETH",  "Coinbase Wrapped Staked ETH", 18),
-    "0x940181a94a35a4569e4529a3cdfb74e38fd98631": ("AERO",   "Aerodrome Finance",           18),
-    "0x4ed4e862860bed51a9570b96d89af5e1b0efefed": ("DEGEN",  "Degen",                       18),
-    "0xac1bd2486aaf3b5c0fc3fd868558b082a531b2b4": ("TOSHI",  "Toshi",                       18),
-    "0x532f27101965dd16442e59d40670faf5ebb142e4": ("BRETT",  "Brett",                       18),
-    "0xa88594d404727625a9437c3f886c7643872296ae": ("WELL",   "Moonwell",                    18),
-    "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452": ("wstETH", "Wrapped Lido Staked ETH",     18),
-    "0xb6fe221fe9eef5aba221c348ba20a1bf5e73624c": ("rETH",   "Rocket Pool ETH",             18),
-    "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": ("cbBTC",  "Coinbase Wrapped BTC",         8),
+    "0x4200000000000000000000000000000000000006": ("WETH", "Wrapped Ether", 18),
+    "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": ("USDC", "USD Coin", 6),
+    "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22": (
+        "cbETH",
+        "Coinbase Wrapped Staked ETH",
+        18,
+    ),
+    "0x940181a94a35a4569e4529a3cdfb74e38fd98631": ("AERO", "Aerodrome Finance", 18),
+    "0x4ed4e862860bed51a9570b96d89af5e1b0efefed": ("DEGEN", "Degen", 18),
+    "0xac1bd2486aaf3b5c0fc3fd868558b082a531b2b4": ("TOSHI", "Toshi", 18),
+    "0x532f27101965dd16442e59d40670faf5ebb142e4": ("BRETT", "Brett", 18),
+    "0xa88594d404727625a9437c3f886c7643872296ae": ("WELL", "Moonwell", 18),
+    "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452": (
+        "wstETH",
+        "Wrapped Lido Staked ETH",
+        18,
+    ),
+    "0xb6fe221fe9eef5aba221c348ba20a1bf5e73624c": ("rETH", "Rocket Pool ETH", 18),
+    "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf": ("cbBTC", "Coinbase Wrapped BTC", 8),
 }
 
 # Reverse lookup: symbol -> contract address (for the `price` command).
@@ -77,11 +85,13 @@ _SYMBOL_TO_ADDRESS["ETH"] = "ETH"
 # HTTP / RPC helpers
 # ---------------------------------------------------------------------------
 
+
 def _http_get_json(url: str, timeout: int = 10, retries: int = 2) -> Any:
     """GET JSON from a URL with retry on 429 rate-limit. Returns parsed JSON or None."""
     for attempt in range(retries + 1):
         req = urllib.request.Request(
-            url, headers={"Accept": "application/json", "User-Agent": "HermesAgent/1.0"},
+            url,
+            headers={"Accept": "application/json", "User-Agent": "HermesAgent/1.0"},
         )
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -98,16 +108,23 @@ def _http_get_json(url: str, timeout: int = 10, retries: int = 2) -> Any:
 
 def _rpc_call(method: str, params: list = None, retries: int = 2) -> Any:
     """Send a JSON-RPC request with retry on 429 rate-limit."""
-    payload = json.dumps({
-        "jsonrpc": "2.0", "id": 1,
-        "method": method, "params": params or [],
-    }).encode()
+    payload = json.dumps(
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": method,
+            "params": params or [],
+        }
+    ).encode()
 
     _headers = {"Content-Type": "application/json", "User-Agent": "HermesAgent/1.0"}
 
     for attempt in range(retries + 1):
         req = urllib.request.Request(
-            RPC_URL, data=payload, headers=_headers, method="POST",
+            RPC_URL,
+            data=payload,
+            headers=_headers,
+            method="POST",
         )
         try:
             with urllib.request.urlopen(req, timeout=20) as resp:
@@ -144,7 +161,10 @@ def _rpc_batch_chunk(items: list) -> list:
 
     for attempt in range(3):
         req = urllib.request.Request(
-            RPC_URL, data=payload, headers=_headers, method="POST",
+            RPC_URL,
+            data=payload,
+            headers=_headers,
+            method="POST",
         )
         try:
             with urllib.request.urlopen(req, timeout=30) as resp:
@@ -166,7 +186,12 @@ def _rpc_batch_chunk(items: list) -> list:
 def rpc_batch(calls: list) -> list:
     """Send a batch of JSON-RPC requests, auto-chunking to respect limits."""
     items = [
-        {"jsonrpc": "2.0", "id": i, "method": c["method"], "params": c.get("params", [])}
+        {
+            "jsonrpc": "2.0",
+            "id": i,
+            "method": c["method"],
+            "params": c.get("params", []),
+        }
         for i, c in enumerate(calls)
     ]
 
@@ -176,7 +201,7 @@ def rpc_batch(calls: list) -> list:
     # Split into chunks of _BATCH_LIMIT
     all_results = []
     for start in range(0, len(items), _BATCH_LIMIT):
-        chunk = items[start:start + _BATCH_LIMIT]
+        chunk = items[start : start + _BATCH_LIMIT]
         all_results.extend(_rpc_batch_chunk(chunk))
     return all_results
 
@@ -211,6 +236,7 @@ def _short_addr(addr: str) -> str:
 # ABI encoding / decoding helpers
 # ---------------------------------------------------------------------------
 
+
 def _encode_address(addr: str) -> str:
     """ABI-encode an address as a 32-byte hex string (no 0x prefix)."""
     clean = addr.lower().replace("0x", "")
@@ -233,23 +259,33 @@ def _decode_string(hex_data: Optional[str]) -> str:
         length = int(data[64:128], 16)
         if length == 0 or length > 256:
             return ""
-        str_hex = data[128:128 + length * 2]
+        str_hex = data[128 : 128 + length * 2]
         return bytes.fromhex(str_hex).decode("utf-8").strip("\x00")
     except (ValueError, UnicodeDecodeError):
         return ""
 
 
-def _eth_call(to: str, selector: str, args: str = "", block: str = "latest") -> Optional[str]:
+def _eth_call(
+    to: str, selector: str, args: str = "", block: str = "latest"
+) -> Optional[str]:
     """Execute eth_call with a function selector. Returns None on revert/error."""
     data = "0x" + selector + args
     try:
-        payload = json.dumps({
-            "jsonrpc": "2.0", "id": 1,
-            "method": "eth_call", "params": [{"to": to, "data": data}, block],
-        }).encode()
+        payload = json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "eth_call",
+                "params": [{"to": to, "data": data}, block],
+            }
+        ).encode()
         req = urllib.request.Request(
-            RPC_URL, data=payload,
-            headers={"Content-Type": "application/json", "User-Agent": "HermesAgent/1.0"},
+            RPC_URL,
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "HermesAgent/1.0",
+            },
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=20) as resp:
@@ -264,6 +300,7 @@ def _eth_call(to: str, selector: str, args: str = "", block: str = "latest") -> 
 # ---------------------------------------------------------------------------
 # Price & token name helpers (CoinGecko — free, no API key)
 # ---------------------------------------------------------------------------
+
 
 def fetch_prices(addresses: List[str], max_lookups: int = 20) -> Dict[str, float]:
     """Fetch USD prices for Base token addresses via CoinGecko (one per request).
@@ -331,44 +368,49 @@ def _token_label(addr: str) -> str:
 # 1. Network Stats
 # ---------------------------------------------------------------------------
 
+
 def cmd_stats(_args):
     """Base network health: block, gas, chain ID, ETH price."""
-    results = rpc_batch([
-        {"method": "eth_blockNumber"},
-        {"method": "eth_gasPrice"},
-        {"method": "eth_chainId"},
-        {"method": "eth_getBlockByNumber", "params": ["latest", False]},
-    ])
+    results = rpc_batch(
+        [
+            {"method": "eth_blockNumber"},
+            {"method": "eth_gasPrice"},
+            {"method": "eth_chainId"},
+            {"method": "eth_getBlockByNumber", "params": ["latest", False]},
+        ]
+    )
 
     by_id = {r["id"]: r.get("result") for r in results}
 
     block_num = hex_to_int(by_id.get(0))
     gas_price = hex_to_int(by_id.get(1))
-    chain_id  = hex_to_int(by_id.get(2))
-    block     = by_id.get(3) or {}
+    chain_id = hex_to_int(by_id.get(2))
+    block = by_id.get(3) or {}
 
-    base_fee  = hex_to_int(block.get("baseFeePerGas")) if block.get("baseFeePerGas") else None
+    base_fee = (
+        hex_to_int(block.get("baseFeePerGas")) if block.get("baseFeePerGas") else None
+    )
     timestamp = hex_to_int(block.get("timestamp")) if block.get("timestamp") else None
-    gas_used  = hex_to_int(block.get("gasUsed")) if block.get("gasUsed") else None
+    gas_used = hex_to_int(block.get("gasUsed")) if block.get("gasUsed") else None
     gas_limit = hex_to_int(block.get("gasLimit")) if block.get("gasLimit") else None
-    tx_count  = len(block.get("transactions", []))
+    tx_count = len(block.get("transactions", []))
 
     eth_price = fetch_eth_price()
 
     out = {
-        "chain":            "Base" if chain_id == 8453 else f"Chain {chain_id}",
-        "chain_id":         chain_id,
-        "latest_block":     block_num,
-        "gas_price_gwei":   round(wei_to_gwei(gas_price), 4),
+        "chain": "Base" if chain_id == 8453 else f"Chain {chain_id}",
+        "chain_id": chain_id,
+        "latest_block": block_num,
+        "gas_price_gwei": round(wei_to_gwei(gas_price), 4),
     }
     if base_fee is not None:
         out["base_fee_gwei"] = round(wei_to_gwei(base_fee), 4)
     if timestamp:
         out["block_timestamp"] = timestamp
     if gas_used is not None and gas_limit:
-        out["block_gas_used"]         = gas_used
-        out["block_gas_limit"]        = gas_limit
-        out["block_utilization_pct"]  = round(gas_used / gas_limit * 100, 2)
+        out["block_gas_used"] = gas_used
+        out["block_gas_limit"] = gas_limit
+        out["block_utilization_pct"] = round(gas_used / gas_limit * 100, 2)
     out["block_tx_count"] = tx_count
     if eth_price is not None:
         out["eth_price_usd"] = eth_price
@@ -379,24 +421,30 @@ def cmd_stats(_args):
 # 2. Wallet Info (ETH + ERC-20 balances with prices)
 # ---------------------------------------------------------------------------
 
+
 def cmd_wallet(args):
     """ETH balance + ERC-20 token holdings with USD values."""
-    address  = args.address.lower()
+    address = args.address.lower()
     show_all = getattr(args, "all", False)
-    limit    = getattr(args, "limit", 20) or 20
+    limit = getattr(args, "limit", 20) or 20
     skip_prices = getattr(args, "no_prices", False)
 
     # Batch: ETH balance + balanceOf for all known tokens
     calls = [{"method": "eth_getBalance", "params": [address, "latest"]}]
     token_addrs = list(KNOWN_TOKENS.keys())
     for token_addr in token_addrs:
-        calls.append({
-            "method": "eth_call",
-            "params": [
-                {"to": token_addr, "data": "0x" + SEL_BALANCE_OF + _encode_address(address)},
-                "latest",
-            ],
-        })
+        calls.append(
+            {
+                "method": "eth_call",
+                "params": [
+                    {
+                        "to": token_addr,
+                        "data": "0x" + SEL_BALANCE_OF + _encode_address(address),
+                    },
+                    "latest",
+                ],
+            }
+        )
 
     results = rpc_batch(calls)
     by_id = {r["id"]: r.get("result") for r in results}
@@ -410,14 +458,16 @@ def cmd_wallet(args):
         if raw == 0:
             continue
         sym, name, decimals = KNOWN_TOKENS[token_addr]
-        amount = raw / (10 ** decimals)
-        tokens.append({
-            "address":  token_addr,
-            "symbol":   sym,
-            "name":     name,
-            "amount":   amount,
-            "decimals": decimals,
-        })
+        amount = raw / (10**decimals)
+        tokens.append(
+            {
+                "address": token_addr,
+                "symbol": sym,
+                "name": name,
+                "amount": amount,
+                "decimals": decimals,
+            }
+        )
 
     # Fetch prices
     eth_price = None
@@ -467,7 +517,7 @@ def cmd_wallet(args):
     total_usd += dust_value
 
     output = {
-        "address":     args.address,
+        "address": args.address,
         "eth_balance": round(eth_balance, 18),
     }
     if eth_price:
@@ -478,7 +528,10 @@ def cmd_wallet(args):
         output["tokens_hidden"] = hidden_tokens
     output["erc20_tokens"] = enriched
     if dust_count > 0:
-        output["dust_filtered"] = {"count": dust_count, "total_value_usd": round(dust_value, 4)}
+        output["dust_filtered"] = {
+            "count": dust_count,
+            "total_value_usd": round(dust_value, 4),
+        }
     if total_usd > 0:
         output["portfolio_total_usd"] = round(total_usd, 2)
     if hidden_tokens > 0 and not show_all:
@@ -486,7 +539,9 @@ def cmd_wallet(args):
             "portfolio_total_usd may be partial because hidden tokens are not "
             "included when --limit is applied."
         )
-    output["note"] = f"Checked {len(KNOWN_TOKENS)} known Base tokens. Unknown ERC-20s not shown."
+    output["note"] = (
+        f"Checked {len(KNOWN_TOKENS)} known Base tokens. Unknown ERC-20s not shown."
+    )
 
     print_json(output)
 
@@ -495,17 +550,20 @@ def cmd_wallet(args):
 # 3. Transaction Details
 # ---------------------------------------------------------------------------
 
+
 def cmd_tx(args):
     """Full transaction details by hash."""
     tx_hash = args.hash
 
-    results = rpc_batch([
-        {"method": "eth_getTransactionByHash", "params": [tx_hash]},
-        {"method": "eth_getTransactionReceipt", "params": [tx_hash]},
-    ])
+    results = rpc_batch(
+        [
+            {"method": "eth_getTransactionByHash", "params": [tx_hash]},
+            {"method": "eth_getTransactionReceipt", "params": [tx_hash]},
+        ]
+    )
 
     by_id = {r["id"]: r.get("result") for r in results}
-    tx      = by_id.get(0)
+    tx = by_id.get(0)
     receipt = by_id.get(1)
 
     if tx is None:
@@ -515,21 +573,24 @@ def cmd_tx(args):
     tx_gas_price = hex_to_int(tx.get("gasPrice"))
     gas_used = hex_to_int(receipt.get("gasUsed")) if receipt else None
     effective_gas_price = (
-        hex_to_int(receipt.get("effectiveGasPrice")) if receipt and receipt.get("effectiveGasPrice")
+        hex_to_int(receipt.get("effectiveGasPrice"))
+        if receipt and receipt.get("effectiveGasPrice")
         else tx_gas_price
     )
     l2_fee_wei = effective_gas_price * gas_used if gas_used is not None else None
-    l1_fee_wei = hex_to_int(receipt.get("l1Fee")) if receipt and receipt.get("l1Fee") else 0
+    l1_fee_wei = (
+        hex_to_int(receipt.get("l1Fee")) if receipt and receipt.get("l1Fee") else 0
+    )
     fee_wei = (l2_fee_wei + l1_fee_wei) if l2_fee_wei is not None else None
 
     eth_price = fetch_eth_price()
 
     out = {
-        "hash":           tx_hash,
-        "block":          hex_to_int(tx.get("blockNumber")),
-        "from":           tx.get("from"),
-        "to":             tx.get("to"),
-        "value_ETH":      round(wei_to_eth(value_wei), 18) if value_wei else 0,
+        "hash": tx_hash,
+        "block": hex_to_int(tx.get("blockNumber")),
+        "from": tx.get("from"),
+        "to": tx.get("to"),
+        "value_ETH": round(wei_to_eth(value_wei), 18) if value_wei else 0,
         "gas_price_gwei": round(wei_to_gwei(effective_gas_price), 4),
     }
     if gas_used is not None:
@@ -552,15 +613,15 @@ def cmd_tx(args):
             topics = log.get("topics", [])
             if len(topics) >= 3 and topics[0] == TRANSFER_TOPIC:
                 from_addr = "0x" + topics[1][-40:]
-                to_addr   = "0x" + topics[2][-40:]
+                to_addr = "0x" + topics[2][-40:]
                 token_contract = log.get("address", "")
                 label = _token_label(token_contract)
 
                 entry = {
-                    "token":    label,
+                    "token": label,
                     "contract": token_contract,
-                    "from":     from_addr,
-                    "to":       to_addr,
+                    "from": from_addr,
+                    "to": to_addr,
                 }
                 # ERC-20: 3 topics, amount in data
                 if len(topics) == 3:
@@ -570,7 +631,7 @@ def cmd_tx(args):
                         addr_lower = token_contract.lower()
                         if addr_lower in KNOWN_TOKENS:
                             decimals = KNOWN_TOKENS[addr_lower][2]
-                            entry["amount"] = raw_amount / (10 ** decimals)
+                            entry["amount"] = raw_amount / (10**decimals)
                         else:
                             entry["raw_amount"] = raw_amount
                 # ERC-721: 4 topics, tokenId in topics[3]
@@ -600,16 +661,29 @@ def cmd_tx(args):
 # 4. Token Info
 # ---------------------------------------------------------------------------
 
+
 def cmd_token(args):
     """ERC-20 token metadata, supply, price, market cap."""
     addr = args.address.lower()
 
     # Batch: name, symbol, decimals, totalSupply, code check
     calls = [
-        {"method": "eth_call", "params": [{"to": addr, "data": "0x" + SEL_NAME}, "latest"]},
-        {"method": "eth_call", "params": [{"to": addr, "data": "0x" + SEL_SYMBOL}, "latest"]},
-        {"method": "eth_call", "params": [{"to": addr, "data": "0x" + SEL_DECIMALS}, "latest"]},
-        {"method": "eth_call", "params": [{"to": addr, "data": "0x" + SEL_TOTAL_SUPPLY}, "latest"]},
+        {
+            "method": "eth_call",
+            "params": [{"to": addr, "data": "0x" + SEL_NAME}, "latest"],
+        },
+        {
+            "method": "eth_call",
+            "params": [{"to": addr, "data": "0x" + SEL_SYMBOL}, "latest"],
+        },
+        {
+            "method": "eth_call",
+            "params": [{"to": addr, "data": "0x" + SEL_DECIMALS}, "latest"],
+        },
+        {
+            "method": "eth_call",
+            "params": [{"to": addr, "data": "0x" + SEL_TOTAL_SUPPLY}, "latest"],
+        },
         {"method": "eth_getCode", "params": [addr, "latest"]},
     ]
     results = rpc_batch(calls)
@@ -619,24 +693,26 @@ def cmd_token(args):
     if not code or code == "0x":
         sys.exit("Address is not a contract.")
 
-    name     = _decode_string(by_id.get(0))
-    symbol   = _decode_string(by_id.get(1))
+    name = _decode_string(by_id.get(0))
+    symbol = _decode_string(by_id.get(1))
     decimals_raw = by_id.get(2)
     decimals = _decode_uint(decimals_raw)
     total_supply_raw = _decode_uint(by_id.get(3))
 
     # Fall back to known tokens if on-chain read failed
     if not symbol and addr in KNOWN_TOKENS:
-        symbol   = KNOWN_TOKENS[addr][0]
-        name     = KNOWN_TOKENS[addr][1]
+        symbol = KNOWN_TOKENS[addr][0]
+        name = KNOWN_TOKENS[addr][1]
         decimals = KNOWN_TOKENS[addr][2]
 
     is_known_token = addr in KNOWN_TOKENS
-    is_erc20 = bool((symbol or is_known_token) and decimals_raw and decimals_raw != "0x")
+    is_erc20 = bool(
+        (symbol or is_known_token) and decimals_raw and decimals_raw != "0x"
+    )
     if not is_erc20:
         sys.exit("Contract does not appear to be an ERC-20 token.")
 
-    total_supply = total_supply_raw / (10 ** decimals) if decimals else total_supply_raw
+    total_supply = total_supply_raw / (10**decimals) if decimals else total_supply_raw
 
     # Fetch price
     price_data = fetch_prices([addr])
@@ -646,11 +722,11 @@ def cmd_token(args):
         out["name"] = name
     if symbol:
         out["symbol"] = symbol
-    out["decimals"]    = decimals
+    out["decimals"] = decimals
     out["total_supply"] = round(total_supply, min(decimals, 6))
     out["code_size_bytes"] = (len(code) - 2) // 2
     if addr in price_data:
-        out["price_usd"]      = price_data[addr]
+        out["price_usd"] = price_data[addr]
         out["market_cap_usd"] = round(price_data[addr] * total_supply, 0)
 
     print_json(out)
@@ -660,6 +736,7 @@ def cmd_token(args):
 # 5. Gas Analysis (Base-specific: L2 execution + L1 data costs)
 # ---------------------------------------------------------------------------
 
+
 def cmd_gas(_args):
     """Detailed gas analysis with L1 data fee context and cost estimates."""
     latest_hex = _rpc_call("eth_blockNumber")
@@ -668,10 +745,12 @@ def cmd_gas(_args):
     # Get last 10 blocks for trend analysis + current gas price
     block_calls = []
     for i in range(10):
-        block_calls.append({
-            "method": "eth_getBlockByNumber",
-            "params": [hex(latest - i), False],
-        })
+        block_calls.append(
+            {
+                "method": "eth_getBlockByNumber",
+                "params": [hex(latest - i), False],
+            }
+        )
     block_calls.append({"method": "eth_gasPrice"})
 
     results = rpc_batch(block_calls)
@@ -688,9 +767,9 @@ def cmd_gas(_args):
         b = by_id.get(i)
         if not b:
             continue
-        bf  = hex_to_int(b.get("baseFeePerGas", "0x0"))
-        gu  = hex_to_int(b.get("gasUsed", "0x0"))
-        gl  = hex_to_int(b.get("gasLimit", "0x0"))
+        bf = hex_to_int(b.get("baseFeePerGas", "0x0"))
+        gu = hex_to_int(b.get("gasUsed", "0x0"))
+        gl = hex_to_int(b.get("gasLimit", "0x0"))
         txc = len(b.get("transactions", []))
         base_fees.append(bf)
         if gl > 0:
@@ -699,24 +778,26 @@ def cmd_gas(_args):
 
         if i == 0:
             latest_block_info = {
-                "block":            hex_to_int(b.get("number")),
-                "base_fee_gwei":    round(wei_to_gwei(bf), 6),
-                "gas_used":         gu,
-                "gas_limit":        gl,
-                "utilization_pct":  round(gu / gl * 100, 2) if gl > 0 else 0,
-                "tx_count":         txc,
+                "block": hex_to_int(b.get("number")),
+                "base_fee_gwei": round(wei_to_gwei(bf), 6),
+                "gas_used": gu,
+                "gas_limit": gl,
+                "utilization_pct": round(gu / gl * 100, 2) if gl > 0 else 0,
+                "tx_count": txc,
             }
 
-    avg_base_fee    = sum(base_fees) / len(base_fees) if base_fees else 0
-    avg_utilization = sum(gas_utilizations) / len(gas_utilizations) if gas_utilizations else 0
-    avg_tx_count    = sum(tx_counts) / len(tx_counts) if tx_counts else 0
+    avg_base_fee = sum(base_fees) / len(base_fees) if base_fees else 0
+    avg_utilization = (
+        sum(gas_utilizations) / len(gas_utilizations) if gas_utilizations else 0
+    )
+    avg_tx_count = sum(tx_counts) / len(tx_counts) if tx_counts else 0
 
     # Estimate costs for common operations
     eth_price = fetch_eth_price()
 
     simple_transfer_gas = 21_000
-    erc20_transfer_gas  = 65_000
-    swap_gas            = 200_000
+    erc20_transfer_gas = 65_000
+    swap_gas = 200_000
 
     def _estimate_cost(gas: int) -> Dict[str, Any]:
         cost_wei = gas * current_gas_price
@@ -728,22 +809,26 @@ def cmd_gas(_args):
 
     out: Dict[str, Any] = {
         "current_gas_price_gwei": round(wei_to_gwei(current_gas_price), 6),
-        "latest_block":           latest_block_info,
+        "latest_block": latest_block_info,
         "trend_10_blocks": {
-            "avg_base_fee_gwei":    round(wei_to_gwei(avg_base_fee), 6),
-            "avg_utilization_pct":  round(avg_utilization, 2),
-            "avg_tx_count":         round(avg_tx_count, 1),
-            "min_base_fee_gwei":    round(wei_to_gwei(min(base_fees)), 6) if base_fees else None,
-            "max_base_fee_gwei":    round(wei_to_gwei(max(base_fees)), 6) if base_fees else None,
+            "avg_base_fee_gwei": round(wei_to_gwei(avg_base_fee), 6),
+            "avg_utilization_pct": round(avg_utilization, 2),
+            "avg_tx_count": round(avg_tx_count, 1),
+            "min_base_fee_gwei": round(wei_to_gwei(min(base_fees)), 6)
+            if base_fees
+            else None,
+            "max_base_fee_gwei": round(wei_to_gwei(max(base_fees)), 6)
+            if base_fees
+            else None,
         },
         "cost_estimates": {
-            "eth_transfer":   _estimate_cost(simple_transfer_gas),
+            "eth_transfer": _estimate_cost(simple_transfer_gas),
             "erc20_transfer": _estimate_cost(erc20_transfer_gas),
-            "swap":           _estimate_cost(swap_gas),
+            "swap": _estimate_cost(swap_gas),
         },
         "note": "Base is an L2. Total tx cost = L2 execution fee + L1 data posting fee. "
-                "L1 data fee depends on calldata size and L1 gas prices (not shown here). "
-                "Actual costs may be slightly higher than estimates.",
+        "L1 data fee depends on calldata size and L1 gas prices (not shown here). "
+        "Actual costs may be slightly higher than estimates.",
     }
     if eth_price:
         out["eth_price_usd"] = eth_price
@@ -754,26 +839,51 @@ def cmd_gas(_args):
 # 6. Contract Inspection
 # ---------------------------------------------------------------------------
 
+
 def cmd_contract(args):
     """Inspect an address: EOA vs contract, ERC type detection, proxy resolution."""
     addr = args.address.lower()
 
     # Batch: getCode, getBalance, name, symbol, decimals, totalSupply, ERC-721, ERC-1155
     calls = [
-        {"method": "eth_getCode",    "params": [addr, "latest"]},
+        {"method": "eth_getCode", "params": [addr, "latest"]},
         {"method": "eth_getBalance", "params": [addr, "latest"]},
-        {"method": "eth_call", "params": [{"to": addr, "data": "0x" + SEL_NAME}, "latest"]},
-        {"method": "eth_call", "params": [{"to": addr, "data": "0x" + SEL_SYMBOL}, "latest"]},
-        {"method": "eth_call", "params": [{"to": addr, "data": "0x" + SEL_DECIMALS}, "latest"]},
-        {"method": "eth_call", "params": [{"to": addr, "data": "0x" + SEL_TOTAL_SUPPLY}, "latest"]},
-        {"method": "eth_call", "params": [
-            {"to": addr, "data": "0x" + SEL_SUPPORTS_INTERFACE + IFACE_ERC721.zfill(64)},
-            "latest",
-        ]},
-        {"method": "eth_call", "params": [
-            {"to": addr, "data": "0x" + SEL_SUPPORTS_INTERFACE + IFACE_ERC1155.zfill(64)},
-            "latest",
-        ]},
+        {
+            "method": "eth_call",
+            "params": [{"to": addr, "data": "0x" + SEL_NAME}, "latest"],
+        },
+        {
+            "method": "eth_call",
+            "params": [{"to": addr, "data": "0x" + SEL_SYMBOL}, "latest"],
+        },
+        {
+            "method": "eth_call",
+            "params": [{"to": addr, "data": "0x" + SEL_DECIMALS}, "latest"],
+        },
+        {
+            "method": "eth_call",
+            "params": [{"to": addr, "data": "0x" + SEL_TOTAL_SUPPLY}, "latest"],
+        },
+        {
+            "method": "eth_call",
+            "params": [
+                {
+                    "to": addr,
+                    "data": "0x" + SEL_SUPPORTS_INTERFACE + IFACE_ERC721.zfill(64),
+                },
+                "latest",
+            ],
+        },
+        {
+            "method": "eth_call",
+            "params": [
+                {
+                    "to": addr,
+                    "data": "0x" + SEL_SUPPORTS_INTERFACE + IFACE_ERC1155.zfill(64),
+                },
+                "latest",
+            ],
+        },
     ]
     results = rpc_batch(calls)
 
@@ -785,15 +895,15 @@ def cmd_contract(args):
         else:
             by_id[r["id"]] = None
 
-    code        = by_id.get(0, "0x")
+    code = by_id.get(0, "0x")
     eth_balance = hex_to_int(by_id.get(1))
 
     if not code or code == "0x":
         out = {
-            "address":     args.address,
+            "address": args.address,
             "is_contract": False,
             "eth_balance": round(wei_to_eth(eth_balance), 18),
-            "note":        "This is an externally owned account (EOA), not a contract.",
+            "note": "This is an externally owned account (EOA), not a contract.",
         }
         print_json(out)
         return
@@ -801,16 +911,16 @@ def cmd_contract(args):
     code_size = (len(code) - 2) // 2
 
     # Check ERC-20
-    name         = _decode_string(by_id.get(2))
-    symbol       = _decode_string(by_id.get(3))
+    name = _decode_string(by_id.get(2))
+    symbol = _decode_string(by_id.get(3))
     decimals_raw = by_id.get(4)
-    supply_raw   = by_id.get(5)
-    is_erc20     = bool(symbol and decimals_raw and decimals_raw != "0x")
+    supply_raw = by_id.get(5)
+    is_erc20 = bool(symbol and decimals_raw and decimals_raw != "0x")
 
     # Check ERC-721 / ERC-1155 via ERC-165
-    erc721_result  = by_id.get(6)
+    erc721_result = by_id.get(6)
     erc1155_result = by_id.get(7)
-    is_erc721  = erc721_result is not None and _decode_uint(erc721_result) == 1
+    is_erc721 = erc721_result is not None and _decode_uint(erc721_result) == 1
     is_erc1155 = erc1155_result is not None and _decode_uint(erc1155_result) == 1
 
     # Detect proxy pattern (EIP-1967 implementation slot)
@@ -824,10 +934,10 @@ def cmd_contract(args):
             is_proxy = True
 
     out: Dict[str, Any] = {
-        "address":        args.address,
-        "is_contract":    True,
+        "address": args.address,
+        "is_contract": True,
         "code_size_bytes": code_size,
-        "eth_balance":    round(wei_to_eth(eth_balance), 18),
+        "eth_balance": round(wei_to_eth(eth_balance), 18),
     }
 
     interfaces = []
@@ -842,19 +952,19 @@ def cmd_contract(args):
 
     if is_erc20:
         decimals = _decode_uint(decimals_raw)
-        supply   = _decode_uint(supply_raw)
+        supply = _decode_uint(supply_raw)
         out["erc20"] = {
-            "name":         name,
-            "symbol":       symbol,
-            "decimals":     decimals,
-            "total_supply": supply / (10 ** decimals) if decimals else supply,
+            "name": name,
+            "symbol": symbol,
+            "decimals": decimals,
+            "total_supply": supply / (10**decimals) if decimals else supply,
         }
 
     if is_proxy:
         out["proxy"] = {
-            "is_proxy":       True,
+            "is_proxy": True,
             "implementation": impl_address,
-            "standard":       "EIP-1967",
+            "standard": "EIP-1967",
         }
 
     # Check known tokens
@@ -869,6 +979,7 @@ def cmd_contract(args):
 # 7. Whale Detector
 # ---------------------------------------------------------------------------
 
+
 def cmd_whales(args):
     """Scan the latest block for large ETH transfers with USD values."""
     min_wei = int(args.min_eth * WEI_PER_ETH)
@@ -880,13 +991,13 @@ def cmd_whales(args):
     eth_price = fetch_eth_price()
 
     whales = []
-    for tx in (block.get("transactions") or []):
+    for tx in block.get("transactions") or []:
         value = hex_to_int(tx.get("value"))
         if value >= min_wei:
             entry: Dict[str, Any] = {
                 "hash": tx.get("hash"),
                 "from": tx.get("from"),
-                "to":   tx.get("to"),
+                "to": tx.get("to"),
                 "value_ETH": round(wei_to_eth(value), 6),
             }
             if eth_price:
@@ -897,11 +1008,11 @@ def cmd_whales(args):
     whales.sort(key=lambda x: x["value_ETH"], reverse=True)
 
     out: Dict[str, Any] = {
-        "block":              hex_to_int(block.get("number")),
-        "block_time":         hex_to_int(block.get("timestamp")),
-        "min_threshold_ETH":  args.min_eth,
-        "large_transfers":    whales,
-        "note":               "Scans latest block only — point-in-time snapshot.",
+        "block": hex_to_int(block.get("number")),
+        "block_time": hex_to_int(block.get("timestamp")),
+        "min_threshold_ETH": args.min_eth,
+        "large_transfers": whales,
+        "note": "Scans latest block only — point-in-time snapshot.",
     }
     if eth_price:
         out["eth_price_usd"] = eth_price
@@ -911,6 +1022,7 @@ def cmd_whales(args):
 # ---------------------------------------------------------------------------
 # 8. Price Lookup
 # ---------------------------------------------------------------------------
+
 
 def cmd_price(args):
     """Quick price lookup for a token by contract address or known symbol."""
@@ -939,7 +1051,7 @@ def cmd_price(args):
 
     out = {"query": query, "address": addr}
     if token_meta:
-        out["name"]   = token_meta["name"]
+        out["name"] = token_meta["name"]
         out["symbol"] = token_meta["symbol"]
     if addr in prices:
         out["price_usd"] = prices[addr]
@@ -953,6 +1065,7 @@ def cmd_price(args):
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def main():
     parser = argparse.ArgumentParser(
         prog="base_client.py",
@@ -962,44 +1075,61 @@ def main():
 
     sub.add_parser("stats", help="Network stats: block, gas, chain ID, ETH price")
 
-    p_wallet = sub.add_parser("wallet", help="ETH balance + ERC-20 tokens with USD values")
+    p_wallet = sub.add_parser(
+        "wallet", help="ETH balance + ERC-20 tokens with USD values"
+    )
     p_wallet.add_argument("address")
-    p_wallet.add_argument("--limit", type=int, default=20,
-                          help="Max tokens to display (default: 20)")
-    p_wallet.add_argument("--all", action="store_true",
-                          help="Show all tokens (no limit, no dust filter)")
-    p_wallet.add_argument("--no-prices", action="store_true",
-                          help="Skip price lookups (faster, RPC-only)")
+    p_wallet.add_argument(
+        "--limit", type=int, default=20, help="Max tokens to display (default: 20)"
+    )
+    p_wallet.add_argument(
+        "--all", action="store_true", help="Show all tokens (no limit, no dust filter)"
+    )
+    p_wallet.add_argument(
+        "--no-prices", action="store_true", help="Skip price lookups (faster, RPC-only)"
+    )
 
     p_tx = sub.add_parser("tx", help="Transaction details by hash")
     p_tx.add_argument("hash")
 
-    p_token = sub.add_parser("token", help="ERC-20 token metadata, price, and market cap")
+    p_token = sub.add_parser(
+        "token", help="ERC-20 token metadata, price, and market cap"
+    )
     p_token.add_argument("address")
 
-    sub.add_parser("gas", help="Gas analysis with cost estimates and L1 data fee context")
+    sub.add_parser(
+        "gas", help="Gas analysis with cost estimates and L1 data fee context"
+    )
 
-    p_contract = sub.add_parser("contract", help="Contract inspection: type detection, proxy check")
+    p_contract = sub.add_parser(
+        "contract", help="Contract inspection: type detection, proxy check"
+    )
     p_contract.add_argument("address")
 
     p_whales = sub.add_parser("whales", help="Large ETH transfers in the latest block")
-    p_whales.add_argument("--min-eth", type=float, default=1.0,
-                          help="Minimum ETH transfer size (default: 1.0)")
+    p_whales.add_argument(
+        "--min-eth",
+        type=float,
+        default=1.0,
+        help="Minimum ETH transfer size (default: 1.0)",
+    )
 
     p_price = sub.add_parser("price", help="Quick price lookup by address or symbol")
-    p_price.add_argument("token", help="Contract address or known symbol (ETH, USDC, AERO, ...)")
+    p_price.add_argument(
+        "token", help="Contract address or known symbol (ETH, USDC, AERO, ...)"
+    )
 
     args = parser.parse_args()
 
     dispatch = {
-        "stats":    cmd_stats,
-        "wallet":   cmd_wallet,
-        "tx":       cmd_tx,
-        "token":    cmd_token,
-        "gas":      cmd_gas,
+        "stats": cmd_stats,
+        "wallet": cmd_wallet,
+        "tx": cmd_tx,
+        "token": cmd_token,
+        "gas": cmd_gas,
         "contract": cmd_contract,
-        "whales":   cmd_whales,
-        "price":    cmd_price,
+        "whales": cmd_whales,
+        "price": cmd_price,
     }
     dispatch[args.command](args)
 

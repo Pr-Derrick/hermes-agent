@@ -45,6 +45,7 @@ if _env_path.exists():
 # This patches SwerexModalEnvironment to use a background thread instead of
 # asyncio.run(), which would deadlock inside Atropos. Safe for normal CLI too.
 from environments.patches import apply_patches
+
 apply_patches()
 
 from atroposlib.envs.base import (
@@ -210,11 +211,14 @@ class HermesAgentEnvConfig(BaseEnvConfig):
     def build_budget_config(self):
         """Build a BudgetConfig from env config fields."""
         from tools.budget_config import BudgetConfig
+
         return BudgetConfig(
             default_result_size=self.default_result_size_chars,
             turn_budget=self.turn_budget_chars,
             preview_size=self.preview_size_chars,
-            tool_overrides=dict(self.tool_result_overrides) if self.tool_result_overrides else {},
+            tool_overrides=dict(self.tool_result_overrides)
+            if self.tool_result_overrides
+            else {},
         )
 
 
@@ -268,11 +272,12 @@ class HermesAgentBaseEnv(BaseEnv):
         # This must be large enough for the number of concurrent tasks
         # (e.g., 89 parallel TB2 eval tasks each need a thread for tool calls).
         from environments.agent_loop import resize_tool_pool
+
         resize_tool_pool(config.tool_pool_size)
 
         # Set tool_parser on the ServerManager so ManagedServer uses it
         # for bidirectional tool call translation (raw text ↔ OpenAI tool_calls).
-        if hasattr(self.server, 'tool_parser'):
+        if hasattr(self.server, "tool_parser"):
             self.server.tool_parser = config.tool_call_parser
             print(f"🔧 Tool parser: {config.tool_call_parser}")
 
@@ -302,7 +307,9 @@ class HermesAgentBaseEnv(BaseEnv):
 
         if config.distribution:
             group_toolsets = sample_toolsets_from_distribution(config.distribution)
-            logger.info("Sampled toolsets from '%s': %s", config.distribution, group_toolsets)
+            logger.info(
+                "Sampled toolsets from '%s': %s", config.distribution, group_toolsets
+            )
         else:
             group_toolsets = config.enabled_toolsets  # None means "all available"
             if group_toolsets is None:
@@ -318,7 +325,9 @@ class HermesAgentBaseEnv(BaseEnv):
         )
 
         valid_names = {t["function"]["name"] for t in tools} if tools else set()
-        logger.info("Resolved %d tools for group: %s", len(valid_names), sorted(valid_names))
+        logger.info(
+            "Resolved %d tools for group: %s", len(valid_names), sorted(valid_names)
+        )
         return tools, valid_names
 
     # =========================================================================
@@ -341,6 +350,7 @@ class HermesAgentBaseEnv(BaseEnv):
         server = self.server.servers[0]
         # If the server is an OpenAI server (not VLLM/SGLang), use direct mode
         from atroposlib.envs.server_handling.openai_server import OpenAIServer
+
         return not isinstance(server, OpenAIServer)
 
     # =========================================================================
@@ -576,7 +586,8 @@ class HermesAgentBaseEnv(BaseEnv):
         if result.turns_used == 0 or only_system_and_user:
             logger.warning(
                 "Agent loop produced no output (turns=%d, msgs=%d). Skipping reward.",
-                result.turns_used, len(result.messages),
+                result.turns_used,
+                len(result.messages),
             )
             reward = 0.0
         else:
@@ -593,13 +604,15 @@ class HermesAgentBaseEnv(BaseEnv):
         # Track tool errors for wandb logging
         if result.tool_errors:
             for err in result.tool_errors:
-                self._tool_error_buffer.append({
-                    "turn": err.turn,
-                    "tool": err.tool_name,
-                    "args": err.arguments[:150],
-                    "error": err.error[:300],
-                    "result": err.tool_result[:300],
-                })
+                self._tool_error_buffer.append(
+                    {
+                        "turn": err.turn,
+                        "tool": err.tool_name,
+                        "args": err.arguments[:150],
+                        "error": err.error[:300],
+                        "result": err.tool_result[:300],
+                    }
+                )
 
         # Build ScoredDataItem from ManagedServer state
         # Phase 2: real tokens/masks/logprobs from SequenceNodes

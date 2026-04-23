@@ -55,17 +55,52 @@ FACT_STORE_SCHEMA = {
         "properties": {
             "action": {
                 "type": "string",
-                "enum": ["add", "search", "probe", "related", "reason", "contradict", "update", "remove", "list"],
+                "enum": [
+                    "add",
+                    "search",
+                    "probe",
+                    "related",
+                    "reason",
+                    "contradict",
+                    "update",
+                    "remove",
+                    "list",
+                ],
             },
-            "content": {"type": "string", "description": "Fact content (required for 'add')."},
-            "query": {"type": "string", "description": "Search query (required for 'search')."},
-            "entity": {"type": "string", "description": "Entity name for 'probe'/'related'."},
-            "entities": {"type": "array", "items": {"type": "string"}, "description": "Entity names for 'reason'."},
-            "fact_id": {"type": "integer", "description": "Fact ID for 'update'/'remove'."},
-            "category": {"type": "string", "enum": ["user_pref", "project", "tool", "general"]},
+            "content": {
+                "type": "string",
+                "description": "Fact content (required for 'add').",
+            },
+            "query": {
+                "type": "string",
+                "description": "Search query (required for 'search').",
+            },
+            "entity": {
+                "type": "string",
+                "description": "Entity name for 'probe'/'related'.",
+            },
+            "entities": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Entity names for 'reason'.",
+            },
+            "fact_id": {
+                "type": "integer",
+                "description": "Fact ID for 'update'/'remove'.",
+            },
+            "category": {
+                "type": "string",
+                "enum": ["user_pref", "project", "tool", "general"],
+            },
             "tags": {"type": "string", "description": "Comma-separated tags."},
-            "trust_delta": {"type": "number", "description": "Trust adjustment for 'update'."},
-            "min_trust": {"type": "number", "description": "Minimum trust filter (default: 0.3)."},
+            "trust_delta": {
+                "type": "number",
+                "description": "Trust adjustment for 'update'.",
+            },
+            "min_trust": {
+                "type": "number",
+                "description": "Minimum trust filter (default: 0.3).",
+            },
             "limit": {"type": "integer", "description": "Max results (default: 10)."},
         },
         "required": ["action"],
@@ -93,13 +128,16 @@ FACT_FEEDBACK_SCHEMA = {
 # Config
 # ---------------------------------------------------------------------------
 
+
 def _load_plugin_config() -> dict:
     from hermes_constants import get_hermes_home
+
     config_path = get_hermes_home() / "config.yaml"
     if not config_path.exists():
         return {}
     try:
         import yaml
+
         with open(config_path) as f:
             all_config = yaml.safe_load(f) or {}
         return all_config.get("plugins", {}).get("hermes-memory-store", {}) or {}
@@ -110,6 +148,7 @@ def _load_plugin_config() -> dict:
 # ---------------------------------------------------------------------------
 # MemoryProvider implementation
 # ---------------------------------------------------------------------------
+
 
 class HolographicMemoryProvider(MemoryProvider):
     """Holographic memory with structured facts, entity resolution, and HRR retrieval."""
@@ -130,9 +169,11 @@ class HolographicMemoryProvider(MemoryProvider):
     def save_config(self, values, hermes_home):
         """Write config to config.yaml under plugins.hermes-memory-store."""
         from pathlib import Path
+
         config_path = Path(hermes_home) / "config.yaml"
         try:
             import yaml
+
             existing = {}
             if config_path.exists():
                 with open(config_path) as f:
@@ -146,16 +187,35 @@ class HolographicMemoryProvider(MemoryProvider):
 
     def get_config_schema(self):
         from hermes_constants import display_hermes_home
+
         _default_db = f"{display_hermes_home()}/memory_store.db"
         return [
-            {"key": "db_path", "description": "SQLite database path", "default": _default_db},
-            {"key": "auto_extract", "description": "Auto-extract facts at session end", "default": "false", "choices": ["true", "false"]},
-            {"key": "default_trust", "description": "Default trust score for new facts", "default": "0.5"},
-            {"key": "hrr_dim", "description": "HRR vector dimensions", "default": "1024"},
+            {
+                "key": "db_path",
+                "description": "SQLite database path",
+                "default": _default_db,
+            },
+            {
+                "key": "auto_extract",
+                "description": "Auto-extract facts at session end",
+                "default": "false",
+                "choices": ["true", "false"],
+            },
+            {
+                "key": "default_trust",
+                "description": "Default trust score for new facts",
+                "default": "0.5",
+            },
+            {
+                "key": "hrr_dim",
+                "description": "HRR vector dimensions",
+                "default": "1024",
+            },
         ]
 
     def initialize(self, session_id: str, **kwargs) -> None:
         from hermes_constants import get_hermes_home
+
         _hermes_home = str(get_hermes_home())
         _default_db = _hermes_home + "/memory_store.db"
         db_path = self._config.get("db_path", _default_db)
@@ -170,7 +230,9 @@ class HolographicMemoryProvider(MemoryProvider):
         hrr_weight = float(self._config.get("hrr_weight", 0.3))
         temporal_decay = int(self._config.get("temporal_decay_half_life", 0))
 
-        self._store = MemoryStore(db_path=db_path, default_trust=default_trust, hrr_dim=hrr_dim)
+        self._store = MemoryStore(
+            db_path=db_path, default_trust=default_trust, hrr_dim=hrr_dim
+        )
         self._retriever = FactRetriever(
             store=self._store,
             temporal_decay_half_life=temporal_decay,
@@ -183,9 +245,9 @@ class HolographicMemoryProvider(MemoryProvider):
         if not self._store:
             return ""
         try:
-            total = self._store._conn.execute(
-                "SELECT COUNT(*) FROM facts"
-            ).fetchone()[0]
+            total = self._store._conn.execute("SELECT COUNT(*) FROM facts").fetchone()[
+                0
+            ]
         except Exception:
             total = 0
         if total == 0:
@@ -218,7 +280,9 @@ class HolographicMemoryProvider(MemoryProvider):
             logger.debug("Holographic prefetch failed: %s", e)
             return ""
 
-    def sync_turn(self, user_content: str, assistant_content: str, *, session_id: str = "") -> None:
+    def sync_turn(
+        self, user_content: str, assistant_content: str, *, session_id: str = ""
+    ) -> None:
         # Holographic memory stores explicit facts via tools, not auto-sync.
         # The on_session_end hook handles auto-extraction if configured.
         pass
@@ -316,7 +380,9 @@ class HolographicMemoryProvider(MemoryProvider):
                 updated = store.update_fact(
                     int(args["fact_id"]),
                     content=args.get("content"),
-                    trust_delta=float(args["trust_delta"]) if "trust_delta" in args else None,
+                    trust_delta=float(args["trust_delta"])
+                    if "trust_delta" in args
+                    else None,
                     tags=args.get("tags"),
                     category=args.get("category"),
                 )
@@ -357,13 +423,22 @@ class HolographicMemoryProvider(MemoryProvider):
 
     def _auto_extract_facts(self, messages: list) -> None:
         _PREF_PATTERNS = [
-            re.compile(r'\bI\s+(?:prefer|like|love|use|want|need)\s+(.+)', re.IGNORECASE),
-            re.compile(r'\bmy\s+(?:favorite|preferred|default)\s+\w+\s+is\s+(.+)', re.IGNORECASE),
-            re.compile(r'\bI\s+(?:always|never|usually)\s+(.+)', re.IGNORECASE),
+            re.compile(
+                r"\bI\s+(?:prefer|like|love|use|want|need)\s+(.+)", re.IGNORECASE
+            ),
+            re.compile(
+                r"\bmy\s+(?:favorite|preferred|default)\s+\w+\s+is\s+(.+)",
+                re.IGNORECASE,
+            ),
+            re.compile(r"\bI\s+(?:always|never|usually)\s+(.+)", re.IGNORECASE),
         ]
         _DECISION_PATTERNS = [
-            re.compile(r'\bwe\s+(?:decided|agreed|chose)\s+(?:to\s+)?(.+)', re.IGNORECASE),
-            re.compile(r'\bthe\s+project\s+(?:uses|needs|requires)\s+(.+)', re.IGNORECASE),
+            re.compile(
+                r"\bwe\s+(?:decided|agreed|chose)\s+(?:to\s+)?(.+)", re.IGNORECASE
+            ),
+            re.compile(
+                r"\bthe\s+project\s+(?:uses|needs|requires)\s+(.+)", re.IGNORECASE
+            ),
         ]
 
         extracted = 0
@@ -399,6 +474,7 @@ class HolographicMemoryProvider(MemoryProvider):
 # ---------------------------------------------------------------------------
 # Plugin entry point
 # ---------------------------------------------------------------------------
+
 
 def register(ctx) -> None:
     """Register the holographic memory provider with the plugin system."""

@@ -54,6 +54,7 @@ def _make_session(
 # ProcessSession field
 # =========================================================================
 
+
 class TestProcessSessionField:
     def test_default_false(self):
         s = ProcessSession(id="proc_1", command="echo hi")
@@ -67,6 +68,7 @@ class TestProcessSessionField:
 # =========================================================================
 # Completion queue
 # =========================================================================
+
 
 class TestCompletionQueue:
     def test_queue_exists(self, registry):
@@ -182,6 +184,7 @@ class TestCompletionQueue:
 # Checkpoint persistence
 # =========================================================================
 
+
 class TestCheckpointNotify:
     def test_checkpoint_includes_notify(self, registry, tmp_path):
         with patch("tools.process_registry.CHECKPOINT_PATH", tmp_path / "procs.json"):
@@ -204,13 +207,19 @@ class TestCheckpointNotify:
 
     def test_recover_preserves_notify(self, registry, tmp_path):
         checkpoint = tmp_path / "procs.json"
-        checkpoint.write_text(json.dumps([{
-            "session_id": "proc_live",
-            "command": "sleep 999",
-            "pid": os.getpid(),
-            "task_id": "t1",
-            "notify_on_complete": True,
-        }]))
+        checkpoint.write_text(
+            json.dumps(
+                [
+                    {
+                        "session_id": "proc_live",
+                        "command": "sleep 999",
+                        "pid": os.getpid(),
+                        "task_id": "t1",
+                        "notify_on_complete": True,
+                    }
+                ]
+            )
+        )
         with patch("tools.process_registry.CHECKPOINT_PATH", checkpoint):
             recovered = registry.recover_from_checkpoint()
             assert recovered == 1
@@ -219,20 +228,26 @@ class TestCheckpointNotify:
 
     def test_recover_requeues_notify_watchers(self, registry, tmp_path):
         checkpoint = tmp_path / "procs.json"
-        checkpoint.write_text(json.dumps([{
-            "session_id": "proc_live",
-            "command": "sleep 999",
-            "pid": os.getpid(),
-            "task_id": "t1",
-            "session_key": "sk1",
-            "watcher_platform": "telegram",
-            "watcher_chat_id": "123",
-            "watcher_user_id": "u123",
-            "watcher_user_name": "alice",
-            "watcher_thread_id": "42",
-            "watcher_interval": 5,
-            "notify_on_complete": True,
-        }]))
+        checkpoint.write_text(
+            json.dumps(
+                [
+                    {
+                        "session_id": "proc_live",
+                        "command": "sleep 999",
+                        "pid": os.getpid(),
+                        "task_id": "t1",
+                        "session_key": "sk1",
+                        "watcher_platform": "telegram",
+                        "watcher_chat_id": "123",
+                        "watcher_user_id": "u123",
+                        "watcher_user_name": "alice",
+                        "watcher_thread_id": "42",
+                        "watcher_interval": 5,
+                        "notify_on_complete": True,
+                    }
+                ]
+            )
+        )
         with patch("tools.process_registry.CHECKPOINT_PATH", checkpoint):
             recovered = registry.recover_from_checkpoint()
             assert recovered == 1
@@ -244,12 +259,18 @@ class TestCheckpointNotify:
     def test_recover_defaults_false(self, registry, tmp_path):
         """Old checkpoint entries without the field default to False."""
         checkpoint = tmp_path / "procs.json"
-        checkpoint.write_text(json.dumps([{
-            "session_id": "proc_live",
-            "command": "sleep 999",
-            "pid": os.getpid(),
-            "task_id": "t1",
-        }]))
+        checkpoint.write_text(
+            json.dumps(
+                [
+                    {
+                        "session_id": "proc_live",
+                        "command": "sleep 999",
+                        "pid": os.getpid(),
+                        "task_id": "t1",
+                    }
+                ]
+            )
+        )
         with patch("tools.process_registry.CHECKPOINT_PATH", checkpoint):
             recovered = registry.recover_from_checkpoint()
             assert recovered == 1
@@ -261,9 +282,11 @@ class TestCheckpointNotify:
 # Terminal tool schema
 # =========================================================================
 
+
 class TestTerminalSchema:
     def test_schema_has_notify_on_complete(self):
         from tools.terminal_tool import TERMINAL_SCHEMA
+
         props = TERMINAL_SCHEMA["parameters"]["properties"]
         assert "notify_on_complete" in props
         assert props["notify_on_complete"]["type"] == "boolean"
@@ -272,7 +295,10 @@ class TestTerminalSchema:
     def test_handler_passes_notify(self):
         """_handle_terminal passes notify_on_complete to terminal_tool."""
         from tools.terminal_tool import _handle_terminal
-        with patch("tools.terminal_tool.terminal_tool", return_value='{"ok":true}') as mock_tt:
+
+        with patch(
+            "tools.terminal_tool.terminal_tool", return_value='{"ok":true}'
+        ) as mock_tt:
             _handle_terminal(
                 {"command": "echo hi", "background": True, "notify_on_complete": True},
                 task_id="t1",
@@ -285,15 +311,18 @@ class TestTerminalSchema:
 # Code execution blocked params
 # =========================================================================
 
+
 class TestCodeExecutionBlocked:
     def test_notify_on_complete_blocked_in_sandbox(self):
         from tools.code_execution_tool import _TERMINAL_BLOCKED_PARAMS
+
         assert "notify_on_complete" in _TERMINAL_BLOCKED_PARAMS
 
 
 # =========================================================================
 # Completion consumed suppression
 # =========================================================================
+
 
 class TestCompletionConsumed:
     """Test that wait/poll/log suppress redundant completion notifications."""
@@ -331,7 +360,9 @@ class TestCompletionConsumed:
 
     def test_log_marks_completion_consumed(self, registry):
         """read_log() on exited session marks as consumed."""
-        s = _make_session(sid="proc_log", notify_on_complete=True, output="line1\nline2")
+        s = _make_session(
+            sid="proc_log", notify_on_complete=True, output="line1\nline2"
+        )
         s.exited = True
         s.exit_code = 0
         registry._finished[s.id] = s

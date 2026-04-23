@@ -21,6 +21,7 @@ def fake_tmpdir(tmp_path):
 def _isolate_sessions():
     """Ensure _active_sessions is empty for each test."""
     import tools.browser_tool as bt
+
     orig = bt._active_sessions.copy()
     bt._active_sessions.clear()
     yield
@@ -43,11 +44,13 @@ class TestReapOrphanedBrowserSessions:
     def test_no_socket_dirs_is_noop(self, fake_tmpdir):
         """No socket dirs => nothing happens, no errors."""
         from tools.browser_tool import _reap_orphaned_browser_sessions
+
         _reap_orphaned_browser_sessions()  # should not raise
 
     def test_stale_dir_without_pid_file_is_removed(self, fake_tmpdir):
         """Socket dir with no PID file is cleaned up."""
         from tools.browser_tool import _reap_orphaned_browser_sessions
+
         d = _make_socket_dir(fake_tmpdir, "h_abc1234567")
         assert d.exists()
         _reap_orphaned_browser_sessions()
@@ -56,6 +59,7 @@ class TestReapOrphanedBrowserSessions:
     def test_stale_dir_with_dead_pid_is_removed(self, fake_tmpdir):
         """Socket dir whose daemon PID is dead gets cleaned up."""
         from tools.browser_tool import _reap_orphaned_browser_sessions
+
         d = _make_socket_dir(fake_tmpdir, "h_dead123456", pid=999999999)
         assert d.exists()
         _reap_orphaned_browser_sessions()

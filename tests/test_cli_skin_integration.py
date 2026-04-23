@@ -53,7 +53,9 @@ class TestCliSkinPromptIntegration:
         cli = _make_cli_stub()
         cli._secret_state = {"response_queue": object()}
 
-        with patch("hermes_cli.skin_engine.get_active_prompt_symbol", return_value="⚔ "):
+        with patch(
+            "hermes_cli.skin_engine.get_active_prompt_symbol", return_value="⚔ "
+        ):
             assert cli._get_tui_prompt_fragments() == [("class:sudo-prompt", "🔑 ⚔ ")]
 
     def test_build_tui_style_dict_uses_skin_overrides(self):
@@ -92,8 +94,15 @@ class TestCompactBannerSkinIntegration:
     def test_default_compact_banner_keeps_legacy_nous_hermes_branding(self):
         set_active_skin("default")
 
-        with patch("cli.shutil.get_terminal_size", return_value=SimpleNamespace(columns=90)), \
-             patch("cli.format_banner_version_label", return_value="Hermes Agent v0.1.0 (test)"):
+        with (
+            patch(
+                "cli.shutil.get_terminal_size", return_value=SimpleNamespace(columns=90)
+            ),
+            patch(
+                "cli.format_banner_version_label",
+                return_value="Hermes Agent v0.1.0 (test)",
+            ),
+        ):
             banner = _build_compact_banner()
 
         assert "NOUS HERMES" in banner
@@ -101,8 +110,15 @@ class TestCompactBannerSkinIntegration:
     def test_poseidon_compact_banner_uses_skin_branding_instead_of_nous_hermes(self):
         set_active_skin("poseidon")
 
-        with patch("cli.shutil.get_terminal_size", return_value=SimpleNamespace(columns=90)), \
-             patch("cli.format_banner_version_label", return_value="Hermes Agent v0.1.0 (test)"):
+        with (
+            patch(
+                "cli.shutil.get_terminal_size", return_value=SimpleNamespace(columns=90)
+            ),
+            patch(
+                "cli.format_banner_version_label",
+                return_value="Hermes Agent v0.1.0 (test)",
+            ),
+        ):
             banner = _build_compact_banner()
 
         assert "Poseidon Agent" in banner
@@ -112,8 +128,15 @@ class TestCompactBannerSkinIntegration:
         set_active_skin("poseidon")
         skin = get_active_skin()
 
-        with patch("cli.shutil.get_terminal_size", return_value=SimpleNamespace(columns=90)), \
-             patch("cli.format_banner_version_label", return_value="Hermes Agent v0.1.0 (test)"):
+        with (
+            patch(
+                "cli.shutil.get_terminal_size", return_value=SimpleNamespace(columns=90)
+            ),
+            patch(
+                "cli.format_banner_version_label",
+                return_value="Hermes Agent v0.1.0 (test)",
+            ),
+        ):
             banner = _build_compact_banner()
 
         assert skin.get_color("banner_border") in banner
@@ -123,8 +146,15 @@ class TestCompactBannerSkinIntegration:
     def test_compact_banner_shows_version_label(self):
         set_active_skin("default")
 
-        with patch("cli.shutil.get_terminal_size", return_value=SimpleNamespace(columns=90)), \
-             patch("cli.format_banner_version_label", return_value="Hermes Agent v1.0 (test) · upstream abc12345"):
+        with (
+            patch(
+                "cli.shutil.get_terminal_size", return_value=SimpleNamespace(columns=90)
+            ),
+            patch(
+                "cli.format_banner_version_label",
+                return_value="Hermes Agent v1.0 (test) · upstream abc12345",
+            ),
+        ):
             banner = _build_compact_banner()
 
         assert "upstream abc12345" in banner

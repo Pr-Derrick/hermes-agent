@@ -17,10 +17,14 @@ class TestSaveConfigValueAtomic:
         hermes_home = tmp_path / ".hermes"
         hermes_home.mkdir()
         config_path = hermes_home / "config.yaml"
-        config_path.write_text(yaml.dump({
-            "model": {"default": "test-model", "provider": "openrouter"},
-            "display": {"skin": "default"},
-        }))
+        config_path.write_text(
+            yaml.dump(
+                {
+                    "model": {"default": "test-model", "provider": "openrouter"},
+                    "display": {"skin": "default"},
+                }
+            )
+        )
         monkeypatch.setattr("cli._hermes_home", hermes_home)
         return config_path
 
@@ -30,6 +34,7 @@ class TestSaveConfigValueAtomic:
         monkeypatch.setattr("utils.atomic_yaml_write", mock_atomic)
 
         from cli import save_config_value
+
         save_config_value("display.skin", "mono")
 
         mock_atomic.assert_called_once()
@@ -40,6 +45,7 @@ class TestSaveConfigValueAtomic:
     def test_preserves_existing_keys(self, config_env):
         """Writing a new key must not clobber existing config entries."""
         from cli import save_config_value
+
         save_config_value("agent.max_turns", 50)
 
         result = yaml.safe_load(config_env.read_text())
@@ -51,6 +57,7 @@ class TestSaveConfigValueAtomic:
     def test_creates_nested_keys(self, config_env):
         """Dot-separated paths create intermediate dicts as needed."""
         from cli import save_config_value
+
         save_config_value("compression.summary_model", "google/gemini-3-flash-preview")
 
         result = yaml.safe_load(config_env.read_text())
@@ -59,6 +66,7 @@ class TestSaveConfigValueAtomic:
     def test_overwrites_existing_value(self, config_env):
         """Updating an existing key replaces the value."""
         from cli import save_config_value
+
         save_config_value("display.skin", "ares")
 
         result = yaml.safe_load(config_env.read_text())
@@ -74,6 +82,7 @@ class TestSaveConfigValueAtomic:
         monkeypatch.setattr("utils.atomic_yaml_write", exploding_write)
 
         from cli import save_config_value
+
         result = save_config_value("display.skin", "broken")
 
         assert result is False

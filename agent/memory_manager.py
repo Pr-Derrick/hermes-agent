@@ -43,12 +43,12 @@ logger = logging.getLogger(__name__)
 # Context fencing helpers
 # ---------------------------------------------------------------------------
 
-_FENCE_TAG_RE = re.compile(r'</?\s*memory-context\s*>', re.IGNORECASE)
+_FENCE_TAG_RE = re.compile(r"</?\s*memory-context\s*>", re.IGNORECASE)
 
 
 def sanitize_context(text: str) -> str:
     """Strip fence-escape sequences from provider output."""
-    return _FENCE_TAG_RE.sub('', text)
+    return _FENCE_TAG_RE.sub("", text)
 
 
 def build_memory_context_block(raw_context: str) -> str:
@@ -102,7 +102,8 @@ class MemoryManager:
                     "already registered. Only one external memory provider is "
                     "allowed at a time. Configure which one via memory.provider "
                     "in config.yaml.",
-                    provider.name, existing,
+                    provider.name,
+                    existing,
                 )
                 return
             self._has_external = True
@@ -158,7 +159,8 @@ class MemoryManager:
             except Exception as e:
                 logger.warning(
                     "Memory provider '%s' system_prompt_block() failed: %s",
-                    provider.name, e,
+                    provider.name,
+                    e,
                 )
         return "\n\n".join(blocks)
 
@@ -179,7 +181,8 @@ class MemoryManager:
             except Exception as e:
                 logger.debug(
                     "Memory provider '%s' prefetch failed (non-fatal): %s",
-                    provider.name, e,
+                    provider.name,
+                    e,
                 )
         return "\n\n".join(parts)
 
@@ -191,20 +194,26 @@ class MemoryManager:
             except Exception as e:
                 logger.debug(
                     "Memory provider '%s' queue_prefetch failed (non-fatal): %s",
-                    provider.name, e,
+                    provider.name,
+                    e,
                 )
 
     # -- Sync ----------------------------------------------------------------
 
-    def sync_all(self, user_content: str, assistant_content: str, *, session_id: str = "") -> None:
+    def sync_all(
+        self, user_content: str, assistant_content: str, *, session_id: str = ""
+    ) -> None:
         """Sync a completed turn to all providers."""
         for provider in self._providers:
             try:
-                provider.sync_turn(user_content, assistant_content, session_id=session_id)
+                provider.sync_turn(
+                    user_content, assistant_content, session_id=session_id
+                )
             except Exception as e:
                 logger.warning(
                     "Memory provider '%s' sync_turn failed: %s",
-                    provider.name, e,
+                    provider.name,
+                    e,
                 )
 
     # -- Tools ---------------------------------------------------------------
@@ -223,7 +232,8 @@ class MemoryManager:
             except Exception as e:
                 logger.warning(
                     "Memory provider '%s' get_tool_schemas() failed: %s",
-                    provider.name, e,
+                    provider.name,
+                    e,
                 )
         return schemas
 
@@ -235,9 +245,7 @@ class MemoryManager:
         """Check if any provider handles this tool."""
         return tool_name in self._tool_to_provider
 
-    def handle_tool_call(
-        self, tool_name: str, args: Dict[str, Any], **kwargs
-    ) -> str:
+    def handle_tool_call(self, tool_name: str, args: Dict[str, Any], **kwargs) -> str:
         """Route a tool call to the correct provider.
 
         Returns JSON string result. Raises ValueError if no provider
@@ -251,7 +259,9 @@ class MemoryManager:
         except Exception as e:
             logger.error(
                 "Memory provider '%s' handle_tool_call(%s) failed: %s",
-                provider.name, tool_name, e,
+                provider.name,
+                tool_name,
+                e,
             )
             return tool_error(f"Memory tool '{tool_name}' failed: {e}")
 
@@ -268,7 +278,8 @@ class MemoryManager:
             except Exception as e:
                 logger.debug(
                     "Memory provider '%s' on_turn_start failed: %s",
-                    provider.name, e,
+                    provider.name,
+                    e,
                 )
 
     def on_session_end(self, messages: List[Dict[str, Any]]) -> None:
@@ -279,7 +290,8 @@ class MemoryManager:
             except Exception as e:
                 logger.debug(
                     "Memory provider '%s' on_session_end failed: %s",
-                    provider.name, e,
+                    provider.name,
+                    e,
                 )
 
     def on_pre_compress(self, messages: List[Dict[str, Any]]) -> str:
@@ -297,7 +309,8 @@ class MemoryManager:
             except Exception as e:
                 logger.debug(
                     "Memory provider '%s' on_pre_compress failed: %s",
-                    provider.name, e,
+                    provider.name,
+                    e,
                 )
         return "\n\n".join(parts)
 
@@ -314,11 +327,13 @@ class MemoryManager:
             except Exception as e:
                 logger.debug(
                     "Memory provider '%s' on_memory_write failed: %s",
-                    provider.name, e,
+                    provider.name,
+                    e,
                 )
 
-    def on_delegation(self, task: str, result: str, *,
-                      child_session_id: str = "", **kwargs) -> None:
+    def on_delegation(
+        self, task: str, result: str, *, child_session_id: str = "", **kwargs
+    ) -> None:
         """Notify all providers that a subagent completed."""
         for provider in self._providers:
             try:
@@ -328,7 +343,8 @@ class MemoryManager:
             except Exception as e:
                 logger.debug(
                     "Memory provider '%s' on_delegation failed: %s",
-                    provider.name, e,
+                    provider.name,
+                    e,
                 )
 
     def shutdown_all(self) -> None:
@@ -339,7 +355,8 @@ class MemoryManager:
             except Exception as e:
                 logger.warning(
                     "Memory provider '%s' shutdown failed: %s",
-                    provider.name, e,
+                    provider.name,
+                    e,
                 )
 
     def initialize_all(self, session_id: str, **kwargs) -> None:
@@ -351,6 +368,7 @@ class MemoryManager:
         """
         if "hermes_home" not in kwargs:
             from hermes_constants import get_hermes_home
+
             kwargs["hermes_home"] = str(get_hermes_home())
         for provider in self._providers:
             try:
@@ -358,5 +376,6 @@ class MemoryManager:
             except Exception as e:
                 logger.warning(
                     "Memory provider '%s' initialize failed: %s",
-                    provider.name, e,
+                    provider.name,
+                    e,
                 )

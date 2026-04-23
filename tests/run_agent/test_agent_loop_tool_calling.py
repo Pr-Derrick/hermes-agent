@@ -53,6 +53,7 @@ _MODELS = [
     "anthropic/claude-sonnet-4",
 ]
 
+
 def _get_api_key():
     key = os.getenv("OPENROUTER_API_KEY", "")
     if not key:
@@ -105,7 +106,7 @@ CALC_TOOL = {
             "properties": {
                 "expression": {
                     "type": "string",
-                    "description": "Math expression to evaluate, e.g. '2 + 3'"
+                    "description": "Math expression to evaluate, e.g. '2 + 3'",
                 }
             },
             "required": ["expression"],
@@ -122,10 +123,7 @@ WEATHER_TOOL = {
         "parameters": {
             "type": "object",
             "properties": {
-                "city": {
-                    "type": "string",
-                    "description": "City name, e.g. 'Tokyo'"
-                }
+                "city": {"type": "string", "description": "City name, e.g. 'Tokyo'"}
             },
             "required": ["city"],
         },
@@ -141,10 +139,7 @@ LOOKUP_TOOL = {
         "parameters": {
             "type": "object",
             "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "What to look up"
-                }
+                "query": {"type": "string", "description": "What to look up"}
             },
             "required": ["query"],
         },
@@ -159,9 +154,7 @@ ERROR_TOOL = {
         "description": "A tool that always fails with an error.",
         "parameters": {
             "type": "object",
-            "properties": {
-                "input": {"type": "string"}
-            },
+            "properties": {"input": {"type": "string"}},
             "required": ["input"],
         },
     },
@@ -182,12 +175,14 @@ def _fake_tool_handler(tool_name: str, args: Dict[str, Any], **kwargs) -> str:
     elif tool_name == "get_weather":
         city = args.get("city", "Unknown")
         # Return canned weather
-        return json.dumps({
-            "city": city,
-            "temperature": 22,
-            "conditions": "sunny",
-            "humidity": 45,
-        })
+        return json.dumps(
+            {
+                "city": city,
+                "temperature": 22,
+                "conditions": "sunny",
+                "humidity": 45,
+            }
+        )
 
     elif tool_name == "lookup":
         query = args.get("query", "")
@@ -202,6 +197,7 @@ def _fake_tool_handler(tool_name: str, args: Dict[str, Any], **kwargs) -> str:
 # =========================================================================
 # Tests
 # =========================================================================
+
 
 @pytest.mark.asyncio
 async def test_single_tool_call():
@@ -218,14 +214,22 @@ async def test_single_tool_call():
         )
 
         messages = [
-            {"role": "user", "content": "What's the weather in Tokyo? Use the get_weather tool."},
+            {
+                "role": "user",
+                "content": "What's the weather in Tokyo? Use the get_weather tool.",
+            },
         ]
 
-        with patch("environments.agent_loop.handle_function_call", side_effect=_fake_tool_handler):
+        with patch(
+            "environments.agent_loop.handle_function_call",
+            side_effect=_fake_tool_handler,
+        ):
             result = await agent.run(messages)
 
         assert isinstance(result, AgentResult)
-        assert result.turns_used >= 2, f"Expected at least 2 turns (tool call + response), got {result.turns_used}"
+        assert result.turns_used >= 2, (
+            f"Expected at least 2 turns (tool call + response), got {result.turns_used}"
+        )
 
         # Verify a tool call happened
         tool_calls_found = False
@@ -267,15 +271,21 @@ async def test_multi_tool_single_turn():
         )
 
         messages = [
-            {"role": "user", "content": (
-                "I need two things at once: "
-                "1) What's the weather in Paris? Use get_weather. "
-                "2) What is 15 * 7? Use calculate. "
-                "Call BOTH tools in a single response."
-            )},
+            {
+                "role": "user",
+                "content": (
+                    "I need two things at once: "
+                    "1) What's the weather in Paris? Use get_weather. "
+                    "2) What is 15 * 7? Use calculate. "
+                    "Call BOTH tools in a single response."
+                ),
+            },
         ]
 
-        with patch("environments.agent_loop.handle_function_call", side_effect=_fake_tool_handler):
+        with patch(
+            "environments.agent_loop.handle_function_call",
+            side_effect=_fake_tool_handler,
+        ):
             result = await agent.run(messages)
 
         # Count distinct tools called
@@ -286,8 +296,12 @@ async def test_multi_tool_single_turn():
                     tools_called.add(tc["function"]["name"])
 
         # At minimum, both tools should have been called (maybe in different turns)
-        assert "get_weather" in tools_called, f"get_weather not called. Called: {tools_called}"
-        assert "calculate" in tools_called, f"calculate not called. Called: {tools_called}"
+        assert "get_weather" in tools_called, (
+            f"get_weather not called. Called: {tools_called}"
+        )
+        assert "calculate" in tools_called, (
+            f"calculate not called. Called: {tools_called}"
+        )
 
         return result
 
@@ -309,14 +323,20 @@ async def test_multi_turn_conversation():
         )
 
         messages = [
-            {"role": "user", "content": (
-                "First, use the lookup tool to look up 'meaning of life'. "
-                "Then use calculate to compute 6 * 7. "
-                "Do these in separate tool calls, one at a time."
-            )},
+            {
+                "role": "user",
+                "content": (
+                    "First, use the lookup tool to look up 'meaning of life'. "
+                    "Then use calculate to compute 6 * 7. "
+                    "Do these in separate tool calls, one at a time."
+                ),
+            },
         ]
 
-        with patch("environments.agent_loop.handle_function_call", side_effect=_fake_tool_handler):
+        with patch(
+            "environments.agent_loop.handle_function_call",
+            side_effect=_fake_tool_handler,
+        ):
             result = await agent.run(messages)
 
         # Should have used both tools
@@ -327,7 +347,9 @@ async def test_multi_turn_conversation():
                     tools_called.add(tc["function"]["name"])
 
         assert "lookup" in tools_called, f"lookup not called. Called: {tools_called}"
-        assert "calculate" in tools_called, f"calculate not called. Called: {tools_called}"
+        assert "calculate" in tools_called, (
+            f"calculate not called. Called: {tools_called}"
+        )
 
         # Should finish naturally
         assert result.finished_naturally, "Should finish naturally after answering"
@@ -353,15 +375,23 @@ async def test_unknown_tool_rejected():
         )
 
         messages = [
-            {"role": "user", "content": "What's the weather in London? Use get_weather."},
+            {
+                "role": "user",
+                "content": "What's the weather in London? Use get_weather.",
+            },
         ]
 
-        with patch("environments.agent_loop.handle_function_call", side_effect=_fake_tool_handler):
+        with patch(
+            "environments.agent_loop.handle_function_call",
+            side_effect=_fake_tool_handler,
+        ):
             result = await agent.run(messages)
 
         # Check if get_weather was called and rejected
         if result.tool_errors:
-            weather_errors = [e for e in result.tool_errors if e.tool_name == "get_weather"]
+            weather_errors = [
+                e for e in result.tool_errors if e.tool_name == "get_weather"
+            ]
             assert len(weather_errors) > 0, "get_weather should have been rejected"
             assert "Unknown tool" in weather_errors[0].error
 
@@ -385,17 +415,27 @@ async def test_max_turns_limit():
         )
 
         messages = [
-            {"role": "user", "content": (
-                "Keep looking up facts. Look up 'fact 1', then 'fact 2', "
-                "then 'fact 3', then 'fact 4'. Do them one at a time."
-            )},
+            {
+                "role": "user",
+                "content": (
+                    "Keep looking up facts. Look up 'fact 1', then 'fact 2', "
+                    "then 'fact 3', then 'fact 4'. Do them one at a time."
+                ),
+            },
         ]
 
-        with patch("environments.agent_loop.handle_function_call", side_effect=_fake_tool_handler):
+        with patch(
+            "environments.agent_loop.handle_function_call",
+            side_effect=_fake_tool_handler,
+        ):
             result = await agent.run(messages)
 
-        assert result.turns_used <= 2, f"Should stop at max_turns=2, used {result.turns_used}"
-        assert not result.finished_naturally, "Should NOT finish naturally (hit max_turns)"
+        assert result.turns_used <= 2, (
+            f"Should stop at max_turns=2, used {result.turns_used}"
+        )
+        assert not result.finished_naturally, (
+            "Should NOT finish naturally (hit max_turns)"
+        )
 
         return result
 
@@ -417,14 +457,24 @@ async def test_no_tools_direct_response():
         )
 
         messages = [
-            {"role": "user", "content": "What is 2 + 2? Just answer directly, no tools needed."},
+            {
+                "role": "user",
+                "content": "What is 2 + 2? Just answer directly, no tools needed.",
+            },
         ]
 
-        with patch("environments.agent_loop.handle_function_call", side_effect=_fake_tool_handler):
+        with patch(
+            "environments.agent_loop.handle_function_call",
+            side_effect=_fake_tool_handler,
+        ):
             result = await agent.run(messages)
 
-        assert result.finished_naturally, "Should finish naturally with a direct response"
-        assert result.turns_used == 1, f"Should take exactly 1 turn for a direct answer, took {result.turns_used}"
+        assert result.finished_naturally, (
+            "Should finish naturally with a direct response"
+        )
+        assert result.turns_used == 1, (
+            f"Should take exactly 1 turn for a direct answer, took {result.turns_used}"
+        )
 
         final = result.messages[-1]
         assert final["role"] == "assistant"
@@ -451,15 +501,24 @@ async def test_tool_error_handling():
         )
 
         messages = [
-            {"role": "user", "content": "Please call the failing_tool with input 'test'."},
+            {
+                "role": "user",
+                "content": "Please call the failing_tool with input 'test'.",
+            },
         ]
 
-        with patch("environments.agent_loop.handle_function_call", side_effect=_fake_tool_handler):
+        with patch(
+            "environments.agent_loop.handle_function_call",
+            side_effect=_fake_tool_handler,
+        ):
             result = await agent.run(messages)
 
         # The tool error should be recorded
         assert len(result.tool_errors) >= 1, "Should have at least one tool error"
-        assert "RuntimeError" in result.tool_errors[0].error or "always fails" in result.tool_errors[0].error
+        assert (
+            "RuntimeError" in result.tool_errors[0].error
+            or "always fails" in result.tool_errors[0].error
+        )
 
         # The error should be in the conversation as a tool result
         tool_results = [m for m in result.messages if m.get("role") == "tool"]
@@ -490,13 +549,18 @@ async def test_agent_result_structure():
             {"role": "user", "content": "What is 3 + 4? Use the calculate tool."},
         ]
 
-        with patch("environments.agent_loop.handle_function_call", side_effect=_fake_tool_handler):
+        with patch(
+            "environments.agent_loop.handle_function_call",
+            side_effect=_fake_tool_handler,
+        ):
             result = await agent.run(messages)
 
         # Structural checks
         assert isinstance(result, AgentResult)
         assert isinstance(result.messages, list)
-        assert len(result.messages) >= 3, "Should have user + assistant(tool) + tool_result + assistant(final)"
+        assert len(result.messages) >= 3, (
+            "Should have user + assistant(tool) + tool_result + assistant(final)"
+        )
         assert isinstance(result.turns_used, int)
         assert result.turns_used > 0
         assert isinstance(result.finished_naturally, bool)
@@ -506,7 +570,9 @@ async def test_agent_result_structure():
         # Messages should follow OpenAI format
         for msg in result.messages:
             assert "role" in msg, f"Message missing 'role': {msg}"
-            assert msg["role"] in ("system", "user", "assistant", "tool"), f"Invalid role: {msg['role']}"
+            assert msg["role"] in ("system", "user", "assistant", "tool"), (
+                f"Invalid role: {msg['role']}"
+            )
 
         return result
 
@@ -529,10 +595,16 @@ async def test_conversation_history_preserved():
 
         messages = [
             {"role": "system", "content": "You are a helpful weather assistant."},
-            {"role": "user", "content": "What's the weather in Berlin? Use get_weather."},
+            {
+                "role": "user",
+                "content": "What's the weather in Berlin? Use get_weather.",
+            },
         ]
 
-        with patch("environments.agent_loop.handle_function_call", side_effect=_fake_tool_handler):
+        with patch(
+            "environments.agent_loop.handle_function_call",
+            side_effect=_fake_tool_handler,
+        ):
             result = await agent.run(messages)
 
         # System message should be preserved

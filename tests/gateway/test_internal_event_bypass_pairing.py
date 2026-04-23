@@ -23,6 +23,7 @@ from gateway.session import SessionSource
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 class _FakeRegistry:
     """Return pre-canned sessions, then None once exhausted."""
 
@@ -72,6 +73,7 @@ def _watcher_dict_with_notify():
 # Tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_notify_on_complete_sets_internal_flag(monkeypatch, tmp_path):
     """Synthetic completion event must have internal=True."""
@@ -86,6 +88,7 @@ async def test_notify_on_complete_sets_internal_flag(monkeypatch, tmp_path):
 
     async def _instant_sleep(*_a, **_kw):
         pass
+
     monkeypatch.setattr(asyncio, "sleep", _instant_sleep)
 
     runner = _build_runner(monkeypatch, tmp_path)
@@ -136,6 +139,7 @@ async def test_internal_event_bypasses_authorization(monkeypatch, tmp_path):
     # run_in_executor.  Auth check happens before _handle_message_with_agent.
     async def _raise(*_a, **_kw):
         raise RuntimeError("sentinel — stop here")
+
     monkeypatch.setattr(GatewayRunner, "_handle_message_with_agent", _raise)
 
     try:
@@ -187,6 +191,7 @@ async def test_internal_event_does_not_trigger_pairing(monkeypatch, tmp_path):
     # run_in_executor.  Pairing check happens before _handle_message_with_agent.
     async def _raise(*_a, **_kw):
         raise RuntimeError("sentinel — stop here")
+
     monkeypatch.setattr(GatewayRunner, "_handle_message_with_agent", _raise)
 
     try:
@@ -213,6 +218,7 @@ async def test_notify_on_complete_preserves_user_identity(monkeypatch, tmp_path)
 
     async def _instant_sleep(*_a, **_kw):
         pass
+
     monkeypatch.setattr(asyncio, "sleep", _instant_sleep)
 
     runner = _build_runner(monkeypatch, tmp_path)

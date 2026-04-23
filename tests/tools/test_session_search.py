@@ -18,6 +18,7 @@ from tools.session_search_tool import (
 # Tool schema guidance
 # =========================================================================
 
+
 class TestHiddenSessionSources:
     """Verify the _HIDDEN_SESSION_SOURCES constant used for third-party isolation."""
 
@@ -39,6 +40,7 @@ class TestSessionSearchSchema:
 # =========================================================================
 # _format_timestamp
 # =========================================================================
+
 
 class TestFormatTimestamp:
     def test_unix_float(self):
@@ -67,6 +69,7 @@ class TestFormatTimestamp:
 # =========================================================================
 # _format_conversation
 # =========================================================================
+
 
 class TestFormatConversation:
     def test_basic_messages(self):
@@ -116,6 +119,7 @@ class TestFormatConversation:
 # _truncate_around_matches
 # =========================================================================
 
+
 class TestTruncateAroundMatches:
     def test_short_text_unchanged(self):
         text = "Short text about docker"
@@ -151,21 +155,25 @@ class TestTruncateAroundMatches:
 # session_search (dispatcher)
 # =========================================================================
 
+
 class TestSessionSearch:
     def test_no_db_returns_error(self):
         from tools.session_search_tool import session_search
+
         result = json.loads(session_search(query="test"))
         assert result["success"] is False
         assert "not available" in result["error"].lower()
 
     def test_empty_query_returns_error(self):
         from tools.session_search_tool import session_search
+
         mock_db = object()
         result = json.loads(session_search(query="", db=mock_db))
         assert result["success"] is False
 
     def test_whitespace_query_returns_error(self):
         from tools.session_search_tool import session_search
+
         mock_db = object()
         result = json.loads(session_search(query="   ", db=mock_db))
         assert result["success"] is False
@@ -180,14 +188,23 @@ class TestSessionSearch:
 
         # Simulate FTS5 returning matches only from the current session
         mock_db.search_messages.return_value = [
-            {"session_id": current_sid, "content": "test match", "source": "cli",
-             "session_started": 1709500000, "model": "test"},
+            {
+                "session_id": current_sid,
+                "content": "test match",
+                "source": "cli",
+                "session_started": 1709500000,
+                "model": "test",
+            },
         ]
         mock_db.get_session.return_value = {"parent_session_id": None}
 
-        result = json.loads(session_search(
-            query="test", db=mock_db, current_session_id=current_sid,
-        ))
+        result = json.loads(
+            session_search(
+                query="test",
+                db=mock_db,
+                current_session_id=current_sid,
+            )
+        )
         assert result["success"] is True
         assert result["count"] == 0
         assert result["results"] == []
@@ -202,10 +219,20 @@ class TestSessionSearch:
         other_sid = "20260303_100000_def456"
 
         mock_db.search_messages.return_value = [
-            {"session_id": current_sid, "content": "match 1", "source": "cli",
-             "session_started": 1709500000, "model": "test"},
-            {"session_id": other_sid, "content": "match 2", "source": "telegram",
-             "session_started": 1709400000, "model": "test"},
+            {
+                "session_id": current_sid,
+                "content": "match 1",
+                "source": "cli",
+                "session_started": 1709500000,
+                "model": "test",
+            },
+            {
+                "session_id": other_sid,
+                "content": "match 2",
+                "source": "telegram",
+                "session_started": 1709400000,
+                "model": "test",
+            },
         ]
         mock_db.get_session.return_value = {"parent_session_id": None}
         mock_db.get_messages_as_conversation.return_value = [
@@ -215,17 +242,26 @@ class TestSessionSearch:
 
         # Mock async_call_llm to raise RuntimeError → summarizer returns None
         from unittest.mock import AsyncMock, patch as _patch
-        with _patch("tools.session_search_tool.async_call_llm",
-                     new_callable=AsyncMock,
-                     side_effect=RuntimeError("no provider")):
-            result = json.loads(session_search(
-                query="test", db=mock_db, current_session_id=current_sid,
-            ))
+
+        with _patch(
+            "tools.session_search_tool.async_call_llm",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("no provider"),
+        ):
+            result = json.loads(
+                session_search(
+                    query="test",
+                    db=mock_db,
+                    current_session_id=current_sid,
+                )
+            )
 
         assert result["success"] is True
         # Current session should be skipped, only other_sid should appear
         assert result["sessions_searched"] == 1
-        assert current_sid not in [r.get("session_id") for r in result.get("results", [])]
+        assert current_sid not in [
+            r.get("session_id") for r in result.get("results", [])
+        ]
 
     def test_current_child_session_excludes_parent_lineage(self):
         """Compression/delegation parents should be excluded for the active child session."""
@@ -234,8 +270,13 @@ class TestSessionSearch:
 
         mock_db = MagicMock()
         mock_db.search_messages.return_value = [
-            {"session_id": "parent_sid", "content": "match", "source": "cli",
-             "session_started": 1709500000, "model": "test"},
+            {
+                "session_id": "parent_sid",
+                "content": "match",
+                "source": "cli",
+                "session_started": 1709500000,
+                "model": "test",
+            },
         ]
 
         def _get_session(session_id):
@@ -247,9 +288,13 @@ class TestSessionSearch:
 
         mock_db.get_session.side_effect = _get_session
 
-        result = json.loads(session_search(
-            query="test", db=mock_db, current_session_id="child_sid",
-        ))
+        result = json.loads(
+            session_search(
+                query="test",
+                db=mock_db,
+                current_session_id="child_sid",
+            )
+        )
 
         assert result["success"] is True
         assert result["count"] == 0
@@ -263,8 +308,13 @@ class TestSessionSearch:
 
         mock_db = MagicMock()
         mock_db.search_messages.return_value = [
-            {"session_id": "child_sid", "content": "match", "source": "cli",
-             "session_started": 1709500000, "model": "test"},
+            {
+                "session_id": "child_sid",
+                "content": "match",
+                "source": "cli",
+                "session_started": 1709500000,
+                "model": "test",
+            },
         ]
 
         def _get_session(session_id):
@@ -276,9 +326,13 @@ class TestSessionSearch:
 
         mock_db.get_session.side_effect = _get_session
 
-        result = json.loads(session_search(
-            query="test", db=mock_db, current_session_id="root_sid",
-        ))
+        result = json.loads(
+            session_search(
+                query="test",
+                db=mock_db,
+                current_session_id="root_sid",
+            )
+        )
 
         assert result["success"] is True
         assert result["count"] == 0

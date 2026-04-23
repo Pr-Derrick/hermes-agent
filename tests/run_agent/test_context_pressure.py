@@ -133,7 +133,9 @@ def _make_tool_defs(*names):
 def agent():
     """Minimal AIAgent with mocked internals."""
     with (
-        patch("run_agent.get_tool_definitions", return_value=_make_tool_defs("web_search")),
+        patch(
+            "run_agent.get_tool_definitions", return_value=_make_tool_defs("web_search")
+        ),
         patch("run_agent.check_toolset_requirements", return_value={}),
         patch("run_agent.OpenAI"),
     ):
@@ -306,37 +308,56 @@ class TestContextPressureGatewayDedup:
     def test_second_instance_within_cooldown_suppressed(self):
         """Same session, same tier, within cooldown — should be suppressed."""
         import time
+
         sid = "test_session_dedup"
         # Simulate first warning
         AIAgent._context_pressure_last_warned[sid] = (0.85, time.time())
         # Second instance checking same tier within cooldown
         _last = AIAgent._context_pressure_last_warned.get(sid)
-        _should_warn = _last is None or _last[0] < 0.85 or (time.time() - _last[1]) >= AIAgent._CONTEXT_PRESSURE_COOLDOWN
+        _should_warn = (
+            _last is None
+            or _last[0] < 0.85
+            or (time.time() - _last[1]) >= AIAgent._CONTEXT_PRESSURE_COOLDOWN
+        )
         assert not _should_warn
 
     def test_higher_tier_fires_despite_cooldown(self):
         """Same session, higher tier — should fire even within cooldown."""
         import time
+
         sid = "test_session_tier"
         AIAgent._context_pressure_last_warned[sid] = (0.85, time.time())
         _last = AIAgent._context_pressure_last_warned.get(sid)
         # 0.95 > 0.85 stored tier → should warn
-        _should_warn = _last is None or _last[0] < 0.95 or (time.time() - _last[1]) >= AIAgent._CONTEXT_PRESSURE_COOLDOWN
+        _should_warn = (
+            _last is None
+            or _last[0] < 0.95
+            or (time.time() - _last[1]) >= AIAgent._CONTEXT_PRESSURE_COOLDOWN
+        )
         assert _should_warn
 
     def test_warning_fires_after_cooldown_expires(self):
         """Same session, same tier, after cooldown — should fire again."""
         import time
+
         sid = "test_session_expired"
         # Set a timestamp far in the past
-        AIAgent._context_pressure_last_warned[sid] = (0.85, time.time() - AIAgent._CONTEXT_PRESSURE_COOLDOWN - 1)
+        AIAgent._context_pressure_last_warned[sid] = (
+            0.85,
+            time.time() - AIAgent._CONTEXT_PRESSURE_COOLDOWN - 1,
+        )
         _last = AIAgent._context_pressure_last_warned.get(sid)
-        _should_warn = _last is None or _last[0] < 0.85 or (time.time() - _last[1]) >= AIAgent._CONTEXT_PRESSURE_COOLDOWN
+        _should_warn = (
+            _last is None
+            or _last[0] < 0.85
+            or (time.time() - _last[1]) >= AIAgent._CONTEXT_PRESSURE_COOLDOWN
+        )
         assert _should_warn
 
     def test_compression_clears_dedup(self):
         """After compression drops below 85%, dedup entry should be cleared."""
         import time
+
         sid = "test_session_clear"
         AIAgent._context_pressure_last_warned[sid] = (0.85, time.time())
         assert sid in AIAgent._context_pressure_last_warned
@@ -347,6 +368,7 @@ class TestContextPressureGatewayDedup:
     def test_eviction_removes_stale_entries(self):
         """Stale entries older than 2x cooldown should be evicted."""
         import time
+
         _now = time.time()
         AIAgent._context_pressure_last_warned = {
             "fresh": (0.85, _now),
@@ -354,7 +376,8 @@ class TestContextPressureGatewayDedup:
         }
         _cutoff = _now - AIAgent._CONTEXT_PRESSURE_COOLDOWN * 2
         AIAgent._context_pressure_last_warned = {
-            k: v for k, v in AIAgent._context_pressure_last_warned.items()
+            k: v
+            for k, v in AIAgent._context_pressure_last_warned.items()
             if v[1] > _cutoff
         }
         assert "fresh" in AIAgent._context_pressure_last_warned

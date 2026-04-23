@@ -21,6 +21,7 @@ from gateway.run import GatewayRunner
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 class _FakeRegistry:
     """Return pre-canned sessions, then None once exhausted."""
 
@@ -66,10 +67,11 @@ def _watcher_dict(session_id="proc_test", thread_id=""):
 # _load_background_notifications_mode unit tests
 # ---------------------------------------------------------------------------
 
-class TestLoadBackgroundNotificationsMode:
 
+class TestLoadBackgroundNotificationsMode:
     def test_defaults_to_all(self, monkeypatch, tmp_path):
         import gateway.run as gw
+
         monkeypatch.setattr(gw, "_hermes_home", tmp_path)
         monkeypatch.delenv("HERMES_BACKGROUND_NOTIFICATIONS", raising=False)
         assert GatewayRunner._load_background_notifications_mode() == "all"
@@ -79,6 +81,7 @@ class TestLoadBackgroundNotificationsMode:
             "display:\n  background_process_notifications: error\n"
         )
         import gateway.run as gw
+
         monkeypatch.setattr(gw, "_hermes_home", tmp_path)
         monkeypatch.delenv("HERMES_BACKGROUND_NOTIFICATIONS", raising=False)
         assert GatewayRunner._load_background_notifications_mode() == "error"
@@ -88,6 +91,7 @@ class TestLoadBackgroundNotificationsMode:
             "display:\n  background_process_notifications: error\n"
         )
         import gateway.run as gw
+
         monkeypatch.setattr(gw, "_hermes_home", tmp_path)
         monkeypatch.setenv("HERMES_BACKGROUND_NOTIFICATIONS", "off")
         assert GatewayRunner._load_background_notifications_mode() == "off"
@@ -97,6 +101,7 @@ class TestLoadBackgroundNotificationsMode:
             "display:\n  background_process_notifications: false\n"
         )
         import gateway.run as gw
+
         monkeypatch.setattr(gw, "_hermes_home", tmp_path)
         monkeypatch.delenv("HERMES_BACKGROUND_NOTIFICATIONS", raising=False)
         assert GatewayRunner._load_background_notifications_mode() == "off"
@@ -106,6 +111,7 @@ class TestLoadBackgroundNotificationsMode:
             "display:\n  background_process_notifications: banana\n"
         )
         import gateway.run as gw
+
         monkeypatch.setattr(gw, "_hermes_home", tmp_path)
         monkeypatch.delenv("HERMES_BACKGROUND_NOTIFICATIONS", raising=False)
         assert GatewayRunner._load_background_notifications_mode() == "all"
@@ -115,6 +121,7 @@ class TestLoadBackgroundNotificationsMode:
 # _run_process_watcher integration tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("mode", "sessions", "expected_calls", "expected_fragment"),
@@ -123,7 +130,9 @@ class TestLoadBackgroundNotificationsMode:
         (
             "all",
             [
-                SimpleNamespace(output_buffer="building...\n", exited=False, exit_code=None),
+                SimpleNamespace(
+                    output_buffer="building...\n", exited=False, exit_code=None
+                ),
                 None,  # process disappears → watcher exits
             ],
             1,
@@ -133,7 +142,9 @@ class TestLoadBackgroundNotificationsMode:
         (
             "result",
             [
-                SimpleNamespace(output_buffer="building...\n", exited=False, exit_code=None),
+                SimpleNamespace(
+                    output_buffer="building...\n", exited=False, exit_code=None
+                ),
                 None,
             ],
             0,
@@ -186,6 +197,7 @@ async def test_run_process_watcher_respects_notification_mode(
     # Patch asyncio.sleep to avoid real delays
     async def _instant_sleep(*_a, **_kw):
         pass
+
     monkeypatch.setattr(asyncio, "sleep", _instant_sleep)
 
     runner = _build_runner(monkeypatch, tmp_path, mode)
@@ -211,6 +223,7 @@ async def test_thread_id_passed_to_send(monkeypatch, tmp_path):
 
     async def _instant_sleep(*_a, **_kw):
         pass
+
     monkeypatch.setattr(asyncio, "sleep", _instant_sleep)
 
     runner = _build_runner(monkeypatch, tmp_path, "all")
@@ -233,6 +246,7 @@ async def test_no_thread_id_sends_no_metadata(monkeypatch, tmp_path):
 
     async def _instant_sleep(*_a, **_kw):
         pass
+
     monkeypatch.setattr(asyncio, "sleep", _instant_sleep)
 
     runner = _build_runner(monkeypatch, tmp_path, "all")

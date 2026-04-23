@@ -16,7 +16,9 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from hermes_cli.colors import Colors, color
 
 
-def _normalize_skills(single_skill=None, skills: Optional[Iterable[str]] = None) -> Optional[List[str]]:
+def _normalize_skills(
+    single_skill=None, skills: Optional[Iterable[str]] = None
+) -> Optional[List[str]]:
     if skills is None:
         if single_skill is None:
             return None
@@ -46,19 +48,41 @@ def cron_list(show_all: bool = False):
 
     if not jobs:
         print(color("No scheduled jobs.", Colors.DIM))
-        print(color("Create one with 'hermes cron create ...' or the /cron command in chat.", Colors.DIM))
+        print(
+            color(
+                "Create one with 'hermes cron create ...' or the /cron command in chat.",
+                Colors.DIM,
+            )
+        )
         return
 
     print()
-    print(color("┌─────────────────────────────────────────────────────────────────────────┐", Colors.CYAN))
-    print(color("│                         Scheduled Jobs                                  │", Colors.CYAN))
-    print(color("└─────────────────────────────────────────────────────────────────────────┘", Colors.CYAN))
+    print(
+        color(
+            "┌─────────────────────────────────────────────────────────────────────────┐",
+            Colors.CYAN,
+        )
+    )
+    print(
+        color(
+            "│                         Scheduled Jobs                                  │",
+            Colors.CYAN,
+        )
+    )
+    print(
+        color(
+            "└─────────────────────────────────────────────────────────────────────────┘",
+            Colors.CYAN,
+        )
+    )
     print()
 
     for job in jobs:
         job_id = job.get("id", "?")
         name = job.get("name", "(unnamed)")
-        schedule = job.get("schedule_display", job.get("schedule", {}).get("value", "?"))
+        schedule = job.get(
+            "schedule_display", job.get("schedule", {}).get("value", "?")
+        )
         state = job.get("state", "scheduled" if job.get("enabled", True) else "paused")
         next_run = job.get("next_run_at", "?")
 
@@ -101,7 +125,9 @@ def cron_list(show_all: bool = False):
             if last_status == "ok":
                 status_display = color("ok", Colors.GREEN)
             else:
-                status_display = color(f"{last_status}: {job.get('last_error', '?')}", Colors.RED)
+                status_display = color(
+                    f"{last_status}: {job.get('last_error', '?')}", Colors.RED
+                )
             print(f"    Last run:  {last_run}  {status_display}")
 
         delivery_err = job.get("last_delivery_error")
@@ -111,16 +137,28 @@ def cron_list(show_all: bool = False):
         print()
 
     from hermes_cli.gateway import find_gateway_pids
+
     if not find_gateway_pids():
-        print(color("  ⚠  Gateway is not running — jobs won't fire automatically.", Colors.YELLOW))
+        print(
+            color(
+                "  ⚠  Gateway is not running — jobs won't fire automatically.",
+                Colors.YELLOW,
+            )
+        )
         print(color("     Start it with: hermes gateway install", Colors.DIM))
-        print(color("                    sudo hermes gateway install --system  # Linux servers", Colors.DIM))
+        print(
+            color(
+                "                    sudo hermes gateway install --system  # Linux servers",
+                Colors.DIM,
+            )
+        )
         print()
 
 
 def cron_tick():
     """Run due jobs once and exit."""
     from cron.scheduler import tick
+
     tick(verbose=True)
 
 
@@ -133,14 +171,20 @@ def cron_status():
 
     pids = find_gateway_pids()
     if pids:
-        print(color("✓ Gateway is running — cron jobs will fire automatically", Colors.GREEN))
+        print(
+            color(
+                "✓ Gateway is running — cron jobs will fire automatically", Colors.GREEN
+            )
+        )
         print(f"  PID: {', '.join(map(str, pids))}")
     else:
         print(color("✗ Gateway is not running — cron jobs will NOT fire", Colors.RED))
         print()
         print("  To enable automatic execution:")
         print("    hermes gateway install    # Install as a user service")
-        print("    sudo hermes gateway install --system  # Linux servers: boot-time system service")
+        print(
+            "    sudo hermes gateway install --system  # Linux servers: boot-time system service"
+        )
         print("    hermes gateway            # Or run in foreground")
 
     print()
@@ -166,11 +210,18 @@ def cron_create(args):
         deliver=getattr(args, "deliver", None),
         repeat=getattr(args, "repeat", None),
         skill=getattr(args, "skill", None),
-        skills=_normalize_skills(getattr(args, "skill", None), getattr(args, "skills", None)),
+        skills=_normalize_skills(
+            getattr(args, "skill", None), getattr(args, "skills", None)
+        ),
         script=getattr(args, "script", None),
     )
     if not result.get("success"):
-        print(color(f"Failed to create job: {result.get('error', 'unknown error')}", Colors.RED))
+        print(
+            color(
+                f"Failed to create job: {result.get('error', 'unknown error')}",
+                Colors.RED,
+            )
+        )
         return 1
     print(color(f"Created job: {result['job_id']}", Colors.GREEN))
     print(f"  Name: {result['name']}")
@@ -192,10 +243,16 @@ def cron_edit(args):
         print(color(f"Job not found: {args.job_id}", Colors.RED))
         return 1
 
-    existing_skills = list(job.get("skills") or ([] if not job.get("skill") else [job.get("skill")]))
-    replacement_skills = _normalize_skills(getattr(args, "skill", None), getattr(args, "skills", None))
+    existing_skills = list(
+        job.get("skills") or ([] if not job.get("skill") else [job.get("skill")])
+    )
+    replacement_skills = _normalize_skills(
+        getattr(args, "skill", None), getattr(args, "skills", None)
+    )
     add_skills = _normalize_skills(None, getattr(args, "add_skills", None)) or []
-    remove_skills = set(_normalize_skills(None, getattr(args, "remove_skills", None)) or [])
+    remove_skills = set(
+        _normalize_skills(None, getattr(args, "remove_skills", None)) or []
+    )
 
     final_skills = None
     if getattr(args, "clear_skills", False):
@@ -203,7 +260,9 @@ def cron_edit(args):
     elif replacement_skills is not None:
         final_skills = replacement_skills
     elif add_skills or remove_skills:
-        final_skills = [skill for skill in existing_skills if skill not in remove_skills]
+        final_skills = [
+            skill for skill in existing_skills if skill not in remove_skills
+        ]
         for skill in add_skills:
             if skill not in final_skills:
                 final_skills.append(skill)
@@ -220,7 +279,12 @@ def cron_edit(args):
         script=getattr(args, "script", None),
     )
     if not result.get("success"):
-        print(color(f"Failed to update job: {result.get('error', 'unknown error')}", Colors.RED))
+        print(
+            color(
+                f"Failed to update job: {result.get('error', 'unknown error')}",
+                Colors.RED,
+            )
+        )
         return 1
 
     updated = result["job"]
@@ -239,10 +303,17 @@ def cron_edit(args):
 def _job_action(action: str, job_id: str, success_verb: str) -> int:
     result = _cron_api(action=action, job_id=job_id)
     if not result.get("success"):
-        print(color(f"Failed to {action} job: {result.get('error', 'unknown error')}", Colors.RED))
+        print(
+            color(
+                f"Failed to {action} job: {result.get('error', 'unknown error')}",
+                Colors.RED,
+            )
+        )
         return 1
     job = result.get("job") or result.get("removed_job") or {}
-    print(color(f"{success_verb} job: {job.get('name', job_id)} ({job_id})", Colors.GREEN))
+    print(
+        color(f"{success_verb} job: {job.get('name', job_id)} ({job_id})", Colors.GREEN)
+    )
     if action in {"resume", "run"} and result.get("job", {}).get("next_run_at"):
         print(f"  Next run: {result['job']['next_run_at']}")
     if action == "run":
@@ -252,10 +323,10 @@ def _job_action(action: str, job_id: str, success_verb: str) -> int:
 
 def cron_command(args):
     """Handle cron subcommands."""
-    subcmd = getattr(args, 'cron_command', None)
+    subcmd = getattr(args, "cron_command", None)
 
     if subcmd is None or subcmd == "list":
-        show_all = getattr(args, 'all', False)
+        show_all = getattr(args, "all", False)
         cron_list(show_all)
         return 0
 

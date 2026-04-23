@@ -29,16 +29,19 @@ logger = logging.getLogger(__name__)
 # -- Hermes overlay ----------------------------------------------------------
 # Hermes-specific metadata that models.dev doesn't provide.
 
+
 @dataclass(frozen=True)
 class HermesOverlay:
     """Hermes-specific provider metadata layered on top of models.dev."""
 
-    transport: str = "openai_chat"        # openai_chat | anthropic_messages | codex_responses
+    transport: str = "openai_chat"  # openai_chat | anthropic_messages | codex_responses
     is_aggregator: bool = False
-    auth_type: str = "api_key"            # api_key | oauth_device_code | oauth_external | external_process
+    auth_type: str = (
+        "api_key"  # api_key | oauth_device_code | oauth_external | external_process
+    )
     extra_env_vars: Tuple[str, ...] = ()  # env vars models.dev doesn't list
-    base_url_override: str = ""           # override if models.dev URL is wrong/missing
-    base_url_env_var: str = ""            # env var for user-custom base URL
+    base_url_override: str = ""  # override if models.dev URL is wrong/missing
+    base_url_env_var: str = ""  # env var for user-custom base URL
 
 
 HERMES_OVERLAYS: Dict[str, HermesOverlay] = {
@@ -142,20 +145,21 @@ HERMES_OVERLAYS: Dict[str, HermesOverlay] = {
 # -- Resolved provider -------------------------------------------------------
 # The merged result of models.dev + overlay + user config.
 
+
 @dataclass
 class ProviderDef:
     """Complete provider definition — merged from all sources."""
 
     id: str
     name: str
-    transport: str                        # openai_chat | anthropic_messages | codex_responses
-    api_key_env_vars: Tuple[str, ...]     # all env vars to check for API key
+    transport: str  # openai_chat | anthropic_messages | codex_responses
+    api_key_env_vars: Tuple[str, ...]  # all env vars to check for API key
     base_url: str = ""
     base_url_env_var: str = ""
     is_aggregator: bool = False
     auth_type: str = "api_key"
     doc: str = ""
-    source: str = ""                      # "models.dev", "hermes", "user-config"
+    source: str = ""  # "models.dev", "hermes", "user-config"
 
 
 # -- Aliases ------------------------------------------------------------------
@@ -164,72 +168,57 @@ class ProviderDef:
 
 ALIASES: Dict[str, str] = {
     # openrouter
-    "openai": "openrouter",     # bare "openai" → route through aggregator
-
+    "openai": "openrouter",  # bare "openai" → route through aggregator
     # zai
     "glm": "zai",
     "z-ai": "zai",
     "z.ai": "zai",
     "zhipu": "zai",
-
     # xai
     "x-ai": "xai",
     "x.ai": "xai",
-
     # kimi-for-coding (models.dev ID)
     "kimi": "kimi-for-coding",
     "kimi-coding": "kimi-for-coding",
     "moonshot": "kimi-for-coding",
-
     # minimax-cn
     "minimax-china": "minimax-cn",
     "minimax_cn": "minimax-cn",
-
     # anthropic
     "claude": "anthropic",
     "claude-code": "anthropic",
-
     # github-copilot (models.dev ID)
     "copilot": "github-copilot",
     "github": "github-copilot",
     "github-copilot-acp": "copilot-acp",
-
     # vercel (models.dev ID for AI Gateway)
     "ai-gateway": "vercel",
     "aigateway": "vercel",
     "vercel-ai-gateway": "vercel",
-
     # opencode (models.dev ID for OpenCode Zen)
     "opencode-zen": "opencode",
     "zen": "opencode",
-
     # opencode-go
     "go": "opencode-go",
     "opencode-go-sub": "opencode-go",
-
     # kilo (models.dev ID for KiloCode)
     "kilocode": "kilo",
     "kilo-code": "kilo",
     "kilo-gateway": "kilo",
-
     # deepseek
     "deep-seek": "deepseek",
-
     # alibaba
     "dashscope": "alibaba",
     "aliyun": "alibaba",
     "qwen": "alibaba",
     "alibaba-cloud": "alibaba",
-
     # huggingface
     "hf": "huggingface",
     "hugging-face": "huggingface",
     "huggingface-hub": "huggingface",
-
     # xiaomi
     "mimo": "xiaomi",
     "xiaomi-mimo": "xiaomi",
-
     # Local server aliases → virtual "local" concept (resolved via user config)
     "lmstudio": "lmstudio",
     "lm-studio": "lmstudio",
@@ -266,6 +255,7 @@ TRANSPORT_TO_API_MODE: Dict[str, str] = {
 
 # -- Helper functions ---------------------------------------------------------
 
+
 def normalize_provider(name: str) -> str:
     """Resolve aliases and normalise casing to a canonical provider id.
 
@@ -291,6 +281,7 @@ def get_provider(name: str) -> Optional[ProviderDef]:
     # Try to get models.dev data
     try:
         from agent.models_dev import get_provider_info as _mdev_provider
+
         mdev_info = _mdev_provider(canonical)
     except Exception:
         mdev_info = None
@@ -358,8 +349,6 @@ def get_label(provider_id: str) -> str:
     return canonical
 
 
-
-
 def is_aggregator(provider: str) -> bool:
     """Return True when the provider is a multi-model aggregator."""
     pdef = get_provider(provider)
@@ -391,7 +380,10 @@ def determine_api_mode(provider: str, base_url: str = "") -> str:
 
 # -- Provider from user config ------------------------------------------------
 
-def resolve_user_provider(name: str, user_config: Dict[str, Any]) -> Optional[ProviderDef]:
+
+def resolve_user_provider(
+    name: str, user_config: Dict[str, Any]
+) -> Optional[ProviderDef]:
     """Resolve a provider from the user's config.yaml ``providers:`` section.
 
     Args:
@@ -410,7 +402,9 @@ def resolve_user_provider(name: str, user_config: Dict[str, Any]) -> Optional[Pr
 
     # Extract fields
     display_name = entry.get("name", "") or name
-    api_url = entry.get("api", "") or entry.get("url", "") or entry.get("base_url", "") or ""
+    api_url = (
+        entry.get("api", "") or entry.get("url", "") or entry.get("base_url", "") or ""
+    )
     key_env = entry.get("key_env", "") or ""
     transport = entry.get("transport", "openai_chat") or "openai_chat"
 
@@ -527,6 +521,7 @@ def resolve_provider_full(
     # 3. Try models.dev directly (for providers not in our ALIASES)
     try:
         from agent.models_dev import get_provider_info as _mdev_provider
+
         mdev_info = _mdev_provider(canonical)
         if mdev_info is not None:
             return ProviderDef(

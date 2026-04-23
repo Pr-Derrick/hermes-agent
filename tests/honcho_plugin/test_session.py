@@ -134,7 +134,9 @@ class TestFormatMigrationTranscript:
             {"role": "user", "content": "Hello", "timestamp": "2026-01-01T00:00:00"},
             {"role": "assistant", "content": "Hi!", "timestamp": "2026-01-01T00:01:00"},
         ]
-        result = HonchoSessionManager._format_migration_transcript("telegram:123", messages)
+        result = HonchoSessionManager._format_migration_transcript(
+            "telegram:123", messages
+        )
         assert isinstance(result, bytes)
         text = result.decode("utf-8")
         assert "<prior_conversation_history>" in text
@@ -165,7 +167,9 @@ class TestManagerCacheOps:
     def test_delete_cached_session(self):
         mgr = HonchoSessionManager()
         session = HonchoSession(
-            key="test", user_peer_id="u", assistant_peer_id="a",
+            key="test",
+            user_peer_id="u",
+            assistant_peer_id="a",
             honcho_session_id="s",
         )
         mgr._cache["test"] = session
@@ -178,8 +182,12 @@ class TestManagerCacheOps:
 
     def test_list_sessions(self):
         mgr = HonchoSessionManager()
-        s1 = HonchoSession(key="k1", user_peer_id="u", assistant_peer_id="a", honcho_session_id="s1")
-        s2 = HonchoSession(key="k2", user_peer_id="u", assistant_peer_id="a", honcho_session_id="s2")
+        s1 = HonchoSession(
+            key="k1", user_peer_id="u", assistant_peer_id="a", honcho_session_id="s1"
+        )
+        s2 = HonchoSession(
+            key="k2", user_peer_id="u", assistant_peer_id="a", honcho_session_id="s2"
+        )
         s1.add_message("user", "hi")
         mgr._cache["k1"] = s1
         mgr._cache["k2"] = s2
@@ -283,8 +291,13 @@ class TestPeerLookupHelpers:
 class TestToolsModeInitBehavior:
     """Verify initOnSessionStart controls session init timing in tools mode."""
 
-    def _make_provider_with_config(self, recall_mode="tools", init_on_session_start=False,
-                                    peer_name=None, user_id=None):
+    def _make_provider_with_config(
+        self,
+        recall_mode="tools",
+        init_on_session_start=False,
+        peer_name=None,
+        user_id=None,
+    ):
         """Create a HonchoMemoryProvider with mocked config and dependencies."""
         from plugins.memory.honcho.client import HonchoClientConfig
 
@@ -310,10 +323,21 @@ class TestToolsModeInitBehavior:
         if user_id:
             init_kwargs["user_id"] = user_id
 
-        with patch("plugins.memory.honcho.client.HonchoClientConfig.from_global_config", return_value=cfg), \
-             patch("plugins.memory.honcho.client.get_honcho_client", return_value=MagicMock()), \
-             patch("plugins.memory.honcho.session.HonchoSessionManager", return_value=mock_manager), \
-             patch("hermes_constants.get_hermes_home", return_value=MagicMock()):
+        with (
+            patch(
+                "plugins.memory.honcho.client.HonchoClientConfig.from_global_config",
+                return_value=cfg,
+            ),
+            patch(
+                "plugins.memory.honcho.client.get_honcho_client",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "plugins.memory.honcho.session.HonchoSessionManager",
+                return_value=mock_manager,
+            ),
+            patch("hermes_constants.get_hermes_home", return_value=MagicMock()),
+        ):
             provider.initialize(session_id="test-session-001", **init_kwargs)
 
         return provider, cfg
@@ -321,7 +345,8 @@ class TestToolsModeInitBehavior:
     def test_tools_lazy_default(self):
         """tools + initOnSessionStart=false → session NOT initialized after initialize()."""
         provider, _ = self._make_provider_with_config(
-            recall_mode="tools", init_on_session_start=False,
+            recall_mode="tools",
+            init_on_session_start=False,
         )
         assert provider._session_initialized is False
         assert provider._manager is None
@@ -330,7 +355,8 @@ class TestToolsModeInitBehavior:
     def test_tools_eager_init(self):
         """tools + initOnSessionStart=true → session IS initialized after initialize()."""
         provider, _ = self._make_provider_with_config(
-            recall_mode="tools", init_on_session_start=True,
+            recall_mode="tools",
+            init_on_session_start=True,
         )
         assert provider._session_initialized is True
         assert provider._manager is not None
@@ -338,30 +364,36 @@ class TestToolsModeInitBehavior:
     def test_tools_eager_prefetch_still_empty(self):
         """tools mode with eager init still returns empty from prefetch() (no auto-injection)."""
         provider, _ = self._make_provider_with_config(
-            recall_mode="tools", init_on_session_start=True,
+            recall_mode="tools",
+            init_on_session_start=True,
         )
         assert provider.prefetch("test query") == ""
 
     def test_tools_lazy_prefetch_empty(self):
         """tools mode with lazy init also returns empty from prefetch()."""
         provider, _ = self._make_provider_with_config(
-            recall_mode="tools", init_on_session_start=False,
+            recall_mode="tools",
+            init_on_session_start=False,
         )
         assert provider.prefetch("test query") == ""
 
     def test_explicit_peer_name_not_overridden_by_user_id(self):
         """Explicit peerName in config must not be replaced by gateway user_id."""
         _, cfg = self._make_provider_with_config(
-            recall_mode="tools", init_on_session_start=True,
-            peer_name="Kathie", user_id="8439114563",
+            recall_mode="tools",
+            init_on_session_start=True,
+            peer_name="Kathie",
+            user_id="8439114563",
         )
         assert cfg.peer_name == "Kathie"
 
     def test_user_id_used_when_no_peer_name(self):
         """Gateway user_id is used as peer_name when no explicit peerName configured."""
         _, cfg = self._make_provider_with_config(
-            recall_mode="tools", init_on_session_start=True,
-            peer_name=None, user_id="8439114563",
+            recall_mode="tools",
+            init_on_session_start=True,
+            peer_name=None,
+            user_id="8439114563",
         )
         assert cfg.peer_name == "8439114563"
 
@@ -436,7 +468,9 @@ class TestDialecticInputGuard:
 
         # Create a cached session so dialectic_query doesn't bail early
         session = HonchoSession(
-            key="test", user_peer_id="u", assistant_peer_id="a",
+            key="test",
+            user_peer_id="u",
+            assistant_peer_id="a",
             honcho_session_id="s",
         )
         mgr._cache["test"] = session

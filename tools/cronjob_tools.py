@@ -37,21 +37,35 @@ from cron.jobs import (
 # ---------------------------------------------------------------------------
 
 _CRON_THREAT_PATTERNS = [
-    (r'ignore\s+(?:\w+\s+)*(?:previous|all|above|prior)\s+(?:\w+\s+)*instructions', "prompt_injection"),
-    (r'do\s+not\s+tell\s+the\s+user', "deception_hide"),
-    (r'system\s+prompt\s+override', "sys_prompt_override"),
-    (r'disregard\s+(your|all|any)\s+(instructions|rules|guidelines)', "disregard_rules"),
-    (r'curl\s+[^\n]*\$\{?\w*(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|API)', "exfil_curl"),
-    (r'wget\s+[^\n]*\$\{?\w*(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|API)', "exfil_wget"),
-    (r'cat\s+[^\n]*(\.env|credentials|\.netrc|\.pgpass)', "read_secrets"),
-    (r'authorized_keys', "ssh_backdoor"),
-    (r'/etc/sudoers|visudo', "sudoers_mod"),
-    (r'rm\s+-rf\s+/', "destructive_root_rm"),
+    (
+        r"ignore\s+(?:\w+\s+)*(?:previous|all|above|prior)\s+(?:\w+\s+)*instructions",
+        "prompt_injection",
+    ),
+    (r"do\s+not\s+tell\s+the\s+user", "deception_hide"),
+    (r"system\s+prompt\s+override", "sys_prompt_override"),
+    (
+        r"disregard\s+(your|all|any)\s+(instructions|rules|guidelines)",
+        "disregard_rules",
+    ),
+    (r"curl\s+[^\n]*\$\{?\w*(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|API)", "exfil_curl"),
+    (r"wget\s+[^\n]*\$\{?\w*(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|API)", "exfil_wget"),
+    (r"cat\s+[^\n]*(\.env|credentials|\.netrc|\.pgpass)", "read_secrets"),
+    (r"authorized_keys", "ssh_backdoor"),
+    (r"/etc/sudoers|visudo", "sudoers_mod"),
+    (r"rm\s+-rf\s+/", "destructive_root_rm"),
 ]
 
 _CRON_INVISIBLE_CHARS = {
-    '\u200b', '\u200c', '\u200d', '\u2060', '\ufeff',
-    '\u202a', '\u202b', '\u202c', '\u202d', '\u202e',
+    "\u200b",
+    "\u200c",
+    "\u200d",
+    "\u2060",
+    "\ufeff",
+    "\u202a",
+    "\u202b",
+    "\u202c",
+    "\u202d",
+    "\u202e",
 }
 
 
@@ -68,6 +82,7 @@ def _scan_cron_prompt(prompt: str) -> str:
 
 def _origin_from_env() -> Optional[Dict[str, str]]:
     from gateway.session_context import get_session_env
+
     origin_platform = get_session_env("HERMES_SESSION_PLATFORM")
     origin_chat_id = get_session_env("HERMES_SESSION_CHAT_ID")
     if origin_platform and origin_chat_id:
@@ -75,7 +90,9 @@ def _origin_from_env() -> Optional[Dict[str, str]]:
         if thread_id:
             logger.debug(
                 "Cron origin captured thread_id=%s for %s:%s",
-                thread_id, origin_platform, origin_chat_id,
+                thread_id,
+                origin_platform,
+                origin_chat_id,
             )
         return {
             "platform": origin_platform,
@@ -96,7 +113,9 @@ def _repeat_display(job: Dict[str, Any]) -> str:
     return f"{completed}/{times}" if completed else f"{times} times"
 
 
-def _canonical_skills(skill: Optional[str] = None, skills: Optional[Any] = None) -> List[str]:
+def _canonical_skills(
+    skill: Optional[str] = None, skills: Optional[Any] = None
+) -> List[str]:
     if skills is None:
         raw_items = [skill] if skill else []
     elif isinstance(skills, str):
@@ -110,8 +129,6 @@ def _canonical_skills(skill: Optional[str] = None, skills: Optional[Any] = None)
         if text and text not in normalized:
             normalized.append(text)
     return normalized
-
-
 
 
 def _resolve_model_override(model_obj: Optional[Dict[str, Any]]) -> tuple:
@@ -130,6 +147,7 @@ def _resolve_model_override(model_obj: Optional[Dict[str, Any]]) -> tuple:
         # Pin to the current main provider so the job is stable
         try:
             from hermes_cli.config import load_config
+
             cfg = load_config()
             model_cfg = cfg.get("model", {})
             if isinstance(model_cfg, dict):
@@ -139,7 +157,9 @@ def _resolve_model_override(model_obj: Optional[Dict[str, Any]]) -> tuple:
     return (provider_name, model_name)
 
 
-def _normalize_optional_job_value(value: Optional[Any], *, strip_trailing_slash: bool = False) -> Optional[str]:
+def _normalize_optional_job_value(
+    value: Optional[Any], *, strip_trailing_slash: bool = False
+) -> Optional[str]:
     if value is None:
         return None
     text = str(value).strip()
@@ -180,9 +200,7 @@ def _validate_cron_script_path(script: Optional[str]) -> Optional[str]:
     scripts_dir.mkdir(parents=True, exist_ok=True)
     containment_error = validate_within_dir(scripts_dir / raw, scripts_dir)
     if containment_error:
-        return (
-            f"Script path escapes the scripts directory via traversal: {raw!r}"
-        )
+        return f"Script path escapes the scripts directory via traversal: {raw!r}"
 
     return None
 
@@ -207,7 +225,9 @@ def _format_job(job: Dict[str, Any]) -> Dict[str, Any]:
         "last_status": job.get("last_status"),
         "last_delivery_error": job.get("last_delivery_error"),
         "enabled": job.get("enabled", True),
-        "state": job.get("state", "scheduled" if job.get("enabled", True) else "paused"),
+        "state": job.get(
+            "state", "scheduled" if job.get("enabled", True) else "paused"
+        ),
         "paused_at": job.get("paused_at"),
         "paused_reason": job.get("paused_reason"),
     }
@@ -245,7 +265,9 @@ def cronjob(
                 return tool_error("schedule is required for create", success=False)
             canonical_skills = _canonical_skills(skill, skills)
             if not prompt and not canonical_skills:
-                return tool_error("create requires either prompt or at least one skill", success=False)
+                return tool_error(
+                    "create requires either prompt or at least one skill", success=False
+                )
             if prompt:
                 scan_error = _scan_cron_prompt(prompt)
                 if scan_error:
@@ -267,7 +289,9 @@ def cronjob(
                 skills=canonical_skills,
                 model=_normalize_optional_job_value(model),
                 provider=_normalize_optional_job_value(provider),
-                base_url=_normalize_optional_job_value(base_url, strip_trailing_slash=True),
+                base_url=_normalize_optional_job_value(
+                    base_url, strip_trailing_slash=True
+                ),
                 script=_normalize_optional_job_value(script),
             )
             return json.dumps(
@@ -288,16 +312,25 @@ def cronjob(
             )
 
         if normalized == "list":
-            jobs = [_format_job(job) for job in list_jobs(include_disabled=include_disabled)]
-            return json.dumps({"success": True, "count": len(jobs), "jobs": jobs}, indent=2)
+            jobs = [
+                _format_job(job) for job in list_jobs(include_disabled=include_disabled)
+            ]
+            return json.dumps(
+                {"success": True, "count": len(jobs), "jobs": jobs}, indent=2
+            )
 
         if not job_id:
-            return tool_error(f"job_id is required for action '{normalized}'", success=False)
+            return tool_error(
+                f"job_id is required for action '{normalized}'", success=False
+            )
 
         job = get_job(job_id)
         if not job:
             return json.dumps(
-                {"success": False, "error": f"Job with ID '{job_id}' not found. Use cronjob(action='list') to inspect jobs."},
+                {
+                    "success": False,
+                    "error": f"Job with ID '{job_id}' not found. Use cronjob(action='list') to inspect jobs.",
+                },
                 indent=2,
             )
 
@@ -350,14 +383,18 @@ def cronjob(
             if provider is not None:
                 updates["provider"] = _normalize_optional_job_value(provider)
             if base_url is not None:
-                updates["base_url"] = _normalize_optional_job_value(base_url, strip_trailing_slash=True)
+                updates["base_url"] = _normalize_optional_job_value(
+                    base_url, strip_trailing_slash=True
+                )
             if script is not None:
                 # Pass empty string to clear an existing script
                 if script:
                     script_error = _validate_cron_script_path(script)
                     if script_error:
                         return tool_error(script_error, success=False)
-                updates["script"] = _normalize_optional_job_value(script) if script else None
+                updates["script"] = (
+                    _normalize_optional_job_value(script) if script else None
+                )
             if repeat is not None:
                 # Normalize: treat 0 or negative as None (infinite)
                 normalized_repeat = None if repeat <= 0 else repeat
@@ -385,6 +422,7 @@ def cronjob(
 # ---------------------------------------------------------------------------
 # Compatibility wrappers
 # ---------------------------------------------------------------------------
+
 
 def schedule_cronjob(
     prompt: str,
@@ -441,36 +479,33 @@ Important safety rule: cron-run sessions should not recursively schedule more cr
         "properties": {
             "action": {
                 "type": "string",
-                "description": "One of: create, list, update, pause, resume, remove, run"
+                "description": "One of: create, list, update, pause, resume, remove, run",
             },
             "job_id": {
                 "type": "string",
-                "description": "Required for update/pause/resume/remove/run"
+                "description": "Required for update/pause/resume/remove/run",
             },
             "prompt": {
                 "type": "string",
-                "description": "For create: the full self-contained prompt. If skills are also provided, this becomes the task instruction paired with those skills."
+                "description": "For create: the full self-contained prompt. If skills are also provided, this becomes the task instruction paired with those skills.",
             },
             "schedule": {
                 "type": "string",
-                "description": "For create/update: '30m', 'every 2h', '0 9 * * *', or ISO timestamp"
+                "description": "For create/update: '30m', 'every 2h', '0 9 * * *', or ISO timestamp",
             },
-            "name": {
-                "type": "string",
-                "description": "Optional human-friendly name"
-            },
+            "name": {"type": "string", "description": "Optional human-friendly name"},
             "repeat": {
                 "type": "integer",
-                "description": "Optional repeat count. Omit for defaults (once for one-shot, forever for recurring)."
+                "description": "Optional repeat count. Omit for defaults (once for one-shot, forever for recurring).",
             },
             "deliver": {
                 "type": "string",
-                "description": "Omit this parameter to auto-deliver back to the current chat and topic (recommended). Auto-detection preserves thread/topic context. Only set explicitly when the user asks to deliver somewhere OTHER than the current conversation. Values: 'origin' (same as omitting), 'local' (no delivery, save only), or platform:chat_id:thread_id for a specific destination. Examples: 'telegram:-1001234567890:17585', 'discord:#engineering'. WARNING: 'platform:chat_id' without :thread_id loses topic targeting."
+                "description": "Omit this parameter to auto-deliver back to the current chat and topic (recommended). Auto-detection preserves thread/topic context. Only set explicitly when the user asks to deliver somewhere OTHER than the current conversation. Values: 'origin' (same as omitting), 'local' (no delivery, save only), or platform:chat_id:thread_id for a specific destination. Examples: 'telegram:-1001234567890:17585', 'discord:#engineering'. WARNING: 'platform:chat_id' without :thread_id loses topic targeting.",
             },
             "skills": {
                 "type": "array",
                 "items": {"type": "string"},
-                "description": "Optional ordered list of skill names to load before executing the cron prompt. On update, pass an empty array to clear attached skills."
+                "description": "Optional ordered list of skill names to load before executing the cron prompt. On update, pass an empty array to clear attached skills.",
             },
             "model": {
                 "type": "object",
@@ -478,22 +513,22 @@ Important safety rule: cron-run sessions should not recursively schedule more cr
                 "properties": {
                     "provider": {
                         "type": "string",
-                        "description": "Provider name (e.g. 'openrouter', 'anthropic'). Omit to use and pin the current provider."
+                        "description": "Provider name (e.g. 'openrouter', 'anthropic'). Omit to use and pin the current provider.",
                     },
                     "model": {
                         "type": "string",
-                        "description": "Model name (e.g. 'anthropic/claude-sonnet-4', 'claude-sonnet-4')"
-                    }
+                        "description": "Model name (e.g. 'anthropic/claude-sonnet-4', 'claude-sonnet-4')",
+                    },
                 },
-                "required": ["model"]
+                "required": ["model"],
             },
             "script": {
                 "type": "string",
-                "description": "Optional path to a Python script that runs before each cron job execution. Its stdout is injected into the prompt as context. Use for data collection and change detection. Relative paths resolve under ~/.hermes/scripts/. On update, pass empty string to clear."
+                "description": "Optional path to a Python script that runs before each cron job execution. Its stdout is injected into the prompt as context. Use for data collection and change detection. Relative paths resolve under ~/.hermes/scripts/. On update, pass empty string to clear.",
             },
         },
-        "required": ["action"]
-    }
+        "required": ["action"],
+    },
 }
 
 
@@ -519,24 +554,26 @@ registry.register(
     name="cronjob",
     toolset="cronjob",
     schema=CRONJOB_SCHEMA,
-    handler=lambda args, **kw: (lambda _mo=_resolve_model_override(args.get("model")): cronjob(
-        action=args.get("action", ""),
-        job_id=args.get("job_id"),
-        prompt=args.get("prompt"),
-        schedule=args.get("schedule"),
-        name=args.get("name"),
-        repeat=args.get("repeat"),
-        deliver=args.get("deliver"),
-        include_disabled=args.get("include_disabled", True),
-        skill=args.get("skill"),
-        skills=args.get("skills"),
-        model=_mo[1],
-        provider=_mo[0] or args.get("provider"),
-        base_url=args.get("base_url"),
-        reason=args.get("reason"),
-        script=args.get("script"),
-        task_id=kw.get("task_id"),
-    ))(),
+    handler=lambda args, **kw: (
+        lambda _mo=_resolve_model_override(args.get("model")): cronjob(
+            action=args.get("action", ""),
+            job_id=args.get("job_id"),
+            prompt=args.get("prompt"),
+            schedule=args.get("schedule"),
+            name=args.get("name"),
+            repeat=args.get("repeat"),
+            deliver=args.get("deliver"),
+            include_disabled=args.get("include_disabled", True),
+            skill=args.get("skill"),
+            skills=args.get("skills"),
+            model=_mo[1],
+            provider=_mo[0] or args.get("provider"),
+            base_url=args.get("base_url"),
+            reason=args.get("reason"),
+            script=args.get("script"),
+            task_id=kw.get("task_id"),
+        )
+    )(),
     check_fn=check_cronjob_requirements,
     emoji="⏰",
 )

@@ -48,7 +48,9 @@ def _load_terminalbench_module(monkeypatch):
             "atroposlib.envs.base",
             EvalHandlingEnum=_EvalHandlingEnum,
         ),
-        "atroposlib.envs.server_handling": _stub_module("atroposlib.envs.server_handling"),
+        "atroposlib.envs.server_handling": _stub_module(
+            "atroposlib.envs.server_handling"
+        ),
         "atroposlib.envs.server_handling.server_manager": _stub_module(
             "atroposlib.envs.server_handling.server_manager",
             APIServerConfig=_APIServerConfig,
@@ -77,7 +79,9 @@ def _load_terminalbench_module(monkeypatch):
 
     stub_modules["atroposlib"].envs = stub_modules["atroposlib.envs"]
     stub_modules["atroposlib.envs"].base = stub_modules["atroposlib.envs.base"]
-    stub_modules["atroposlib.envs"].server_handling = stub_modules["atroposlib.envs.server_handling"]
+    stub_modules["atroposlib.envs"].server_handling = stub_modules[
+        "atroposlib.envs.server_handling"
+    ]
     stub_modules["atroposlib.envs.server_handling"].server_manager = stub_modules[
         "atroposlib.envs.server_handling.server_manager"
     ]
